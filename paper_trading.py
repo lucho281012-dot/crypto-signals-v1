@@ -1,10 +1,10 @@
-
 import json
 from pathlib import Path
 from datetime import datetime, timezone
 
 INITIAL_BALANCE = 100.0
 RISK_PERCENT = 0.01
+MAX_POSITION_PERCENT = 0.95
 FEE_RATE = 0.001
 
 STATE_FILE = Path("data/paper_state.json")
@@ -27,7 +27,6 @@ def load_state():
 
 def save_state(state):
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-
     temp_file = STATE_FILE.with_suffix(".tmp")
 
     with temp_file.open("w", encoding="utf-8") as file:
@@ -41,26 +40,28 @@ def open_position(state, symbol, entry_price, stop_price):
         return False, "Precio inválido"
 
     if stop_price >= entry_price:
-        return False, "El stop debe estar debajo de la entrada"
+        return False, "Stop inválido"
 
     if symbol in state["positions"]:
         return False, "Ya existe una posición abierta"
 
-    risk_amount = state["cash_usdt"] * RISK_PERCENT
+    balance = state["cash_usdt"]
+    risk_amount = balance * RISK_PERCENT
 
-    quantity = risk_amount / (entry_price - stop_price)
+    risk_per_unit = entry_price - stop_price
+    quantity_by_risk = risk_amount / risk_per_unit
+
+    max_investment = balance * MAX_POSITION_PERCENT
+    quantity_by_balance = (
+        max_investment / (entry_price * (1 + FEE_RATE))
+    )
+
+    quantity = min(quantity_by_risk, quantity_by_balance)
 
     cost = quantity * entry_price
     fee = cost * FEE_RATE
 
-    if cost + fee > state["cash_usdt"]:
-        quantity = state["cash_usdt"] / (
-            entry_price * (1 + FEE_RATE)
-        )
-        cost = quantity * entry_price
-        fee = cost * FEE_RATE
-
-    if quantity <= 0 or cost + fee > state["cash_usdt"]:
+    if quantity <= 0 or cost + fee > balance:
         return False, "Saldo insuficiente"
 
     state["cash_usdt"] -= cost + fee
@@ -75,20 +76,19 @@ def open_position(state, symbol, entry_price, stop_price):
 
     save_state(state)
 
-    return True, f"Compra simulada de {symbol}: {quantity:.8f}"
+    return True, f"Compra simulada: {symbol}"
 
 
 def close_position(state, symbol, exit_price, reason="manual"):
     position = state["positions"].get(symbol)
 
     if not position:
-        return False, "No existe una posición abierta"
+        return False, "No existe posición abierta"
 
     if exit_price <= 0:
-        return False, "Precio de salida inválido"
+        return False, "Precio inválido"
 
     quantity = position["quantity"]
-
     proceeds = quantity * exit_price
     exit_fee = proceeds * FEE_RATE
 
@@ -139,4 +139,3 @@ def get_status(state):
 if __name__ == "__main__":
     state = load_state()
     print(json.dumps(get_status(state), indent=2))
-
