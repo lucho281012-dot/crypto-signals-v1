@@ -1,6 +1,9 @@
 name: Crypto Signals Paper Trading
 
 on:
+  push:
+    branches:
+      - paper-trading-v1-2
   workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
