@@ -1,1 +1,4 @@
-ccxt>=4.4.0\npandas>=2.2.0\nrequests>=2.32.0\n
+
+ccxt>=4.4.0
+pandas>=2.2.0
+requests>=2.32.0
