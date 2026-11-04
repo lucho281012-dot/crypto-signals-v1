@@ -1,12 +1,12 @@
 
 import json
-import os
 from pathlib import Path
 from datetime import datetime, timezone
 
 INITIAL_BALANCE = 100.0
 RISK_PERCENT = 0.01
 FEE_RATE = 0.001
+
 STATE_FILE = Path("data/paper_state.json")
 
 
@@ -27,6 +27,7 @@ def load_state():
 
 def save_state(state):
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+
     temp_file = STATE_FILE.with_suffix(".tmp")
 
     with temp_file.open("w", encoding="utf-8") as file:
@@ -40,15 +41,15 @@ def open_position(state, symbol, entry_price, stop_price):
         return False, "Precio inválido"
 
     if stop_price >= entry_price:
-        return False, "En Spot, el stop debe estar debajo de la entrada"
+        return False, "El stop debe estar debajo de la entrada"
 
     if symbol in state["positions"]:
-        return False, "Ya existe una posición para este par"
+        return False, "Ya existe una posición abierta"
 
     risk_amount = state["cash_usdt"] * RISK_PERCENT
+
     quantity = risk_amount / (entry_price - stop_price)
 
-    # Reservamos margen para la comisión de compra.
     cost = quantity * entry_price
     fee = cost * FEE_RATE
 
@@ -73,6 +74,7 @@ def open_position(state, symbol, entry_price, stop_price):
     }
 
     save_state(state)
+
     return True, f"Compra simulada de {symbol}: {quantity:.8f}"
 
 
@@ -86,6 +88,7 @@ def close_position(state, symbol, exit_price, reason="manual"):
         return False, "Precio de salida inválido"
 
     quantity = position["quantity"]
+
     proceeds = quantity * exit_price
     exit_fee = proceeds * FEE_RATE
 
@@ -111,7 +114,8 @@ def close_position(state, symbol, exit_price, reason="manual"):
     del state["positions"][symbol]
 
     save_state(state)
-    return True, f"Operación cerrada. Resultado neto: {pnl:.4f} USDT"
+
+    return True, f"Resultado neto: {pnl:.4f} USDT"
 
 
 def get_status(state):
@@ -122,12 +126,12 @@ def get_status(state):
 
     return {
         "initial_balance": state["initial_balance"],
-        "cash_usdt": state["cash_usdt"],
-        "invested_usdt": invested,
+        "cash_usdt": round(state["cash_usdt"], 4),
+        "invested_usdt": round(invested, 4),
         "open_positions": len(state["positions"]),
         "closed_trades": len(state["history"]),
-        "realized_pnl": sum(
-            trade["net_pnl"] for trade in state["history"]
+        "realized_pnl": round(
+            sum(t["net_pnl"] for t in state["history"]), 4
         )
     }
 
@@ -135,3 +139,4 @@ def get_status(state):
 if __name__ == "__main__":
     state = load_state()
     print(json.dumps(get_status(state), indent=2))
+
