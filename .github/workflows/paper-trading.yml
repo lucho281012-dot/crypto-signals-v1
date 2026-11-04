@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - paper-trading-v1-2
+    paths-ignore:
+     - 'data/**'
   workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
