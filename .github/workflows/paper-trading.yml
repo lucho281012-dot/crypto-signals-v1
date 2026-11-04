@@ -38,10 +38,13 @@ jobs:
         run: |
           python paper_bot.py
 
+  
       - name: Guardar estado del simulador
         run: |
+          python -c "from paper_trading import load_state, save_state; save_state(load_state())"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/paper_state.json
           git diff --cached --quiet || git commit -m "Update paper trading state"
           git push origin HEAD:paper-trading-v1-2
+        
