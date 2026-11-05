@@ -56,11 +56,14 @@ def open_position(state, symbol, entry_price, stop_price):
         return False, "Ya existe una posición abierta"
 
     balance = float(state["cash_usdt"])
+    initial_balance = float(state["initial_balance"])
 
     if balance <= 0:
         return False, "Saldo insuficiente"
 
-    risk_amount = balance * RISK_PERCENT
+    # Riesgo fijo: 1% del capital inicial
+    risk_amount = initial_balance * RISK_PERCENT
+
     risk_per_unit = entry_price - stop_price
 
     # Incluye comisiones estimadas de entrada y salida
@@ -74,11 +77,27 @@ def open_position(state, symbol, entry_price, stop_price):
         risk_amount / risk_per_unit_with_fees
     )
 
-    # Limita la inversión máxima al 95% del efectivo disponible
-    max_investment = balance * MAX_POSITION_PERCENT
+    # Calcula toda la inversión actualmente abierta
+    invested = sum(
+        p["quantity"] * p["entry_price"]
+        for p in state["positions"].values()
+    )
+
+    # Límite global del 95% del capital inicial
+    max_total_investment = (
+        initial_balance * MAX_POSITION_PERCENT
+    )
+
+    available_investment = (
+        max_total_investment - invested
+    )
+
+    if available_investment <= 0:
+        return False, "Límite global de inversión alcanzado"
 
     quantity_by_balance = (
-        max_investment / (entry_price * (1 + FEE_RATE))
+        min(balance, available_investment)
+        / (entry_price * (1 + FEE_RATE))
     )
 
     quantity = min(
@@ -110,68 +129,4 @@ def open_position(state, symbol, entry_price, stop_price):
         f"Riesgo presupuestado: {risk_amount:.4f} USDT"
     )
 
-
-def close_position(state, symbol, exit_price, reason="manual"):
-    position = state["positions"].get(symbol)
-
-    if not position:
-        return False, "No existe posición abierta"
-
-    exit_price = float(exit_price)
-
-    if exit_price <= 0:
-        return False, "Precio inválido"
-
-    quantity = position["quantity"]
-    proceeds = quantity * exit_price
-    exit_fee = proceeds * FEE_RATE
-
-    state["cash_usdt"] += proceeds - exit_fee
-
-    pnl = (
-        proceeds
-        - exit_fee
-        - quantity * position["entry_price"]
-        - position["entry_fee"]
-    )
-
-    trade = {
-        **position,
-        "symbol": symbol,
-        "exit_price": exit_price,
-        "exit_fee": exit_fee,
-        "net_pnl": pnl,
-        "reason": reason,
-        "closed_at": datetime.now(timezone.utc).isoformat()
-    }
-
-    state["history"].append(trade)
-    del state["positions"][symbol]
-
-    save_state(state)
-
-    return True, f"Resultado neto: {pnl:.4f} USDT"
-
-
-def get_status(state):
-    invested = sum(
-        p["quantity"] * p["entry_price"]
-        for p in state["positions"].values()
-    )
-
-    return {
-        "initial_balance": state["initial_balance"],
-        "cash_usdt": round(state["cash_usdt"], 4),
-        "invested_usdt": round(invested, 4),
-        "open_positions": len(state["positions"]),
-        "closed_trades": len(state["history"]),
-        "realized_pnl": round(
-            sum(t["net_pnl"] for t in state["history"]), 4
-        )
-    }
-
-
-if __name__ == "__main__":
-    state = load_state()
-    print(json.dumps(get_status(state), indent=2))
 
