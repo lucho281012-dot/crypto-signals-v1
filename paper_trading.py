@@ -1,3 +1,4 @@
+
 import json
 from pathlib import Path
 from datetime import datetime, timezone
@@ -15,13 +16,19 @@ def load_state():
 
     if STATE_FILE.exists():
         with STATE_FILE.open("r", encoding="utf-8") as file:
-            return json.load(file)
+            state = json.load(file)
+
+        state.setdefault("positions", {})
+        state.setdefault("history", [])
+        state.setdefault("last_processed_candle", {})
+        return state
 
     return {
         "initial_balance": INITIAL_BALANCE,
         "cash_usdt": INITIAL_BALANCE,
         "positions": {},
-        "history": []
+        "history": [],
+        "last_processed_candle": {}
     }
 
 
@@ -36,6 +43,9 @@ def save_state(state):
 
 
 def open_position(state, symbol, entry_price, stop_price):
+    entry_price = float(entry_price)
+    stop_price = float(stop_price)
+
     if entry_price <= 0 or stop_price <= 0:
         return False, "Precio inválido"
 
@@ -45,38 +55,60 @@ def open_position(state, symbol, entry_price, stop_price):
     if symbol in state["positions"]:
         return False, "Ya existe una posición abierta"
 
-    balance = state["cash_usdt"]
+    balance = float(state["cash_usdt"])
+
+    if balance <= 0:
+        return False, "Saldo insuficiente"
+
     risk_amount = balance * RISK_PERCENT
-
     risk_per_unit = entry_price - stop_price
-    quantity_by_risk = risk_amount / risk_per_unit
 
+    # Incluye comisiones estimadas de entrada y salida
+    risk_per_unit_with_fees = (
+        risk_per_unit
+        + entry_price * FEE_RATE
+        + stop_price * FEE_RATE
+    )
+
+    quantity_by_risk = (
+        risk_amount / risk_per_unit_with_fees
+    )
+
+    # Limita la inversión máxima al 95% del efectivo disponible
     max_investment = balance * MAX_POSITION_PERCENT
+
     quantity_by_balance = (
         max_investment / (entry_price * (1 + FEE_RATE))
     )
 
-    quantity = min(quantity_by_risk, quantity_by_balance)
+    quantity = min(
+        quantity_by_risk,
+        quantity_by_balance
+    )
 
     cost = quantity * entry_price
-    fee = cost * FEE_RATE
+    entry_fee = cost * FEE_RATE
 
-    if quantity <= 0 or cost + fee > balance:
+    if quantity <= 0 or cost + entry_fee > balance:
         return False, "Saldo insuficiente"
 
-    state["cash_usdt"] -= cost + fee
+    state["cash_usdt"] -= cost + entry_fee
 
     state["positions"][symbol] = {
         "entry_price": entry_price,
         "stop_price": stop_price,
         "quantity": quantity,
-        "entry_fee": fee,
+        "entry_fee": entry_fee,
+        "risk_budget": risk_amount,
         "opened_at": datetime.now(timezone.utc).isoformat()
     }
 
     save_state(state)
 
-    return True, f"Compra simulada: {symbol}"
+    return True, (
+        f"Compra simulada: {symbol} | "
+        f"Riesgo presupuestado: {risk_amount:.4f} USDT"
+    )
 
 
 def close_position(state, symbol, exit_price, reason="manual"):
@@ -84,6 +116,8 @@ def close_position(state, symbol, exit_price, reason="manual"):
 
     if not position:
         return False, "No existe posición abierta"
+
+    exit_price = float(exit_price)
 
     if exit_price <= 0:
         return False, "Precio inválido"
@@ -95,7 +129,8 @@ def close_position(state, symbol, exit_price, reason="manual"):
     state["cash_usdt"] += proceeds - exit_fee
 
     pnl = (
-        proceeds - exit_fee
+        proceeds
+        - exit_fee
         - quantity * position["entry_price"]
         - position["entry_fee"]
     )
@@ -139,3 +174,4 @@ def get_status(state):
 if __name__ == "__main__":
     state = load_state()
     print(json.dumps(get_status(state), indent=2))
+
