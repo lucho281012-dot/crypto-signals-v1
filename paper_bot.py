@@ -1,4 +1,3 @@
-
 from market_data import get_all_market_data
 from signal_engine import analyze_spot
 from paper_trading import (
@@ -34,20 +33,22 @@ def run_bot():
             stop = position["stop_price"]
             target = position.get("target_price")
 
-            # Si ambos niveles se alcanzan en la misma vela,
-            # asumimos conservadoramente que se ejecutó el stop.
             if candle["low"] <= stop:
                 exit_price = min(candle["open"], stop)
+
                 close_position(
                     state, symbol, exit_price, "stop_loss"
                 )
+
                 print(symbol, "STOP LOSS")
 
             elif target and candle["high"] >= target:
                 exit_price = max(candle["open"], target)
+
                 close_position(
                     state, symbol, exit_price, "take_profit"
                 )
+
                 print(symbol, "TAKE PROFIT")
 
         else:
@@ -56,7 +57,7 @@ def run_bot():
                 data["candles_15m"]
             )
 
-                        if signal and signal["side"] == "BUY":
+            if signal and signal["side"] == "BUY":
                 entry_price = float(candles[-1]["open"])
 
                 stop_price = entry_price - (
