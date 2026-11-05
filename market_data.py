@@ -1,12 +1,7 @@
-
 import ccxt
 
-
-exchange = ccxt.binance({
-    "enableRateLimit": True,
-    "options": {
-        "defaultType": "spot"
-    }
+exchange = ccxt.kraken({
+    "enableRateLimit": True
 })
 
 SYMBOLS = [
@@ -17,6 +12,11 @@ SYMBOLS = [
 
 
 def get_market_price(symbol):
+    exchange.load_markets()
+
+    if symbol not in exchange.markets:
+        raise ValueError(f"Par no disponible en Kraken: {symbol}")
+
     ticker = exchange.fetch_ticker(symbol)
     return ticker["last"]
 
@@ -44,13 +44,22 @@ def get_candles(symbol, timeframe="5m", limit=250):
 def get_all_market_data():
     results = {}
 
+    exchange.load_markets()
+
     for symbol in SYMBOLS:
         try:
+            if symbol not in exchange.markets:
+                print(f"Par no disponible: {symbol}")
+                continue
+
             results[symbol] = {
                 "price": get_market_price(symbol),
                 "candles_5m": get_candles(symbol, "5m"),
                 "candles_15m": get_candles(symbol, "15m")
             }
+
+            print(f"Datos recibidos correctamente: {symbol}")
+
         except Exception as error:
             print(f"Error consultando {symbol}: {error}")
 
@@ -59,12 +68,4 @@ def get_all_market_data():
 
 if __name__ == "__main__":
     data = get_all_market_data()
-
-    for symbol, info in data.items():
-        print(
-            symbol,
-            "Precio:",
-            info["price"],
-            "Velas 5m:",
-            len(info["candles_5m"])
-        )
+    print("Activos recibidos:", list(data.keys()))
