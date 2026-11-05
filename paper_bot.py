@@ -57,20 +57,31 @@ def run_bot():
             )
 
             if signal and signal["side"] == "BUY":
-                success, message = open_position(
-                    state,
-                    symbol,
-                    signal["entry"],
-                    signal["stop"]
-                )
+    # Simular entrada en la apertura de la siguiente vela.
+    entry_price = float(candles[-1]["open"])
 
-                if success:
-                    state["positions"][symbol]["target_price"] = (
-                        signal["target"]
-                    )
-                    save_state(state)
+    # Mantener la distancia del stop basada en el ATR.
+    stop_price = entry_price - (1.2 * signal["atr"])
 
-                print(message)
+    # Objetivo de beneficio de 2R.
+    target_price = entry_price + (
+        2 * (entry_price - stop_price)
+    )
+
+    success, message = open_position(
+        state,
+        symbol,
+        entry_price,
+        stop_price
+    )
+
+    if success:
+        state["positions"][symbol]["target_price"] = (
+            target_price
+        )
+        save_state(state)
+
+    print(message)
 
         state["last_processed_candle"][symbol] = candle_id
         save_state(state)
