@@ -106,7 +106,7 @@ def simulate(candles, start, end):
             FEE_RATE * (entry + exit_fill) / entry
         ) * 100
 
-               net_pct = gross_pct - fees_pct
+        net_pct = gross_pct - fees_pct
 
         trades.append({
             "signal": signal,
@@ -128,7 +128,7 @@ def simulate(candles, start, end):
 
         i = exit_index + 1
 
-    return trades 
+    return trades
 
 
 def summarize(trades):
