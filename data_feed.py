@@ -5,12 +5,12 @@ import time
 from datetime import datetime, timezone
 
 
+
 URL = (
     "https://data-api.binance.vision/api/v3/klines"
-    
-?symbol=BTCUSDT&interval=1h&limit=1000
-
+    "?symbol=BTCUSDT&interval=1h&limit=1000"
 )
+
 
 
 def download_candles():
