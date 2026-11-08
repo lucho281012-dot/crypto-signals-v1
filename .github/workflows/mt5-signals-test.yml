@@ -1,0 +1,26 @@
+
+name: MT5 Signals Data Test
+
+on:
+  push:
+    branches:
+      - mt5-signals-v1
+    paths:
+      - "data_feed.py"
+      - ".github/workflows/mt5-signals-test.yml"
+
+jobs:
+  test-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run BTC data analyzer
+        run: python data_feed.py
