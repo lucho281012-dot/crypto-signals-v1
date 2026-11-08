@@ -311,13 +311,14 @@ def main():
     results = {}
 
     for filter_name in filters:
-        results[filter_name] = {
-    "blocks": [],
-    "overall": [],
-    "by_direction": {
-        "BUY": {"blocks": []},
-        "SELL": {"blocks": []}
-    }
+                results[filter_name] = {
+            "blocks": [],
+            "overall": {},
+            "by_direction": {
+                "BUY": {"blocks": []},
+                "SELL": {"blocks": []}
+            }
+        }
 
         all_trades = []
 
@@ -337,7 +338,8 @@ def main():
                 "end_index": end,
                 **summarize(trades)
             })
-                        for direction in ["BUY", "SELL"]:
+
+            for direction in ["BUY", "SELL"]:
                 directional_trades = [
                     t for t in trades
                     if t["signal"] == direction
@@ -349,7 +351,8 @@ def main():
                 })
 
         results[filter_name]["overall"] = summarize(all_trades)
-                for direction in ["BUY", "SELL"]:
+
+        for direction in ["BUY", "SELL"]:
             directional_trades = [
                 t for t in all_trades
                 if t["signal"] == direction
@@ -357,7 +360,7 @@ def main():
 
             results[filter_name]["by_direction"][direction]["overall"] = (
                 summarize(directional_trades)
-            )
+                )
 
     result = {
         "status": "success",
