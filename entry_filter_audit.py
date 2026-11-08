@@ -312,9 +312,12 @@ def main():
 
     for filter_name in filters:
         results[filter_name] = {
-            "blocks": [],
-            "overall": []
-        }
+    "blocks": [],
+    "overall": [],
+    "by_direction": {
+        "BUY": {"blocks": []},
+        "SELL": {"blocks": []}
+    }
 
         all_trades = []
 
