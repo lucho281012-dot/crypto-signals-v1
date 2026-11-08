@@ -11,6 +11,7 @@ on:
       - "test_signal_rules.py"
       - ".github/workflows/mt5-signals-test.yml"
       - "analyze.py"
+      - "historical_data.py"
 
 jobs:
   test-data:
@@ -33,3 +34,5 @@ jobs:
         
       - name: Run integrated signal analyzer
         run: python analyze.py
+      - name: Download historical BTC data
+        run: python historical_data.py
