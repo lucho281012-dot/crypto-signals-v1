@@ -1,3 +1,4 @@
+
 import json
 
 import backtest
@@ -6,11 +7,8 @@ from data_feed import ema, rsi, atr
 from signal_rules import evaluate_signal
 
 
-# Filtros experimentales.
-# No modifican la estrategia original.
-
+# Filtros experimentales. No modifican la estrategia original.
 EMA_SLOPE_BARS = 3
-
 ATR_MIN_PCT = 0.4
 ATR_MAX_PCT = 0.8
 
@@ -19,8 +17,6 @@ def apply_filter(filter_name, signal, indicators):
     if signal == "WAIT":
         return "WAIT"
 
-    close = indicators["close"]
-    ema_now = indicators["ema_50"]
     rsi_value = indicators["rsi_14"]
     atr_pct = indicators["atr_pct"]
 
@@ -30,20 +26,18 @@ def apply_filter(filter_name, signal, indicators):
     bullish_candle = indicators["bullish_candle"]
     bearish_candle = indicators["bearish_candle"]
 
-    if filter_name in ("BASELINE",):
+    if filter_name == "BASELINE":
         return signal
 
     if filter_name in ("EMA_SLOPE", "EMA_PLUS_CANDLE", "ALL_FILTERS"):
         if signal == "BUY" and not slope_up:
             return "WAIT"
-
         if signal == "SELL" and not slope_down:
             return "WAIT"
 
     if filter_name in ("CANDLE_CONFIRM", "EMA_PLUS_CANDLE", "ALL_FILTERS"):
         if signal == "BUY" and not bullish_candle:
             return "WAIT"
-
         if signal == "SELL" and not bearish_candle:
             return "WAIT"
 
@@ -54,7 +48,6 @@ def apply_filter(filter_name, signal, indicators):
     if filter_name in ("RSI_NARROW", "ALL_FILTERS"):
         if signal == "BUY" and not 55 <= rsi_value <= 65:
             return "WAIT"
-
         if signal == "SELL" and not 35 <= rsi_value <= 45:
             return "WAIT"
 
@@ -67,7 +60,6 @@ def simulate_filtered(candles, start, end, filter_name):
 
     while i < end:
         history = candles[:i + 1]
-
         closes = [float(c[4]) for c in history]
 
         indicators = {
@@ -77,19 +69,14 @@ def simulate_filtered(candles, start, end, filter_name):
             "atr_14": atr(history, 14)
         }
 
-        # EMA de hace tres velas para medir su pendiente.
         previous_closes = closes[:-EMA_SLOPE_BARS]
-
         previous_ema = ema(previous_closes, 50)
-
         current_ema = indicators["ema_50"]
 
         indicators["ema_slope_up"] = current_ema > previous_ema
         indicators["ema_slope_down"] = current_ema < previous_ema
 
-        # Confirmación de la vela que ya cerró.
         current_candle = candles[i]
-
         candle_open = float(current_candle[1])
         candle_close = float(current_candle[4])
 
@@ -154,8 +141,8 @@ def simulate_filtered(candles, start, end, filter_name):
                 stop_hit = high >= stop
                 target_hit = low <= target
 
-            # Si ambos niveles aparecen tocados en la misma vela,
-            # se contabiliza primero el stop, de forma conservadora.
+            # Si ambos niveles se tocan en la misma vela,
+            # se contabiliza primero el stop.
             if stop_hit:
                 exit_price = stop
                 exit_reason = "STOP_LOSS"
@@ -208,8 +195,8 @@ def summarize(trades):
 
     returns = [t["net_return_pct"] for t in trades]
 
-    wins = [x for x in returns if x > 0]
-    losses = [x for x in returns if x < 0]
+    wins = [value for value in returns if value > 0]
+    losses = [value for value in returns if value < 0]
 
     positive = sum(wins)
     negative = abs(sum(losses))
@@ -231,27 +218,21 @@ def summarize(trades):
         "losses": len(losses),
         "win_rate_pct": round(len(wins) / len(trades) * 100, 2),
         "expectancy_pct": round(sum(returns) / len(returns), 4),
-        "profit_factor": round(
-            positive / negative, 3
-        ) if negative else None,
-        "compound_return_diagnostic_pct": round(
-            (equity - 1) * 100, 2
-        ),
-        "max_drawdown_diagnostic_pct": round(
-            max_drawdown * 100, 2
-        )
+        "profit_factor": round(positive / negative, 3) if negative else None,
+        "compound_return_diagnostic_pct": round((equity - 1) * 100, 2),
+        "max_drawdown_diagnostic_pct": round(max_drawdown * 100, 2)
     }
 
 
 def trade_signature(trades):
     return [
         (
-            t["signal"],
-            t["entry_index"],
-            t["exit_index"],
-            t["net_return_pct"]
+            trade["signal"],
+            trade["entry_index"],
+            trade["exit_index"],
+            trade["net_return_pct"]
         )
-        for t in trades
+        for trade in trades
     ]
 
 
@@ -271,8 +252,7 @@ def main():
         "ALL_FILTERS"
     ]
 
-    # Comprobar que el simulador BASELINE coincide
-    # con el backtest original en todo el período.
+    # Comprobar equivalencia con el backtest original.
     baseline_original = backtest.simulate(
         candles, 100, len(candles) - 1
     )
@@ -292,7 +272,7 @@ def main():
             "from backtest.py"
         )
 
-    # Cuatro bloques cronológicos consecutivos.
+    # Dividir el historial en cuatro bloques cronológicos.
     usable_bars = len(candles) - 100
     block_size = usable_bars // 4
 
@@ -310,13 +290,13 @@ def main():
 
     results = {}
 
-        for filter_name in filters:
-          results[filter_name] = {
+    for filter_name in filters:
+        results[filter_name] = {
             "blocks": [],
             "overall": {},
             "by_direction": {
-                "BUY": {"blocks": []},
-                "SELL": {"blocks": []}
+                "BUY": {"blocks": [], "overall": {}},
+                "SELL": {"blocks": [], "overall": {}}
             }
         }
 
@@ -341,8 +321,8 @@ def main():
 
             for direction in ["BUY", "SELL"]:
                 directional_trades = [
-                    t for t in trades
-                    if t["signal"] == direction
+                    trade for trade in trades
+                    if trade["signal"] == direction
                 ]
 
                 results[filter_name]["by_direction"][direction]["blocks"].append({
@@ -354,13 +334,13 @@ def main():
 
         for direction in ["BUY", "SELL"]:
             directional_trades = [
-                t for t in all_trades
-                if t["signal"] == direction
+                trade for trade in all_trades
+                if trade["signal"] == direction
             ]
 
             results[filter_name]["by_direction"][direction]["overall"] = (
                 summarize(directional_trades)
-                )
+            )
 
     result = {
         "status": "success",
