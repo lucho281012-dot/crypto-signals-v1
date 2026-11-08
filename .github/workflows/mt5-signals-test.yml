@@ -51,3 +51,5 @@ jobs:
         run: python walk_forward_audit.py
       - name: Run exit audit
         run: python exit_audit.py
+      - name: Test exit parameters
+        run: python exit_parameter_test.py
