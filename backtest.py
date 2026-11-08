@@ -108,8 +108,16 @@ def simulate(candles, start, end):
 
         net_pct = gross_pct - fees_pct
 
-        trades.append({
+                trades.append({
             "signal": signal,
+            "rsi": round(indicators["rsi_14"], 2),
+            "ema_distance_pct": round(
+                (indicators["close"] - indicators["ema_50"])
+                / indicators["ema_50"] * 100, 4
+            ),
+            "atr_pct": round(
+                indicators["atr_14"] / indicators["close"] * 100, 4
+            ),
             "entry_index": entry_index,
             "exit_index": exit_index,
             "entry": round(entry, 2),
