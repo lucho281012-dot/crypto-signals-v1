@@ -16,6 +16,7 @@ on:
       - "backtest_audit.py"
       - "market_conditions.py"
       - "walk_forward_audit.py"
+      - "exit_audit.py"
 
 jobs:
   test-data:
@@ -48,3 +49,5 @@ jobs:
         run: python market_conditions.py
       - name: Run walk forward robustness audit
         run: python walk_forward_audit.py
+      - name: Run exit audit
+        run: python exit_audit.py
