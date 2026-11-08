@@ -15,11 +15,35 @@ def analyze_group(trades):
 
     returns = [t["net_return_pct"] for t in trades]
 
-    wins = [x for x in returns if x > 0]
-    losses = [x for x in returns if x < 0]
+    wins = [t for t in trades if t["net_return_pct"] > 0]
+    losses = [t for t in trades if t["net_return_pct"] < 0]
 
-    positive = sum(wins)
-    negative = abs(sum(losses))
+    def averages(group):
+        if not group:
+            return {
+                "rsi": None,
+                "ema_distance_pct": None,
+                "atr_pct": None
+            }
+
+        return {
+            "rsi": round(
+                sum(t["rsi"] for t in group) / len(group), 2
+            ),
+            "ema_distance_pct": round(
+                sum(t["ema_distance_pct"] for t in group) / len(group), 4
+            ),
+            "atr_pct": round(
+                sum(t["atr_pct"] for t in group) / len(group), 4
+            )
+        }
+
+    positive = sum(
+        t["net_return_pct"] for t in wins
+    )
+    negative = abs(sum(
+        t["net_return_pct"] for t in losses
+    ))
 
     return {
         "trades": len(trades),
@@ -28,19 +52,20 @@ def analyze_group(trades):
         "win_rate_pct": round(
             len(wins) / len(trades) * 100, 2
         ),
-        "average_win_pct": round(
-            sum(wins) / len(wins), 4
-        ) if wins else 0,
-        "average_loss_pct": round(
-            sum(losses) / len(losses), 4
-        ) if losses else 0,
         "expectancy_pct": round(
             sum(returns) / len(returns), 4
         ),
-        "net_sum_pct": round(sum(returns), 4),
+        "average_win_pct": round(
+            sum(t["net_return_pct"] for t in wins) / len(wins), 4
+        ) if wins else 0,
+        "average_loss_pct": round(
+            sum(t["net_return_pct"] for t in losses) / len(losses), 4
+        ) if losses else 0,
         "profit_factor_diagnostic": round(
             positive / negative, 3
         ) if negative else None,
+        "winning_conditions": averages(wins),
+        "losing_conditions": averages(losses),
         "exit_reasons": dict(
             Counter(t["reason"] for t in trades)
         )
