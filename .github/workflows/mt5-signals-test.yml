@@ -7,6 +7,8 @@ on:
       - mt5-signals-v1
     paths:
       - "data_feed.py"
+      - "signal_rules.py"
+      - "test_signal_rules.py"
       - ".github/workflows/mt5-signals-test.yml"
 
 jobs:
@@ -21,6 +23,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Test signal rules
+        run: python -m unittest -v test_signal_rules.py
 
       - name: Run BTC data analyzer
         run: python data_feed.py
