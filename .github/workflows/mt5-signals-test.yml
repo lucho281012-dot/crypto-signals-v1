@@ -13,6 +13,7 @@ on:
       - "analyze.py"
       - "historical_data.py"
       - "backtest.py"
+      - "backtest_audit.py"
 
 jobs:
   test-data:
@@ -39,3 +40,5 @@ jobs:
         run: python historical_data.py
       - name: Run historical backtest
         run: python backtest.py
+      - name: Run BUY and SELL audit
+        run: python backtest_audit.py
