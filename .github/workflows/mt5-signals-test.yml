@@ -10,6 +10,7 @@ on:
       - "signal_rules.py"
       - "test_signal_rules.py"
       - ".github/workflows/mt5-signals-test.yml"
+      - "analyze.py"
 
 jobs:
   test-data:
@@ -29,3 +30,6 @@ jobs:
 
       - name: Run BTC data analyzer
         run: python data_feed.py
+        
+      - name: Run integrated signal analyzer
+        run: python analyze.py
