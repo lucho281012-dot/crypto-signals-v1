@@ -1,6 +1,7 @@
 
 import json
 import urllib.request
+import time
 from datetime import datetime, timezone
 
 
@@ -17,10 +18,23 @@ def download_candles():
     )
 
     with urllib.request.urlopen(request, timeout=20) as response:
-        return json.loads(response.read().decode("utf-8"))
+        candles = json.loads(response.read().decode("utf-8"))
+
+    now_ms = int(time.time() * 1000)
+
+    # Utilizar solamente velas H1 completamente cerradas
+    closed = [
+        candle for candle in candles
+        if int(candle[6]) < now_ms
+    ]
+
+    if len(closed) < 51:
+        raise ValueError("Insufficient closed candles")
+
+    return closed
 
 
-def ema(values, period):
+def ema(values, period=50):
     multiplier = 2 / (period + 1)
     result = values[0]
 
@@ -82,7 +96,6 @@ def atr(candles, period=14):
 
 def main():
     candles = download_candles()
-
     closes = [float(candle[4]) for candle in candles]
 
     last = candles[-1]
@@ -96,7 +109,7 @@ def main():
             timezone.utc
         ).isoformat(),
         "close": closes[-1],
-        "ema_50": ema(closes[-50:], 50),
+        "ema_50": ema(closes, 50),
         "rsi_14": rsi(closes, 14),
         "atr_14": atr(candles, 14),
         "candles_received": len(candles),
