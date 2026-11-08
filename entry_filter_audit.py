@@ -310,8 +310,8 @@ def main():
 
     results = {}
 
-    for filter_name in filters:
-                results[filter_name] = {
+        for filter_name in filters:
+        results[filter_name] = {
             "blocks": [],
             "overall": {},
             "by_direction": {
