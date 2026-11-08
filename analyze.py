@@ -1,4 +1,4 @@
-
+from datetime import datetime, timezone
 import json
 
 from data_feed import download_candles, ema, rsi, atr
@@ -22,7 +22,10 @@ def main():
     result["source"] = "Binance Public Market Data"
     result["symbol"] = "BTCUSDT"
     result["timeframe"] = "H1"
-    result["candle_open_utc"] = candles[-1][0]
+    result["candle_open_utc": datetime.fromtimestamp(
+    candles[-1][0] / 1000,
+    timezone.utc
+).isoformat()
 
     print(json.dumps(result, indent=2))
 
