@@ -12,6 +12,7 @@ on:
       - ".github/workflows/mt5-signals-test.yml"
       - "analyze.py"
       - "historical_data.py"
+      - "backtest.py"
 
 jobs:
   test-data:
@@ -36,3 +37,5 @@ jobs:
         run: python analyze.py
       - name: Download historical BTC data
         run: python historical_data.py
+      - name: Run historical backtest
+        run: python backtest.py
