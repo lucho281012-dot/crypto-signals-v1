@@ -17,6 +17,7 @@ on:
       - "market_conditions.py"
       - "walk_forward_audit.py"
       - "exit_audit.py"
+      - "entry_filter_audit.py"
 
 jobs:
   test-data:
@@ -53,3 +54,5 @@ jobs:
         run: python exit_audit.py
       - name: Test exit parameters
         run: python exit_parameter_test.py
+      - name: Run entry filter audit
+        run: python entry_filter_audit.py
