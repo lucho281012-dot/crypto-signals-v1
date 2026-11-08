@@ -106,9 +106,9 @@ def simulate(candles, start, end):
             FEE_RATE * (entry + exit_fill) / entry
         ) * 100
 
-        net_pct = gross_pct - fees_pct
+               net_pct = gross_pct - fees_pct
 
-                trades.append({
+        trades.append({
             "signal": signal,
             "rsi": round(indicators["rsi_14"], 2),
             "ema_distance_pct": round(
@@ -128,7 +128,7 @@ def simulate(candles, start, end):
 
         i = exit_index + 1
 
-    return trades
+    return trades 
 
 
 def summarize(trades):
