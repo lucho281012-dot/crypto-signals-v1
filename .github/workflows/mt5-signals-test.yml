@@ -12,11 +12,13 @@ on:
       - ".github/workflows/mt5-signals-test.yml"
       - "analyze.py"
       - "historical_data.py"
+      - "historical_snapshot.py"
       - "backtest.py"
       - "backtest_audit.py"
       - "market_conditions.py"
       - "walk_forward_audit.py"
       - "exit_audit.py"
+      - "exit_parameter_test.py"
       - "entry_filter_audit.py"
       - "entry_outcome_audit.py"
 
@@ -38,24 +40,36 @@ jobs:
 
       - name: Run BTC data analyzer
         run: python data_feed.py
-        
+
       - name: Run integrated signal analyzer
         run: python analyze.py
-      - name: Download historical BTC data
+
+      - name: Create shared historical snapshot
+        run: python historical_snapshot.py
+
+      - name: Verify shared historical snapshot
         run: python historical_data.py
+
       - name: Run historical backtest
         run: python backtest.py
+
       - name: Run BUY and SELL audit
         run: python backtest_audit.py
+
       - name: Analyze market conditions
         run: python market_conditions.py
+
       - name: Run walk forward robustness audit
         run: python walk_forward_audit.py
+
       - name: Run exit audit
         run: python exit_audit.py
+
       - name: Test exit parameters
         run: python exit_parameter_test.py
+
       - name: Run entry filter audit
         run: python entry_filter_audit.py
+
       - name: Run entry outcome audit
         run: python entry_outcome_audit.py
