@@ -59,6 +59,7 @@ def analyze_direction(trades):
     for trade in trades:
         if trade["net_return_pct"] > 0:
             outcomes["WINS"].append(trade)
+
         elif trade["net_return_pct"] < 0:
             outcomes["LOSSES"].append(trade)
 
@@ -74,6 +75,36 @@ def analyze_direction(trades):
             name: analyze_group(group)
             for name, group in sorted(exits.items())
         }
+    }
+
+
+def validate_block(trades, buy_trades, sell_trades):
+    total = len(trades)
+    buy_total = len(buy_trades)
+    sell_total = len(sell_trades)
+
+    unknown = [
+        t for t in trades
+        if t["signal"] not in ("BUY", "SELL")
+    ]
+
+    exit_counts = defaultdict(int)
+
+    for trade in trades:
+        exit_counts[trade["reason"]] += 1
+
+    return {
+        "total_trades": total,
+        "buy_trades": buy_total,
+        "sell_trades": sell_total,
+        "unknown_direction": len(unknown),
+        "directions_reconcile": (
+            total == buy_total + sell_total
+        ),
+        "exit_counts": dict(sorted(exit_counts.items())),
+        "exits_reconcile": (
+            sum(exit_counts.values()) == total
+        )
     }
 
 
@@ -111,16 +142,25 @@ def main():
 
         trades = simulate(candles, start, end)
 
+        buy_trades = [
+            t for t in trades
+            if t["signal"] == "BUY"
+        ]
+
+        sell_trades = [
+            t for t in trades
+            if t["signal"] == "SELL"
+        ]
+
         block_result = {
             "block": block + 1,
-            "BUY": analyze_direction([
-                t for t in trades
-                if t["signal"] == "BUY"
-            ]),
-            "SELL": analyze_direction([
-                t for t in trades
-                if t["signal"] == "SELL"
-            ])
+            "validation": validate_block(
+                trades,
+                buy_trades,
+                sell_trades
+            ),
+            "BUY": analyze_direction(buy_trades),
+            "SELL": analyze_direction(sell_trades)
         }
 
         results["blocks"].append(block_result)
