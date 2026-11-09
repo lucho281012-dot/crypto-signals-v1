@@ -18,6 +18,7 @@ on:
       - "walk_forward_audit.py"
       - "exit_audit.py"
       - "entry_filter_audit.py"
+      - "entry_outcome_audit.py"
 
 jobs:
   test-data:
@@ -56,3 +57,5 @@ jobs:
         run: python exit_parameter_test.py
       - name: Run entry filter audit
         run: python entry_filter_audit.py
+      - name: Run entry outcome audit
+        run: python entry_outcome_audit.py
