@@ -17,37 +17,46 @@ def analyze_group(trades):
     if not trades:
         return {
             "trades": 0,
+            "wins": 0,
+            "losses": 0,
+            "breakeven": 0,
             "message": "No trades"
         }
 
     wins = [
-        t for t in trades
-        if t["net_return_pct"] > 0
+        trade for trade in trades
+        if trade["net_return_pct"] > 0
     ]
 
     losses = [
-        t for t in trades
-        if t["net_return_pct"] < 0
+        trade for trade in trades
+        if trade["net_return_pct"] < 0
+    ]
+
+    breakeven = [
+        trade for trade in trades
+        if trade["net_return_pct"] == 0
     ]
 
     return {
         "trades": len(trades),
         "wins": len(wins),
         "losses": len(losses),
+        "breakeven": len(breakeven),
         "win_rate_pct": round(
             len(wins) / len(trades) * 100, 2
         ),
         "average_rsi": average([
-            t["rsi"] for t in trades
+            trade["rsi"] for trade in trades
         ]),
         "average_ema_distance_pct": average([
-            t["ema_distance_pct"] for t in trades
+            trade["ema_distance_pct"] for trade in trades
         ]),
         "average_atr_pct": average([
-            t["atr_pct"] for t in trades
+            trade["atr_pct"] for trade in trades
         ]),
         "average_return_pct": average([
-            t["net_return_pct"] for t in trades
+            trade["net_return_pct"] for trade in trades
         ])
     }
 
@@ -57,11 +66,16 @@ def analyze_direction(trades):
     exits = defaultdict(list)
 
     for trade in trades:
-        if trade["net_return_pct"] > 0:
+        result = trade["net_return_pct"]
+
+        if result > 0:
             outcomes["WINS"].append(trade)
 
-        elif trade["net_return_pct"] < 0:
+        elif result < 0:
             outcomes["LOSSES"].append(trade)
+
+        else:
+            outcomes["BREAKEVEN"].append(trade)
 
         exits[trade["reason"]].append(trade)
 
@@ -84,8 +98,8 @@ def validate_block(trades, buy_trades, sell_trades):
     sell_total = len(sell_trades)
 
     unknown = [
-        t for t in trades
-        if t["signal"] not in ("BUY", "SELL")
+        trade for trade in trades
+        if trade["signal"] not in ("BUY", "SELL")
     ]
 
     exit_counts = defaultdict(int)
@@ -138,18 +152,22 @@ def main():
         if block == 3:
             end = total - 1
         else:
-            end = warmup + (block + 1) * block_size - 1
+            end = (
+                warmup
+                + (block + 1) * block_size
+                - 1
+            )
 
         trades = simulate(candles, start, end)
 
         buy_trades = [
-            t for t in trades
-            if t["signal"] == "BUY"
+            trade for trade in trades
+            if trade["signal"] == "BUY"
         ]
 
         sell_trades = [
-            t for t in trades
-            if t["signal"] == "SELL"
+            trade for trade in trades
+            if trade["signal"] == "SELL"
         ]
 
         block_result = {
@@ -166,8 +184,8 @@ def main():
         results["blocks"].append(block_result)
 
     results["note"] = (
-        "Diagnostic only. WINS and LOSSES are grouped "
-        "by net return. No trading rules were changed."
+        "Diagnostic only. Outcomes include WINS, "
+        "LOSSES and BREAKEVEN. No trading rules changed."
     )
 
     print(json.dumps(results, indent=2))
