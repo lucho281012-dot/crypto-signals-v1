@@ -1,21 +1,12 @@
 
 import json
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from historical_data import download_historical_candles
 
-
 SNAPSHOT_FILE = "historical_snapshot.json"
 HISTORY_DAYS = 365
-
-# Vela seleccionada en MT5:
-# 9 de noviembre de 2026, 19:00 hora del servidor.
-# Equivalencia candidata: 17:00 UTC.
-TARGET_UTC = datetime(
-    2026, 11, 9, 17, 0,
-    tzinfo=timezone.utc
-)
 
 MT5_CANDLE = {
     "open": 74695.50,
@@ -24,51 +15,56 @@ MT5_CANDLE = {
     "close": 74557.50
 }
 
+TARGET_UTC = datetime(
+    2026, 11, 9, 17, 0,
+    tzinfo=timezone.utc
+)
 
-def compare_candles(candles):
-    target_ms = int(TARGET_UTC.timestamp() * 1000)
 
-    binance_candle = next(
-        (
-            candle for candle in candles
-            if int(candle[0]) == target_ms
-        ),
-        None
-    )
+def compare_nearby_candles(candles):
+    print("\nMT5 VS BINANCE - NEARBY CANDLES")
 
-    if binance_candle is None:
-        raise ValueError(
-            "Target Binance candle not found: "
-            + TARGET_UTC.isoformat()
+    candle_map = {
+        int(candle[0]): candle
+        for candle in candles
+    }
+
+    for hour_offset in [-1, 0, 1]:
+        target = TARGET_UTC + timedelta(
+            hours=hour_offset
         )
 
-    binance_values = {
-        "open": float(binance_candle[1]),
-        "high": float(binance_candle[2]),
-        "low": float(binance_candle[3]),
-        "close": float(binance_candle[4])
-    }
+        target_ms = int(target.timestamp() * 1000)
+        candle = candle_map.get(target_ms)
 
-    differences = {
-        key: round(
-            MT5_CANDLE[key] - binance_values[key],
-            2
-        )
-        for key in MT5_CANDLE
-    }
+        print(f"\nBINANCE {target.isoformat()}")
 
-    comparison = {
-        "status": "success",
-        "target_utc": TARGET_UTC.isoformat(),
-        "mt5": MT5_CANDLE,
-        "binance": binance_values,
-        "difference_mt5_minus_binance": differences
-    }
+        if candle is None:
+            print(json.dumps({
+                "status": "not_available",
+                "reason": "Candle missing or not yet closed"
+            }, indent=2))
+            continue
 
-    print("\nMT5 VS BINANCE CANDLE COMPARISON")
-    print(json.dumps(comparison, indent=2))
+        values = {
+            "open": float(candle[1]),
+            "high": float(candle[2]),
+            "low": float(candle[3]),
+            "close": float(candle[4])
+        }
 
-    return comparison
+        differences = {
+            key: round(
+                MT5_CANDLE[key] - values[key], 2
+            )
+            for key in MT5_CANDLE
+        }
+
+        print(json.dumps({
+            "status": "success",
+            "binance": values,
+            "difference_mt5_minus_binance": differences
+        }, indent=2))
 
 
 def main():
@@ -78,7 +74,7 @@ def main():
 
     if len(candles) < 1000:
         raise ValueError(
-            "Not enough historical candles for snapshot"
+            "Not enough historical candles"
         )
 
     first_time = int(candles[0][0])
@@ -125,15 +121,11 @@ def main():
     print(json.dumps({
         "status": "success",
         "file": SNAPSHOT_FILE,
-        "symbol": "BTCUSDT",
-        "timeframe": "H1",
         "candles": len(candles),
-        "first_candle_utc": snapshot["first_candle_utc"],
-        "last_candle_utc": snapshot["last_candle_utc"],
         "sha256": checksum
     }, indent=2))
 
-    compare_candles(candles)
+    compare_nearby_candles(candles)
 
 
 if __name__ == "__main__":
