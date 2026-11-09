@@ -2,6 +2,7 @@
 import json
 import os
 import time
+import hashlib
 import urllib.request
 from urllib.parse import urlencode
 from datetime import datetime, timezone
@@ -11,39 +12,59 @@ BASE_URL = "https://data-api.binance.vision/api/v3/klines"
 SNAPSHOT_FILE = "historical_snapshot.json"
 
 
+def load_snapshot(days=365):
+    with open(
+        SNAPSHOT_FILE,
+        "r",
+        encoding="utf-8"
+    ) as file:
+        snapshot = json.load(file)
+
+    if snapshot.get("status") != "success":
+        raise ValueError("Invalid historical snapshot")
+
+    if snapshot.get("symbol") != "BTCUSDT":
+        raise ValueError("Snapshot symbol mismatch")
+
+    if snapshot.get("timeframe") != "H1":
+        raise ValueError("Snapshot timeframe mismatch")
+
+    candles = snapshot.get("candles")
+
+    if not isinstance(candles, list):
+        raise ValueError("Invalid snapshot candles")
+
+    if len(candles) < 200:
+        raise ValueError("Not enough snapshot candles")
+
+    if len(candles) != snapshot.get("candles_count"):
+        raise ValueError("Snapshot candle count mismatch")
+
+    serialized = json.dumps(
+        candles,
+        separators=(",", ":")
+    )
+
+    calculated_hash = hashlib.sha256(
+        serialized.encode("utf-8")
+    ).hexdigest()
+
+    saved_hash = snapshot.get("sha256")
+
+    if not saved_hash or calculated_hash != saved_hash:
+        raise ValueError(
+            "Historical snapshot SHA-256 verification failed"
+        )
+
+    if days < snapshot.get("history_days", 365):
+        candles = candles[-days * 24:]
+
+    return candles
+
+
 def download_historical_candles(days=180):
     if os.path.exists(SNAPSHOT_FILE):
-        with open(
-            SNAPSHOT_FILE,
-            "r",
-            encoding="utf-8"
-        ) as file:
-            snapshot = json.load(file)
-
-        if snapshot.get("status") != "success":
-            raise ValueError("Invalid historical snapshot")
-
-        if snapshot.get("symbol") != "BTCUSDT":
-            raise ValueError("Snapshot symbol mismatch")
-
-        if snapshot.get("timeframe") != "H1":
-            raise ValueError("Snapshot timeframe mismatch")
-
-        candles = snapshot.get("candles")
-
-        if not isinstance(candles, list):
-            raise ValueError("Invalid snapshot candles")
-
-        if len(candles) < 200:
-            raise ValueError("Not enough snapshot candles")
-
-        if len(candles) != snapshot.get("candles_count"):
-            raise ValueError("Snapshot candle count mismatch")
-
-        if days < snapshot.get("history_days", 365):
-            candles = candles[-days * 24:]
-
-        return candles
+        return load_snapshot(days)
 
     now_ms = int(time.time() * 1000)
     start_ms = now_ms - days * 24 * 60 * 60 * 1000
