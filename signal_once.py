@@ -328,11 +328,12 @@ def analyze(d5, d15):
     ):
         return None
 
+    
     long = [
         x.close > x.ema200,
         x.close > x.ema20 and x.ema20 > prev.ema20,
         50 <= x.rsi <= 68,
-        x.hist > 0 and x.hist >= prev.hist,
+        x["hist"] > 0 and x["hist"] >= prev["hist"],
         x.volume > x.volavg
     ]
 
@@ -340,9 +341,10 @@ def analyze(d5, d15):
         x.close < x.ema200,
         x.close < x.ema20 and x.ema20 < prev.ema20,
         32 <= x.rsi <= 50,
-        x.hist < 0 and x.hist <= prev.hist,
+        x["hist"] < 0 and x["hist"] <= prev["hist"],
         x.volume > x.volavg
     ]
+
 
     lc = y.close > y.ema200 and y.ema20 > y.ema200
     sc = y.close < y.ema200 and y.ema20 < y.ema200
