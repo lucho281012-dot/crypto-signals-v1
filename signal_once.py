@@ -38,23 +38,18 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 MIN_SCORE = int(os.getenv("MIN_SCORE", "4"))
 ATR_MULT = float(os.getenv("ATR_MULTIPLIER", "1.2"))
 
-BASE_URL = "https://api.bybit.com/v5/market/kline"
+BASE_URL = "https://www.okx.com/api/v5/market/candles"
 
 STATE_PATH = Path("data/state.json")
 STATE_PATH.parent.mkdir(exist_ok=True)
 
 TIMEOUT = 20
-CANDLE_LIMIT = 250
+CANDLE_LIMIT = 300
 
 HEADERS = {
     "User-Agent": "CryptoSignals-PaperTrading/1.0",
     "Accept": "application/json"
 }
-
-
-# ==========================================
-# SESIÓN HTTP
-# ==========================================
 
 SESSION = requests.Session()
 SESSION.headers.update(HEADERS)
@@ -108,26 +103,29 @@ def notify(msg):
 
 
 # ==========================================
-# DATOS DE BYBIT
+# DATOS DE OKX
 # ==========================================
+
+def okx_symbol(symbol):
+
+    base, quote = symbol.upper().split("/")
+
+    return f"{base}-{quote}-SWAP"
+
 
 def frame(symbol, tf):
 
-    bybit_symbol = symbol.replace("/", "").upper()
+    instrument = okx_symbol(symbol)
 
-    interval = {
-        "5m": "5",
-        "15m": "15"
-    }.get(tf)
-
-    if interval is None:
-        raise ValueError(f"Temporalidad no soportada: {tf}")
+    if tf not in ("5m", "15m"):
+        raise ValueError(
+            f"Temporalidad no soportada: {tf}"
+        )
 
     params = {
-        "category": "linear",
-        "symbol": bybit_symbol,
-        "interval": interval,
-        "limit": CANDLE_LIMIT
+        "instId": instrument,
+        "bar": tf,
+        "limit": str(CANDLE_LIMIT)
     }
 
     response = SESSION.get(
@@ -136,71 +134,106 @@ def frame(symbol, tf):
         timeout=TIMEOUT
     )
 
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Error HTTP Bybit {response.status_code}: "
-            f"{response.text[:1000]}"
-        )
+    response.raise_for_status()
 
     data = response.json()
 
-    if data.get("retCode") != 0:
+    if data.get("code") != "0":
         raise RuntimeError(
-            f"Error Bybit {data.get('retCode')}: "
-            f"{data.get('retMsg')}"
+            f"Error OKX {data.get('code')}: "
+            f"{data.get('msg')}"
         )
 
-    rows = data.get("result", {}).get("list", [])
+    rows = data.get("data", [])
 
     if not rows:
         raise RuntimeError(
-            f"Bybit no devolvió velas para {symbol} {tf}"
+            f"OKX no devolvió velas para {instrument} {tf}"
         )
 
-    # Bybit entrega las velas de más reciente a más antigua.
-    rows = sorted(
-        rows,
+    # OKX:
+    # 0 timestamp
+    # 1 open
+    # 2 high
+    # 3 low
+    # 4 close
+    # 5 volume en contratos
+    # 6 volume en moneda base
+    # 7 volume en moneda cotizada
+    # 8 confirm: 0 abierta, 1 cerrada
+
+    closed = [
+        row for row in rows
+        if len(row) >= 9 and row[8] == "1"
+    ]
+
+    # Orden cronológico: antigua a reciente.
+    closed.sort(
         key=lambda row: int(row[0])
     )
 
+    if len(closed) < 210:
+        raise RuntimeError(
+            f"Datos insuficientes: {instrument} {tf}. "
+            f"Velas cerradas: {len(closed)}"
+        )
+
     df = pd.DataFrame(
-        rows,
+        [
+            [
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[6]
+            ]
+            for row in closed
+        ],
         columns=[
             "timestamp",
             "open",
             "high",
             "low",
             "close",
-            "volume",
-            "turnover"
+            "volume"
         ]
     )
-
-    df = df[
-        ["timestamp", "open", "high", "low", "close", "volume"]
-    ].copy()
 
     df["timestamp"] = pd.to_numeric(
         df["timestamp"],
         errors="raise"
     )
 
-    for column in ["open", "high", "low", "close", "volume"]:
+    for column in [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+    ]:
         df[column] = pd.to_numeric(
             df[column],
             errors="raise"
         )
 
-    # Excluir la vela más reciente, que puede estar abierta.
-    df = df.iloc[:-1].copy().reset_index(drop=True)
-
-    if len(df) < 210:
+    if not (df["volume"] > 0).all():
         raise RuntimeError(
-            f"Datos insuficientes: {symbol} {tf}. "
-            f"Velas cerradas recibidas: {len(df)}"
+            f"Volumen inválido en {instrument} {tf}"
         )
 
-    return df
+    if not (
+        (df["high"] >= df["low"])
+        & (df["high"] >= df["open"])
+        & (df["high"] >= df["close"])
+        & (df["low"] <= df["open"])
+        & (df["low"] <= df["close"])
+    ).all():
+        raise RuntimeError(
+            f"Precios OHLC inválidos en {instrument} {tf}"
+        )
+
+    return df.reset_index(drop=True)
 
 
 # ==========================================
@@ -368,13 +401,14 @@ def fmt(x):
 def main():
 
     state = load_state()
+    failures = []
 
     for symbol in SYMBOLS:
 
         try:
 
             log.info(
-                "Consultando Bybit: %s",
+                "Consultando OKX: %s",
                 symbol
             )
 
@@ -441,14 +475,17 @@ def main():
                     symbol
                 )
 
-            # Registrar solamente después de procesar correctamente.
+            # Registrar solo después de procesar correctamente.
             state["last_candle"][symbol] = candle
 
-        except Exception:
+        except Exception as exc:
+
+            failures.append(symbol)
 
             log.exception(
-                "Error con %s",
-                symbol
+                "Error procesando %s: %s",
+                symbol,
+                exc
             )
 
         finally:
@@ -457,8 +494,14 @@ def main():
 
     save_state(state)
 
+    if failures:
+        raise RuntimeError(
+            "Fallaron los siguientes activos: "
+            + ", ".join(failures)
+        )
+
     log.info(
-        "Proceso Crypto Signals finalizado."
+        "Proceso Crypto Signals finalizado correctamente."
     )
 
 
@@ -466,6 +509,10 @@ if __name__ == "__main__":
 
     try:
         main()
+
+    except Exception:
+        log.exception("Crypto Signals terminó con errores.")
+        sys.exit(1)
 
     finally:
         SESSION.close()
