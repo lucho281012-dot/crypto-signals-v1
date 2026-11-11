@@ -20,7 +20,9 @@ jobs:
           python-version: '3.11'
 
       - run: pip install -r requirements.txt
-
+      - name: Probar conexión Bybit
+        run: python test_bybit.py
+  
       - name: Ejecutar bot
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
