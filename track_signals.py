@@ -7,13 +7,16 @@ from signal_tracker import load_history, save_history
 
 # =========================================================
 # CRYPTO SIGNALS V1.1 - PERFORMANCE TRACKER
-# Evalúa señales usando velas cerradas de OKX.
+# Evalúa señales con velas cerradas de OKX.
 # No ejecuta operaciones ni envía órdenes.
 # =========================================================
 
-OKX_URL = "https://www.okx.com/api/v5/market/candles"
+OKX_URL = "https://www.okx.com/api/v5/market/history-candles"
+
 TIMEFRAME = "5m"
+CANDLE_MS = 300000
 CANDLE_LIMIT = 300
+MAX_PAGES = 1000
 REQUEST_TIMEOUT = 20
 
 logging.basicConfig(
@@ -24,16 +27,17 @@ logging.basicConfig(
 log = logging.getLogger("crypto-signals-performance")
 
 
-def fetch_closed_candles(symbol):
-    """Obtiene velas cerradas de 5 minutos desde OKX."""
-
-    inst_id = symbol.replace("/", "-")
+def fetch_page(symbol, after=None):
+    """Obtiene una página de velas históricas de OKX."""
 
     params = {
-        "instId": inst_id,
+        "instId": symbol.replace("/", "-"),
         "bar": TIMEFRAME,
         "limit": str(CANDLE_LIMIT)
     }
+
+    if after is not None:
+        params["after"] = str(after)
 
     response = requests.get(
         OKX_URL,
@@ -50,7 +54,11 @@ def fetch_closed_candles(symbol):
             f"Error OKX para {symbol}: {payload.get('msg')}"
         )
 
-    rows = payload.get("data", [])
+    return payload.get("data", [])
+
+
+def parse_candles(rows):
+    """Convierte las respuestas de OKX en velas cerradas."""
 
     candles = []
 
@@ -58,7 +66,6 @@ def fetch_closed_candles(symbol):
         if len(row) < 9:
             continue
 
-        # OKX: timestamp, open, high, low, close, ..., confirm
         if str(row[8]) != "1":
             continue
 
@@ -68,30 +75,105 @@ def fetch_closed_candles(symbol):
             "low": float(row[3])
         })
 
-    candles.sort(key=lambda candle: candle["ts"])
+    return candles
+
+
+def fetch_closed_candles(symbol, earliest_ts):
+    """
+    Recupera todas las velas cerradas necesarias desde
+    la fecha de inicio de seguimiento más antigua.
+    """
+
+    all_rows = []
+    after = None
+    previous_cursor = None
+
+    for page_number in range(MAX_PAGES):
+
+        rows = fetch_page(symbol, after)
+
+        if not rows:
+            break
+
+        all_rows.extend(rows)
+
+        timestamps = [
+            int(row[0])
+            for row in rows
+            if len(row) >= 9
+        ]
+
+        if not timestamps:
+            break
+
+        oldest_ts = min(timestamps)
+
+        if oldest_ts <= earliest_ts:
+            break
+
+        if previous_cursor == oldest_ts:
+            raise RuntimeError(
+                f"OKX no avanzó en la paginación de {symbol}"
+            )
+
+        previous_cursor = oldest_ts
+        after = str(oldest_ts)
+
+        time.sleep(0.15)
+
+    else:
+        raise RuntimeError(
+            f"Se alcanzó el límite de páginas para {symbol}. "
+            "No se garantiza la cobertura histórica completa."
+        )
+
+    candles = parse_candles(all_rows)
+
+    # Eliminar duplicados por timestamp.
+    unique = {
+        candle["ts"]: candle
+        for candle in candles
+    }
+
+    candles = sorted(
+        unique.values(),
+        key=lambda candle: candle["ts"]
+    )
 
     if not candles:
         raise RuntimeError(
-            f"OKX no devolvió velas cerradas para {symbol}"
+            f"No hay velas cerradas para {symbol}"
+        )
+
+    if candles[0]["ts"] > earliest_ts:
+        raise RuntimeError(
+            f"Historial insuficiente para {symbol}. "
+            f"Se necesita desde {earliest_ts}, "
+            f"pero la primera vela disponible es "
+            f"{candles[0]['ts']}."
         )
 
     return candles
 
 
 def candle_hits_levels(signal, candle):
-    """Determina qué niveles fueron tocados en una vela."""
+    """Determina los niveles tocados en una vela."""
 
     side = signal["side"].upper()
 
+    stop = float(signal["stop"])
+    tp1 = float(signal["tp1"])
+    tp2 = float(signal["tp2"])
+
     if side == "SHORT":
-        stop_hit = candle["high"] >= float(signal["stop"])
-        tp1_hit = candle["low"] <= float(signal["tp1"])
-        tp2_hit = candle["low"] <= float(signal["tp2"])
+        stop_hit = candle["high"] >= stop
+        tp1_hit = candle["low"] <= tp1
+        tp2_hit = candle["low"] <= tp2
 
     elif side == "LONG":
-        stop_hit = candle["low"] <= float(signal["stop"])
-        tp1_hit = candle["high"] >= float(signal["tp1"])
-        tp2_hit = candle["high"] >= float(signal["tp2"])
+        stop_hit = candle["low"] <= stop
+        tp1_hit = candle["high"] >= tp1
+        tp2_hit = candle["high"] >= tp2
 
     else:
         raise ValueError(f"Dirección inválida: {side}")
@@ -100,7 +182,10 @@ def candle_hits_levels(signal, candle):
 
 
 def evaluate_signal(signal, candles):
-    """Actualiza una señal usando únicamente velas posteriores."""
+    """
+    Evalúa velas posteriores a la señal y procesa únicamente
+    secuencias continuas de velas de cinco minutos.
+    """
 
     if signal.get("status") != "ACTIVE":
         return False
@@ -108,18 +193,15 @@ def evaluate_signal(signal, candles):
     start_ts = int(signal["start_tracking_ts"])
 
     last_checked = signal.get("last_checked_ts")
-    if last_checked is not None:
-        last_checked = int(last_checked)
 
-    # Solo se procesan velas posteriores a la señal
-    # y posteriores al último chequeo guardado.
+    if last_checked is None:
+        expected_ts = start_ts
+    else:
+        expected_ts = int(last_checked) + CANDLE_MS
+
     pending = [
         candle for candle in candles
-        if candle["ts"] >= start_ts
-        and (
-            last_checked is None
-            or candle["ts"] > last_checked
-        )
+        if candle["ts"] >= expected_ts
     ]
 
     if not pending:
@@ -128,30 +210,52 @@ def evaluate_signal(signal, candles):
     changed = False
 
     for candle in pending:
+
+        # No avanzar sobre huecos de datos.
+        if candle["ts"] != expected_ts:
+            log.warning(
+                "Hueco de velas para %s. "
+                "Esperada: %s | Recibida: %s",
+                signal["id"],
+                expected_ts,
+                candle["ts"]
+            )
+            break
+
         stop_hit, tp1_hit, tp2_hit = candle_hits_levels(
             signal,
             candle
         )
 
+        previous_tp1 = bool(signal.get("tp1_hit", False))
+
         signal["last_checked_ts"] = candle["ts"]
         changed = True
 
-        # Si SL y algún objetivo aparecen en la misma vela,
-        # no podemos conocer el orden intravela.
-        if stop_hit and (tp1_hit or tp2_hit):
+        # Si SL y TP2 se tocan en la misma vela,
+        # no conocemos el orden intravela.
+        #
+        # Si TP1 ya había ocurrido anteriormente,
+        # tocar nuevamente TP1 junto al SL no es ambiguo.
+        ambiguous = stop_hit and (
+            tp2_hit or (tp1_hit and not previous_tp1)
+        )
+
+        if ambiguous:
             signal["status"] = "AMBIGUOUS"
             signal["result"] = "AMBIGUOUS_SL_AND_TARGET"
 
             log.warning(
-                "Resultado ambiguo: %s | vela %s",
+                "Resultado ambiguo: %s | Vela: %s",
                 signal["id"],
                 candle["ts"]
             )
             break
 
-        # Stop Loss
+        # Stop Loss.
         if stop_hit:
-            if signal.get("tp1_hit"):
+
+            if previous_tp1:
                 signal["status"] = "SL_AFTER_TP1"
                 signal["result"] = "SL_AFTER_TP1"
             else:
@@ -159,12 +263,12 @@ def evaluate_signal(signal, candles):
                 signal["result"] = "SL"
 
             log.info(
-                "SL alcanzado: %s",
+                "Stop Loss alcanzado: %s",
                 signal["id"]
             )
             break
 
-        # TP2 implica que TP1 también fue alcanzado.
+        # TP2 también implica TP1.
         if tp2_hit:
             signal["tp1_hit"] = True
             signal["tp2_hit"] = True
@@ -178,7 +282,7 @@ def evaluate_signal(signal, candles):
             break
 
         # TP1 es un hito; la señal continúa activa.
-        if tp1_hit and not signal.get("tp1_hit"):
+        if tp1_hit and not previous_tp1:
             signal["tp1_hit"] = True
 
             log.info(
@@ -186,13 +290,16 @@ def evaluate_signal(signal, candles):
                 signal["id"]
             )
 
+        expected_ts += CANDLE_MS
+
     return changed
 
 
 def main():
-    log.info("=" * 55)
+
+    log.info("=" * 60)
     log.info("CRYPTO SIGNALS - PERFORMANCE TRACKER")
-    log.info("=" * 55)
+    log.info("=" * 60)
 
     history = load_history()
 
@@ -209,35 +316,50 @@ def main():
         log.info("No hay señales activas para evaluar.")
         return
 
-    symbols = sorted({
-        signal["symbol"]
-        for signal in active_signals
-    })
+    # Obtener la fecha más antigua necesaria por símbolo.
+    earliest_by_symbol = {}
+
+    for signal in active_signals:
+        symbol = signal["symbol"]
+        start_ts = int(signal["start_tracking_ts"])
+
+        if (
+            symbol not in earliest_by_symbol
+            or start_ts < earliest_by_symbol[symbol]
+        ):
+            earliest_by_symbol[symbol] = start_ts
 
     candles_by_symbol = {}
     failures = []
 
     # Consultar OKX una vez por activo.
-    for symbol in symbols:
-        try:
-            log.info("Consultando OKX: %s", symbol)
+    for symbol, earliest_ts in earliest_by_symbol.items():
 
-            candles_by_symbol[symbol] = fetch_closed_candles(
-                symbol
+        try:
+            log.info(
+                "Consultando OKX: %s | Desde: %s",
+                symbol,
+                earliest_ts
             )
+
+            candles = fetch_closed_candles(
+                symbol,
+                earliest_ts
+            )
+
+            candles_by_symbol[symbol] = candles
 
             log.info(
-                "%s: %s velas cerradas recibidas",
+                "%s: %s velas cerradas recuperadas",
                 symbol,
-                len(candles_by_symbol[symbol])
+                len(candles)
             )
 
-        except Exception as exc:
+        except Exception:
             failures.append(symbol)
             log.exception(
-                "Error consultando %s: %s",
-                symbol,
-                exc
+                "Error consultando OKX para %s",
+                symbol
             )
 
         time.sleep(0.3)
@@ -246,6 +368,7 @@ def main():
 
     # Evaluar cada señal por separado.
     for signal in active_signals:
+
         symbol = signal["symbol"]
 
         if symbol not in candles_by_symbol:
@@ -261,25 +384,30 @@ def main():
                 changed_count += 1
 
         except Exception:
+            failures.append(signal.get("id"))
+
             log.exception(
                 "Error evaluando señal %s",
                 signal.get("id")
             )
-            failures.append(signal.get("id"))
 
-    # Guardar incluso si alguna consulta falló,
-    # conservando los resultados que sí se pudieron evaluar.
+    # Guardar cualquier avance realizado.
     if changed_count > 0:
         save_history(history)
 
-    # Resumen
+        log.info(
+            "Historial guardado. Señales actualizadas: %s",
+            changed_count
+        )
+
+    # Resumen general.
     counts = {}
 
     for signal in history:
         status = signal.get("status", "UNKNOWN")
         counts[status] = counts.get(status, 0) + 1
 
-    log.info("-" * 55)
+    log.info("-" * 60)
     log.info("RESUMEN DEL SEGUIMIENTO")
 
     for status, count in sorted(counts.items()):
@@ -291,16 +419,17 @@ def main():
     )
 
     log.info(
-        "Consultas o evaluaciones con errores: %s",
+        "Errores de consulta o evaluación: %s",
         len(failures)
     )
 
-    log.info("=" * 55)
+    log.info("=" * 60)
 
     if failures:
         raise RuntimeError(
             "El seguimiento terminó con errores. "
-            "Revisa el registro antes de confiar en el resultado."
+            "Revisa los registros antes de confiar "
+            "en el resultado."
         )
 
 
