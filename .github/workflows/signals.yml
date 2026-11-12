@@ -35,11 +35,14 @@ jobs:
       - name: Probar conexión OKX
         run: python test_okx.py
 
-      - name: Ejecutar bot
+      - name: Ejecutar bot de señales
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python signal_once.py
+
+      - name: Evaluar señales anteriores
+        run: python track_signals.py
 
       - name: Guardar estado e historial
         if: always()
