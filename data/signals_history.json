@@ -16,9 +16,9 @@
     "volume_ratio": 0.4423374442653181,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794449100000
   },
   {
     "id": "SOL-USDT-SHORT-1794447900000",
@@ -37,9 +37,9 @@
     "volume_ratio": 0.33941647378718287,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794449400000
   },
   {
     "id": "BTC-USDT-SHORT-1794453600000",
@@ -58,9 +58,9 @@
     "volume_ratio": 0.3616547228584293,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794454200000
   },
   {
     "id": "ETH-USDT-SHORT-1794453600000",
@@ -79,9 +79,9 @@
     "volume_ratio": 0.8498284772854446,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794453900000
   },
   {
     "id": "SOL-USDT-SHORT-1794453600000",
@@ -100,9 +100,9 @@
     "volume_ratio": 0.6925194720273771,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794453900000
   },
   {
     "id": "BTC-USDT-SHORT-1794457200000",
@@ -121,9 +121,9 @@
     "volume_ratio": 1.4431885007995737,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794459000000
   },
   {
     "id": "SOL-USDT-SHORT-1794457200000",
@@ -140,11 +140,11 @@
     "score": 4,
     "rsi": 44.646328195828445,
     "volume_ratio": 0.6252261927576573,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794460500000
   },
   {
     "id": "BTC-USDT-SHORT-1794460800000",
@@ -163,9 +163,9 @@
     "volume_ratio": 1.3885963393866876,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794463200000
   },
   {
     "id": "ETH-USDT-SHORT-1794460800000",
@@ -184,9 +184,9 @@
     "volume_ratio": 1.3133483999059017,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794461700000
   },
   {
     "id": "BTC-USDT-SHORT-1794475800000",
@@ -205,9 +205,9 @@
     "volume_ratio": 1.8177412904209331,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794478800000
   },
   {
     "id": "BTC-USDT-SHORT-1794482700000",
@@ -224,11 +224,11 @@
     "score": 5,
     "rsi": 32.86322198405803,
     "volume_ratio": 1.8948488168362323,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794483300000
   },
   {
     "id": "ETH-USDT-SHORT-1794482700000",
@@ -245,11 +245,11 @@
     "score": 5,
     "rsi": 34.648012171132166,
     "volume_ratio": 3.281797725413746,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794483000000
   },
   {
     "id": "SOL-USDT-SHORT-1794482700000",
@@ -266,11 +266,11 @@
     "score": 5,
     "rsi": 40.13834655331958,
     "volume_ratio": 1.0212318965081175,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794483300000
   },
   {
     "id": "BTC-USDT-SHORT-1794486000000",
@@ -287,11 +287,11 @@
     "score": 4,
     "rsi": 37.0818337537656,
     "volume_ratio": 1.332314907487627,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794488700000
   },
   {
     "id": "SOL-USDT-SHORT-1794486000000",
@@ -308,11 +308,11 @@
     "score": 4,
     "rsi": 40.37444305667217,
     "volume_ratio": 0.7284177187750144,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794488700000
   },
   {
     "id": "BTC-USDT-SHORT-1794493800000",
@@ -331,9 +331,9 @@
     "volume_ratio": 1.3473192842440018,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794494100000
   },
   {
     "id": "ETH-USDT-SHORT-1794493800000",
@@ -352,9 +352,9 @@
     "volume_ratio": 1.081309580724732,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794494100000
   },
   {
     "id": "SOL-USDT-SHORT-1794493800000",
@@ -373,8 +373,8 @@
     "volume_ratio": 1.0695239361879127,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794494100000
   }
 ]
