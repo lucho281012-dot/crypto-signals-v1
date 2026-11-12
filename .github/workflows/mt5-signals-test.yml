@@ -79,4 +79,7 @@ jobs:
         
       - name: Run exit horizon audit
         run: python exit_horizon_audit.py
+      
+      - name: Run direction horizon audit
+        run: python direction_horizon_audit.py
         
