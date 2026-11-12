@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import requests
 
+from signal_tracker import record_signal
 
 # ==========================================
 # CONFIGURACIÓN
@@ -34,7 +35,6 @@ SYMBOLS = [
 
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
-
 MIN_SCORE = int(os.getenv("MIN_SCORE", "4"))
 ATR_MULT = float(os.getenv("ATR_MULTIPLIER", "1.2"))
 
@@ -47,7 +47,7 @@ TIMEOUT = 20
 CANDLE_LIMIT = 300
 
 HEADERS = {
-    "User-Agent": "CryptoSignals-PaperTrading/1.0",
+    "User-Agent": "CryptoSignals-PerformanceTracker/1.0",
     "Accept": "application/json"
 }
 
@@ -60,7 +60,6 @@ SESSION.headers.update(HEADERS)
 # ==========================================
 
 def load_state():
-
     try:
         state = json.loads(STATE_PATH.read_text())
 
@@ -74,7 +73,6 @@ def load_state():
 
 
 def save_state(state):
-
     STATE_PATH.write_text(
         json.dumps(state, indent=2)
     )
@@ -85,7 +83,6 @@ def save_state(state):
 # ==========================================
 
 def notify(msg):
-
     response = SESSION.post(
         f"https://api.telegram.org/bot{TOKEN}/sendMessage",
         json={
@@ -98,8 +95,12 @@ def notify(msg):
 
     response.raise_for_status()
 
-    if not response.json().get("ok"):
+    result = response.json()
+
+    if not result.get("ok"):
         raise RuntimeError(response.text)
+
+    return result
 
 
 # ==========================================
@@ -107,14 +108,11 @@ def notify(msg):
 # ==========================================
 
 def okx_symbol(symbol):
-
     base, quote = symbol.upper().split("/")
-
     return f"{base}-{quote}-SWAP"
 
 
 def frame(symbol, tf):
-
     instrument = okx_symbol(symbol)
 
     if tf not in ("5m", "15m"):
@@ -167,7 +165,6 @@ def frame(symbol, tf):
         if len(row) >= 9 and row[8] == "1"
     ]
 
-    # Orden cronológico: antigua a reciente.
     closed.sort(
         key=lambda row: int(row[0])
     )
@@ -241,7 +238,6 @@ def frame(symbol, tf):
 # ==========================================
 
 def ind(df):
-
     c = df.close
     h = df.high
     l = df.low
@@ -311,7 +307,6 @@ def ind(df):
 # ==========================================
 
 def analyze(d5, d15):
-
     z = ind(d5)
 
     x = z.iloc[-1]
@@ -328,7 +323,6 @@ def analyze(d5, d15):
     ):
         return None
 
-    
     long = [
         x.close > x.ema200,
         x.close > x.ema20 and x.ema20 > prev.ema20,
@@ -344,7 +338,6 @@ def analyze(d5, d15):
         x["hist"] < 0 and x["hist"] <= prev["hist"],
         x.volume > x.volavg
     ]
-
 
     lc = y.close > y.ema200 and y.ema20 > y.ema200
     sc = y.close < y.ema200 and y.ema20 < y.ema200
@@ -392,7 +385,6 @@ def analyze(d5, d15):
 # ==========================================
 
 def fmt(x):
-
     return f"{x:,.6f}".rstrip("0").rstrip(".")
 
 
@@ -401,18 +393,12 @@ def fmt(x):
 # ==========================================
 
 def main():
-
     state = load_state()
     failures = []
 
     for symbol in SYMBOLS:
-
         try:
-
-            log.info(
-                "Consultando OKX: %s",
-                symbol
-            )
+            log.info("Consultando OKX: %s", symbol)
 
             d5 = frame(symbol, "5m")
 
@@ -421,12 +407,10 @@ def main():
             )
 
             if state["last_candle"].get(symbol) == candle:
-
                 log.info(
                     "%s: vela ya procesada",
                     symbol
                 )
-
                 continue
 
             d15 = frame(symbol, "15m")
@@ -434,7 +418,6 @@ def main():
             sig = analyze(d5, d15)
 
             if sig:
-
                 dt = datetime.fromtimestamp(
                     sig["ts"] / 1000,
                     timezone.utc
@@ -462,26 +445,24 @@ def main():
                     "Verifica el precio antes de actuar."
                 )
 
+                # Primero se envía y confirma Telegram.
                 notify(msg)
 
+                # Solo después se registra la señal.
+                record_signal(symbol, sig)
+
                 log.info(
-                    "Señal enviada: %s %s",
+                    "Señal enviada y registrada: %s %s",
                     symbol,
                     sig["side"]
                 )
 
             else:
+                log.info("%s: sin señal", symbol)
 
-                log.info(
-                    "%s: sin señal",
-                    symbol
-                )
-
-            # Registrar solo después de procesar correctamente.
             state["last_candle"][symbol] = candle
 
         except Exception as exc:
-
             failures.append(symbol)
 
             log.exception(
@@ -491,7 +472,6 @@ def main():
             )
 
         finally:
-
             time.sleep(0.5)
 
     save_state(state)
@@ -508,7 +488,6 @@ def main():
 
 
 if __name__ == "__main__":
-
     try:
         main()
 
