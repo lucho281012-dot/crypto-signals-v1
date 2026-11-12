@@ -73,3 +73,5 @@ jobs:
 
       - name: Run entry outcome audit
         run: python entry_outcome_audit.py
+      - name: Run TIME_LIMIT audit
+        run: python time_limit_audit.py
