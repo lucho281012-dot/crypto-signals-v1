@@ -114,6 +114,14 @@ def recover_report_history(path):
     """
     target = _history_path(path)
     backup = target.with_name(target.name + ".bak")
+    if target.exists():
+        primary_bytes = _read_bytes(target)
+        try:
+            _decode_history(primary_bytes, str(target))
+        except ValueError:
+            pass
+        else:
+            raise ValueError("primary history is valid; refusing rollback")
     if not backup.exists():
         raise FileNotFoundError(backup)
     backup_bytes = _read_bytes(backup)
