@@ -36,20 +36,28 @@ def run_bot():
             if candle["low"] <= stop:
                 exit_price = min(candle["open"], stop)
 
-                close_position(
-                    state, symbol, exit_price, "stop_loss"
+                success, message = close_position(
+                    state, symbol, exit_price, "stop_loss",
+                    persist=False
                 )
 
-                print(symbol, "STOP LOSS")
+                if success:
+                    print(symbol, "STOP LOSS")
+                else:
+                    print(symbol, message)
 
             elif target and candle["high"] >= target:
                 exit_price = max(candle["open"], target)
 
-                close_position(
-                    state, symbol, exit_price, "take_profit"
+                success, message = close_position(
+                    state, symbol, exit_price, "take_profit",
+                    persist=False
                 )
 
-                print(symbol, "TAKE PROFIT")
+                if success:
+                    print(symbol, "TAKE PROFIT")
+                else:
+                    print(symbol, message)
 
         else:
             signal = analyze_spot(
@@ -72,17 +80,20 @@ def run_bot():
                     state,
                     symbol,
                     entry_price,
-                    stop_price
+                    stop_price,
+                    persist=False
                 )
 
                 if success:
                     state["positions"][symbol]["target_price"] = (
                         target_price
                     )
-                    save_state(state)
 
                 print(message)
 
+        # El cambio de posición y su checkpoint se guardan juntos.
+        # Si el proceso falla antes de este punto, no se persiste
+        # ninguno de los dos cambios para este símbolo.
         state["last_processed_candle"][symbol] = candle_id
         save_state(state)
 
