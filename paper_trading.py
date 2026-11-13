@@ -1,4 +1,3 @@
-
 import json
 from pathlib import Path
 from datetime import datetime, timezone
@@ -42,7 +41,7 @@ def save_state(state):
     temp_file.replace(STATE_FILE)
 
 
-def open_position(state, symbol, entry_price, stop_price):
+def open_position(state, symbol, entry_price, stop_price, persist=True):
     entry_price = float(entry_price)
     stop_price = float(stop_price)
 
@@ -117,7 +116,8 @@ def open_position(state, symbol, entry_price, stop_price):
         "opened_at": datetime.now(timezone.utc).isoformat()
     }
 
-    save_state(state)
+    if persist:
+        save_state(state)
 
     return True, (
         f"Compra simulada: {symbol} | "
@@ -125,7 +125,7 @@ def open_position(state, symbol, entry_price, stop_price):
     )
 
 
-def close_position(state, symbol, exit_price, reason="manual"):
+def close_position(state, symbol, exit_price, reason="manual", persist=True):
     position = state["positions"].get(symbol)
 
     if not position:
@@ -161,7 +161,8 @@ def close_position(state, symbol, exit_price, reason="manual"):
     state["history"].append(trade)
     del state["positions"][symbol]
 
-    save_state(state)
+    if persist:
+        save_state(state)
 
     return True, f"Resultado neto: {pnl:.4f} USDT"
 
@@ -187,5 +188,3 @@ def get_status(state):
 if __name__ == "__main__":
     state = load_state()
     print(json.dumps(get_status(state), indent=2))
-
-
