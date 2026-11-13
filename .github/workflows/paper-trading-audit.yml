@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
 
+      - name: Test guarded recovery calculations
+        run: python -m unittest -v test_apply_recovery.py
+
+      - name: Preview guarded recovery (dry-run only)
+        run: python apply_recovery.py
+
       - name: Audit saved paper-trading state (read-only)
         run: python audit_paper_state.py
 
