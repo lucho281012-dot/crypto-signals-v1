@@ -64,6 +64,13 @@ class PaperReportJsonStoreTests(unittest.TestCase):
         self.assertEqual(load_report_history(self.path), [self.first])
         self.assertTrue(self.path.with_name(self.path.name + ".bak").exists())
 
+    def test_recovery_refuses_to_roll_back_valid_primary(self):
+        save_report_history(self.path, [self.first])
+        save_report_history(self.path, [self.first, self.second])
+        with self.assertRaisesRegex(ValueError, "refusing rollback"):
+            recover_report_history(self.path)
+        self.assertEqual(load_report_history(self.path), [self.first, self.second])
+
     def test_recovery_rejects_invalid_backup_without_changing_primary(self):
         self.path.parent.mkdir(parents=True)
         self.path.write_text("primary", encoding="utf-8")
