@@ -40,6 +40,49 @@ class PaperDashboardUITests(unittest.TestCase):
         self.assertIn('role="img"', self.html)
         self.assertIn('lang="es"', self.html)
 
+    def test_local_history_import_is_available_and_read_only(self):
+        for token in (
+            'id="history-file"',
+            'type="file"',
+            'accept=".json,application/json"',
+            'role="status"',
+            "file.text()",
+            "JSON.parse",
+            "MAX_BYTES = 5 * 1024 * 1024",
+            "MAX_SNAPSHOTS = 10000",
+            "schema_version !== 1",
+            "strictly increasing",
+            "replaceChildren()",
+            "HISTORIAL IMPORTADO",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, self.html)
+
+    def test_import_validates_numeric_metrics_and_snapshot_order(self):
+        self.assertIn('required = ["equity_usdt","cash_usdt","market_value_usdt","total_pnl_usdt","total_return_pct"]', self.html)
+        self.assertIn("Number.isFinite(n)", self.html)
+        self.assertIn("time <= previous", self.html)
+        self.assertIn("ids.has(snapshot.snapshot_id)", self.html)
+
+    def test_import_updates_dashboard_metrics_and_assets(self):
+        for token in (
+            'setText("equity"',
+            'setText("pnl"',
+            'setText("drawdown"',
+            'setText("cash-value"',
+            'setText("market-value"',
+            'document.querySelector(".asset-list")',
+            'document.querySelector(".table-scroll tbody")',
+            'svg.querySelector(".line")',
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, self.html)
+
+    def test_import_errors_keep_demo_data_and_report_status(self):
+        self.assertIn("Se conservan los datos DEMO", self.html)
+        self.assertIn('status.textContent = "No se pudo importar:', self.html)
+        self.assertIn('input.value = "";', self.html)
+
     def test_ui_has_no_network_or_persistence_code(self):
         forbidden = (
             "fetch(", "XMLHttpRequest", "WebSocket", "localStorage",
