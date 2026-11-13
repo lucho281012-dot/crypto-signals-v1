@@ -1,0 +1,79 @@
+name: Paper Trading Controlled Rebaseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply the checkpoint reset after reviewing live Kraken timestamps"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-trading-controlled-rebaseline
+  cancel-in-progress: false
+
+jobs:
+  rebaseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout recovery utilities
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-recovery-audit
+          path: recovery
+          persist-credentials: false
+
+      - name: Checkout simulator state branch
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-v1-2
+          path: target
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: recovery/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r recovery/requirements.txt
+
+      - name: Test checkpoint rebaseline safeguards
+        env:
+          PYTHONPATH: recovery
+        run: python -m unittest -v recovery/test_rebaseline_checkpoint.py
+
+      - name: Preview live checkpoint plan
+        env:
+          PYTHONPATH: recovery
+        run: python recovery/rebaseline_checkpoint.py --state-path target/data/paper_state.json
+
+      - name: Apply guarded checkpoint rebaseline
+        if: inputs.apply == true
+        env:
+          PYTHONPATH: recovery
+        run: python recovery/rebaseline_checkpoint.py --state-path target/data/paper_state.json --apply
+
+      - name: Verify updated simulator state
+        if: inputs.apply == true
+        working-directory: target
+        env:
+          PYTHONPATH: ../recovery
+        run: python ../recovery/audit_paper_state.py
+
+      - name: Commit state and original backup
+        if: inputs.apply == true
+        working-directory: target
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/paper_state.json data/paper_state.json.pre_rebaseline.bak
+          git diff --cached --check
+          git commit -m "Safely rebaseline paper trading candle checkpoints"
+          git push origin HEAD:paper-trading-v1-2
