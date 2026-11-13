@@ -50,6 +50,8 @@ def _validate_candles(symbol, candles, timeframe, now_ms):
             raise ValueError(f"{symbol}: vela desalineada en {timeframe}")
         if timestamps and timestamp <= timestamps[-1]:
             raise ValueError(f"{symbol}: timestamps no crecientes en {timeframe}")
+        if timestamps and timestamp - timestamps[-1] != interval:
+            raise ValueError(f"{symbol}: hueco de velas en {timeframe}")
         timestamps.append(timestamp)
 
         values = {
