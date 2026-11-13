@@ -14,7 +14,7 @@ jobs:
   audit:
     name: Read-only simulator audits
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout recovery branch
         uses: actions/checkout@v4
@@ -36,3 +36,6 @@ jobs:
 
       - name: Audit available candle history (read-only)
         run: python audit_candle_gap.py
+
+      - name: Reconstruct open positions from Kraken trade history (read-only)
+        run: python recover_open_positions_readonly.py
