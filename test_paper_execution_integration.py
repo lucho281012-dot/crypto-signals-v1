@@ -14,7 +14,7 @@ SYMBOLS = {
     "ETH/USDT": "10",
     "SOL/USDT": "1",
 }
-ORDER_SIZES = ("0.25", "0.75", "1.5")
+ORDER_SIZES = ("0.25", "0.75", "2.0")
 
 
 def synthetic_book(symbol, scale):
@@ -52,7 +52,6 @@ class PaperExecutionIntegrationTests(unittest.TestCase):
                             self.assertAlmostEqual(
                                 result["filled_quantity"], float(quantity), places=10
                             )
-
                             fill_notional = sum(
                                 fill["price"] * fill["quantity"]
                                 for fill in result["fills"]
@@ -70,7 +69,6 @@ class PaperExecutionIntegrationTests(unittest.TestCase):
                                 result["gross_notional_usdt"] * result["fee_rate"],
                                 places=8,
                             )
-
                             if side == "BUY":
                                 expected_cash_flow = -(
                                     result["gross_notional_usdt"] + result["fee_usdt"]
@@ -93,7 +91,7 @@ class PaperExecutionIntegrationTests(unittest.TestCase):
                             self.assertLessEqual(result["levels_consumed"], 3)
 
     def test_order_sizes_exercise_one_two_and_three_levels(self):
-        expected_levels = {"0.25": 1, "0.75": 2, "1.5": 3}
+        expected_levels = {"0.25": 1, "0.75": 2, "2.0": 3}
         for symbol, scale in SYMBOLS.items():
             with self.subTest(symbol=symbol):
                 for side in ("BUY", "SELL"):
