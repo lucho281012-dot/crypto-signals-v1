@@ -1,0 +1,176 @@
+name: Kraken Matching USDT Ticker and Order Book Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-matching-usdt-book-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Test matching USDT markets across public endpoints
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout transaction-safety candidate
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-transaction-safety
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install requests
+
+      - name: Probe matching USDT markets using public data only
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          import math
+          import time
+          import requests
+          import ccxt
+
+          PAIRS = [("BTC/USDT", "BTC/USDT"), ("ETH/USDT", "ETH/USDT"), ("SOL/USDT", "SOL/USDT")]
+          URL = "https://api.kraken.com/0/public/PreTrade"
+          exchange = ccxt.kraken({"enableRateLimit": True})
+          exchange.load_markets()
+          session = requests.Session()
+          supported = 0
+          unsupported = []
+          failures = []
+
+          def num(value):
+              try:
+                  value = float(value)
+              except (TypeError, ValueError, OverflowError):
+                  return None
+              return value if math.isfinite(value) else None
+
+          def ts_ms(level):
+              raw = level.get("publication_ts")
+              if not isinstance(raw, str):
+                  return None
+              try:
+                  parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+              except ValueError:
+                  return None
+              return parsed.timestamp() * 1000 if parsed.tzinfo else None
+
+          def diff_pct(a, b):
+              if a is None or b is None or b == 0:
+                  return None
+              return abs(a - b) / b * 100
+
+          print("ENDPOINT=Kraken public Pre-Trade plus CCXT public ticker")
+          print("AUTHENTICATION=none")
+          print("ORDER_ACTIONS=none")
+          print("QUOTE_CURRENCY=USDT for both endpoints")
+          print(f"CCXT_VERSION={ccxt.__version__}")
+
+          for pretrade_symbol, ccxt_symbol in PAIRS:
+              if ccxt_symbol not in exchange.markets:
+                  unsupported.append(f"{ccxt_symbol}: CCXT market unavailable")
+                  print(f"PAIR={ccxt_symbol} STATUS=CCXT_MARKET_UNAVAILABLE")
+                  continue
+
+              start_ms = int(time.time() * 1000)
+              try:
+                  response = session.get(
+                      URL,
+                      params={"symbol": pretrade_symbol},
+                      headers={"Accept": "application/json"},
+                      timeout=20,
+                  )
+                  book_received_ms = int(time.time() * 1000)
+                  response.raise_for_status()
+                  payload = response.json()
+                  if payload.get("error"):
+                      unsupported.append(f"{pretrade_symbol}: Pre-Trade rejected symbol: {payload['error']}")
+                      print(f"PAIR={pretrade_symbol} STATUS=PRETRADE_UNSUPPORTED ERROR={payload['error']}")
+                      continue
+
+                  book = payload.get("result")
+                  if not isinstance(book, dict) or book.get("symbol") != pretrade_symbol:
+                      unsupported.append(f"{pretrade_symbol}: unexpected result symbol")
+                      print(f"PAIR={pretrade_symbol} STATUS=PRETRADE_UNSUPPORTED RESULT_SYMBOL={book.get('symbol') if isinstance(book, dict) else None}")
+                      continue
+
+                  bids, asks = book.get("bids"), book.get("asks")
+                  if not isinstance(bids, list) or not bids or not isinstance(asks, list) or not asks:
+                      failures.append(f"{pretrade_symbol}: missing bid/ask levels")
+                      continue
+
+                  bid, ask = bids[0], asks[0]
+                  bid_px, ask_px = num(bid.get("price")), num(ask.get("price"))
+                  bid_ts, ask_ts = ts_ms(bid), ts_ms(ask)
+                  if (bid_px is None or ask_px is None or bid_px <= 0 or
+                      ask_px < bid_px or ask_ts is None or bid_ts is None):
+                      failures.append(f"{pretrade_symbol}: invalid best levels")
+                      continue
+
+                  ticker = exchange.fetch_ticker(ccxt_symbol)
+                  ticker_received_ms = int(time.time() * 1000)
+                  last, ticker_bid, ticker_ask = (
+                      num(ticker.get("last")), num(ticker.get("bid")), num(ticker.get("ask"))
+                  )
+                  midpoint = (bid_px + ask_px) / 2
+                  spread_pct = (ask_px - bid_px) / midpoint * 100
+                  bid_age = book_received_ms - bid_ts
+                  ask_age = book_received_ms - ask_ts
+                  if last is None or last <= 0:
+                      failures.append(f"{ccxt_symbol}: ticker last missing or invalid")
+                  if bid_age < -10000 or ask_age < -10000:
+                      failures.append(f"{pretrade_symbol}: future publication timestamp")
+
+                  print(
+                      f"PAIR={pretrade_symbol} STATUS=SUPPORTED "
+                      f"BOOK_BID={bid_px} BOOK_ASK={ask_px} BOOK_MID={midpoint} "
+                      f"BOOK_SPREAD_PCT={spread_pct} "
+                      f"BOOK_BID_AGE_MS={bid_age} BOOK_ASK_AGE_MS={ask_age} "
+                      f"TICKER_LAST={last} TICKER_BID={ticker_bid} TICKER_ASK={ticker_ask} "
+                      f"TICKER_TIMESTAMP_MS={ticker.get('timestamp')} "
+                      f"TICKER_LAST_VS_BOOK_MID_DIFF_PCT={diff_pct(last, midpoint)} "
+                      f"TICKER_BID_VS_BOOK_BID_DIFF_PCT={diff_pct(ticker_bid, bid_px)} "
+                      f"TICKER_ASK_VS_BOOK_ASK_DIFF_PCT={diff_pct(ticker_ask, ask_px)} "
+                      f"REQUEST_START_MS={start_ms} BOOK_RECEIVED_MS={book_received_ms} "
+                      f"TICKER_RECEIVED_MS={ticker_received_ms} HTTP_DATE={response.headers.get('Date')}"
+                  )
+                  supported += 1
+              except Exception as exc:
+                  failures.append(f"{pretrade_symbol}: {type(exc).__name__}: {exc}")
+                  print(f"PAIR={pretrade_symbol} STATUS=ERROR ERROR={type(exc).__name__}: {exc}")
+
+          print(f"SUPPORTED_MATCHING_USDT_PAIRS={supported}")
+          print(f"UNSUPPORTED_MATCHING_USDT_PAIRS={len(unsupported)}")
+          for item in unsupported:
+              print(f"UNSUPPORTED_DETAIL={item}")
+          if failures:
+              raise SystemExit("PROBE_FAILURES: " + "; ".join(failures))
+          if supported == 0:
+              print("PROBE_RESULT=NO_MATCHING_USDT_PRETRADE_MARKETS")
+          elif unsupported:
+              print("PROBE_RESULT=PARTIAL_MATCHING_USDT_PRETRADE_SUPPORT")
+          else:
+              print("PROBE_RESULT=PASS_ALL_MATCHING_USDT_MARKETS")
+          print("NOTE=Only matching quote-currency pairs are compared. publication_ts describes the last publication of each individual order-book level, not a timestamp for ticker last or a globally synchronized snapshot. This is diagnostic only and does not authorize using midpoint as an executable fill price.")
+          PY
+
+      - name: Confirm working tree is unchanged
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
