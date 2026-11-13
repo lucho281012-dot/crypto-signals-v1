@@ -150,7 +150,13 @@ class MarketDataValidationTests(unittest.TestCase):
 
     def test_entry_drift_skips_trade_but_checkpoints(self):
         now_ms = 2_000_000_000_000
-        state = self.base_state()
+        state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 100.0,
+            "positions": {},
+            "history": [],
+            "last_processed_candle": {},
+        }
         payload = market_payload(now_ms, price=102.0)  # 1.49% sobre cierre 100.5
         with patch.object(paper_bot, "load_state", return_value=state), \
              patch.object(paper_bot, "get_all_market_data", return_value=payload), \
