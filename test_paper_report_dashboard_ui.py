@@ -51,7 +51,7 @@ class PaperDashboardUITests(unittest.TestCase):
             "MAX_BYTES = 5 * 1024 * 1024",
             "MAX_SNAPSHOTS = 10000",
             "schema_version !== 1",
-            "strictly increasing",
+            "estrictamente creciente",
             "replaceChildren()",
             "HISTORIAL IMPORTADO",
         ):
