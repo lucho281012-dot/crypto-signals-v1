@@ -1,33 +1,14 @@
 {
-  "initial_balance": 100.0,
-  "cash_usdt": 94.56557154086417,
-  "positions": {
-    "ETH/USDT": {
-      "entry_price": 2428.45,
-      "stop_price": 2424.3048571428567,
-      "quantity": 0.0019540261258229456,
-      "entry_fee": 0.004745254745254732,
-      "risk_budget": 0.04999999999999986,
-      "opened_at": "2026-11-05T01:50:41.725802+00:00",
-      "target_price": 2436.740285714286
-    },
-    "SOL/USDT": {
-      "entry_price": 96.06,
-      "stop_price": 95.796,
-      "quantity": 0.0024699431320293194,
-      "entry_fee": 0.00023726273726273642,
-      "risk_budget": 0.0024999999999999914,
-      "opened_at": "2026-11-05T01:50:41.733198+00:00",
-      "target_price": 96.588
-    }
-  },
+  "initial_balance": 100,
+  "cash_usdt": 99.53596179449755,
+  "positions": {},
   "history": [
     {
       "entry_price": 80754.4,
       "stop_price": 80599.53142857143,
       "quantity": 0.0011752312555736273,
       "entry_fee": 0.09490509490509491,
-      "risk_budget": 1.0,
+      "risk_budget": 1,
       "opened_at": "2026-11-05T01:50:41.717968+00:00",
       "target_price": 81064.13714285713,
       "symbol": "BTC/USDT",
@@ -36,6 +17,42 @@
       "net_pnl": -0.4469284591358409,
       "reason": "stop_loss",
       "closed_at": "2026-11-05T03:15:58.807422+00:00"
+    },
+    {
+      "entry_price": 2428.45,
+      "stop_price": 2424.3048571428567,
+      "quantity": 0.0019540261258229456,
+      "entry_fee": 0.004745254745254732,
+      "risk_budget": 0.04999999999999986,
+      "opened_at": "2026-11-05T01:50:41.725802+00:00",
+      "target_price": 2436.740285714286,
+      "symbol": "ETH/USDT",
+      "exit_price": 2424.12,
+      "exit_fee": 0.004736793812129918,
+      "net_pnl": -0.017942981682198163,
+      "reason": "stop_loss",
+      "closed_at": "2026-11-05T04:00:00+00:00",
+      "event_time": "2026-11-05T04:00:00+00:00",
+      "recovered": true,
+      "recovery_source": "Kraken public Trades; rebuilt 5m bars; paper_bot.py stop-first rules"
+    },
+    {
+      "entry_price": 96.06,
+      "stop_price": 95.796,
+      "quantity": 0.0024699431320293194,
+      "entry_fee": 0.00023726273726273642,
+      "risk_budget": 0.0024999999999999914,
+      "opened_at": "2026-11-05T01:50:41.733198+00:00",
+      "target_price": 96.588,
+      "symbol": "SOL/USDT",
+      "exit_price": 96.59,
+      "exit_fee": 0.00023857180712271198,
+      "net_pnl": 0.0008332353155900998,
+      "reason": "take_profit",
+      "closed_at": "2026-11-05T03:15:00+00:00",
+      "event_time": "2026-11-05T03:15:00+00:00",
+      "recovered": true,
+      "recovery_source": "Kraken public Trades; rebuilt 5m bars; paper_bot.py stop-first rules"
     }
   ],
   "last_processed_candle": {
