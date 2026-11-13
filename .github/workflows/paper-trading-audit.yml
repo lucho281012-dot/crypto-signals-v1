@@ -1,0 +1,38 @@
+name: Paper Trading Read-Only Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-trading-read-only-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Read-only simulator audits
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-recovery-audit
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Audit saved paper-trading state (read-only)
+        run: python audit_paper_state.py
+
+      - name: Audit available candle history (read-only)
+        run: python audit_candle_gap.py
