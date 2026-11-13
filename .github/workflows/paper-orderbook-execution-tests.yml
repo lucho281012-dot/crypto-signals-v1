@@ -1,0 +1,38 @@
+name: Paper Order Book Execution Tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-orderbook-execution-tests
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test isolated paper order-book execution model
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout isolated execution branch
+        uses: actions/checkout@v4
+        with:
+          ref: paper-orderbook-execution
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run paper execution unit tests
+        run: python -m unittest -v test_paper_execution.py
+
+      - name: Confirm simulator integration was not changed
+        run: |
+          git diff --exit-code -- paper_bot.py paper_trading.py market_data.py
+          test -z "$(git status --porcelain)"
+          ! grep -nE 'requests\.|ccxt|websocket|paper_state\.json|paper_bot' paper_execution.py
