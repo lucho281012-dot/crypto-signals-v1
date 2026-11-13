@@ -1,0 +1,155 @@
+name: Kraken Public Pre-Trade Order Book Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-public-pretrade-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Measure public order-book publication timestamps
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout transaction-safety candidate
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-transaction-safety
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install HTTP client
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install requests
+
+      - name: Query public Kraken Pre-Trade order book only
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          from urllib.parse import urlencode
+          import math
+          import time
+          import requests
+
+          BASE_URL = "https://api.kraken.com/0/public/PreTrade"
+          SYMBOLS = ["BTC/USD", "ETH/USD", "SOL/USD"]
+          session = requests.Session()
+          failures = []
+
+          def parse_ts(value):
+              if not isinstance(value, str):
+                  raise ValueError("publication_ts is not a string")
+              parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+              if parsed.tzinfo is None:
+                  raise ValueError("publication_ts has no timezone")
+              return parsed.timestamp() * 1000
+
+          print("ENDPOINT=Kraken public Pre-Trade order book")
+          print("AUTHENTICATION=none")
+          print("ORDER_ACTIONS=none")
+
+          for symbol in SYMBOLS:
+              request_start_ms = int(time.time() * 1000)
+              response = session.get(
+                  BASE_URL,
+                  params={"symbol": symbol},
+                  headers={"Accept": "application/json"},
+                  timeout=20,
+              )
+              received_ms = int(time.time() * 1000)
+              response.raise_for_status()
+              payload = response.json()
+
+              if payload.get("error"):
+                  failures.append(f"{symbol}: Kraken API error {payload['error']}")
+                  print(f"PAIR={symbol} API_ERROR={payload['error']}")
+                  continue
+
+              result = payload.get("result")
+              if not isinstance(result, dict):
+                  failures.append(f"{symbol}: result is not an object")
+                  continue
+
+              book = result.get(symbol)
+              if book is None and len(result) == 1:
+                  returned_key, book = next(iter(result.items()))
+                  print(f"PAIR_REQUESTED={symbol} PAIR_RETURNED={returned_key}")
+              if not isinstance(book, dict):
+                  failures.append(f"{symbol}: order book missing")
+                  continue
+
+              pair_failed = False
+              for side in ("bids", "asks"):
+                  levels = book.get(side)
+                  if not isinstance(levels, list) or not levels:
+                      failures.append(f"{symbol}: {side} missing or empty")
+                      pair_failed = True
+                      continue
+
+                  parsed = []
+                  for level in levels:
+                      if not isinstance(level, dict):
+                          continue
+                      try:
+                          price = float(level.get("price"))
+                          qty = float(level.get("qty"))
+                          ts_ms = parse_ts(level.get("publication_ts"))
+                      except (TypeError, ValueError, OverflowError):
+                          continue
+                      if not all(math.isfinite(x) for x in (price, qty, ts_ms)):
+                          continue
+                      if price <= 0 or qty < 0:
+                          continue
+                      parsed.append((price, qty, ts_ms))
+
+                  if not parsed:
+                      failures.append(f"{symbol}: {side} has no valid levels")
+                      pair_failed = True
+                      continue
+
+                  # Kraken returns book levels ordered from best to worse.
+                  best_price, best_qty, best_ts_ms = parsed[0]
+                  age_ms = received_ms - best_ts_ms
+                  oldest_age_ms = max(received_ms - item[2] for item in parsed)
+                  print(
+                      f"PAIR={symbol} SIDE={side.upper()} LEVELS={len(levels)} "
+                      f"VALID_LEVELS={len(parsed)} BEST_PRICE={best_price} "
+                      f"BEST_QTY={best_qty} BEST_PUBLICATION_UTC="
+                      f"{datetime.fromtimestamp(best_ts_ms / 1000, timezone.utc).isoformat()} "
+                      f"BEST_LEVEL_AGE_AT_RECEIVE_MS={age_ms} "
+                      f"OLDEST_RETURNED_LEVEL_AGE_MS={oldest_age_ms}"
+                  )
+                  if age_ms < -10000:
+                      failures.append(f"{symbol}: {side} best-level timestamp is >10s in future")
+
+              print(
+                  f"PAIR={symbol} REQUEST_START_MS={request_start_ms} "
+                  f"RESPONSE_RECEIVED_MS={received_ms} "
+                  f"HTTP_DATE={response.headers.get('Date')} "
+                  f"HTTP_AGE={response.headers.get('Age')}"
+              )
+              if pair_failed:
+                  continue
+
+          if failures:
+              raise SystemExit("PROBE_FAILURES: " + "; ".join(failures))
+
+          print("PROBE_RESULT=PASS_PUBLIC_PRETRADE_BOOKS_AND_PUBLICATION_TIMESTAMPS")
+          print("NOTE=publication_ts records when each order-book price level was last updated and published. It is not a timestamp for the ticker endpoint or a guarantee that all market data is globally synchronized.")
+          PY
+
+      - name: Confirm working tree is unchanged
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
