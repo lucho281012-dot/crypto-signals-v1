@@ -212,6 +212,9 @@
     const path = coords.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
     line.setAttribute("d",path); area.setAttribute("d",path+" L600 185 L42 185Z");
     point.setAttribute("cx",coords[coords.length-1][0]); point.setAttribute("cy",coords[coords.length-1][1]);
+    const axisLabels = svg.querySelectorAll("g text");
+    [max, min + span*2/3, min + span/3, min].forEach((v,i) => { if(axisLabels[i]) axisLabels[i].textContent = money(v); });
+    document.querySelectorAll(".tag").forEach(el=>{if(el.textContent==="Últimos 7 snapshots")el.textContent="Serie histórica";});
     const labels = document.querySelector(".labels"); labels.replaceChildren();
     [history[0],history[Math.floor((history.length-1)/2)],history[history.length-1]].forEach(s=>{const spanEl=document.createElement("span");spanEl.textContent=dateLabel(s.captured_at);labels.append(spanEl);});
     document.querySelectorAll(".tag").forEach(el=>{if(el.textContent==="Valores de ejemplo")el.textContent="Datos importados";});
