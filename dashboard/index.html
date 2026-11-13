@@ -231,7 +231,7 @@
       const parsed = JSON.parse(await file.text());
       render(validate(parsed));
     } catch (error) {
-      status.textContent = "No se pudo importar: " + error.message + " Se conservan los datos DEMO.";
+      status.textContent = "No se pudo importar: " + error.message + " Se conservan los datos que ya estaban cargados.";
       input.value = "";
     }
   });
