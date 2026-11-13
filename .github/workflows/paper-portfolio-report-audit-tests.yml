@@ -1,0 +1,38 @@
+name: Paper Portfolio Report Audit Tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-portfolio-report-audit-tests
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Audit report reconciliation and allocation
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout isolated report audit branch
+        uses: actions/checkout@v4
+        with:
+          ref: paper-portfolio-report-audit
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run execution, ledger, portfolio and reporting tests
+        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py test_paper_account.py test_paper_portfolio_scenarios.py test_paper_report.py
+
+      - name: Confirm simulator integration was not changed
+        run: |
+          git diff --exit-code -- paper_bot.py paper_trading.py market_data.py
+          test -z "$(git status --porcelain)"
+          ! grep -nE 'requests\\.|ccxt|websocket|paper_state\\.json|paper_bot' paper_execution.py paper_account.py paper_report.py
