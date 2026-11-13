@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: Test isolated paper execution and account ledger
+    name: Test isolated paper execution and portfolio scenarios
     runs-on: ubuntu-latest
     env:
       PYTHONDONTWRITEBYTECODE: "1"
@@ -28,8 +28,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run execution and account ledger tests
-        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py test_paper_account.py
+      - name: Run execution, ledger and portfolio scenario tests
+        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py test_paper_account.py test_paper_portfolio_scenarios.py
 
       - name: Confirm simulator integration was not changed
         run: |
