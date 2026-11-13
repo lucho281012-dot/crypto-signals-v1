@@ -62,10 +62,16 @@ class PreflightTests(unittest.TestCase):
                 run_preflight(lambda: market, lambda *_: None, path, self.now)
 
     def test_rejects_stale_or_misaligned_candles(self):
-        old = candles(300_000, self.now_ms)
-        old[-2]["timestamp"] -= 60_000
+        stale = candles(300_000, self.now_ms)
+        for candle in stale:
+            candle["timestamp"] -= 60 * 60 * 1000
+        with self.assertRaisesRegex(ValueError, "no está fresca"):
+            validate_candles(stale, "5m", self.now)
+
+        misaligned = candles(300_000, self.now_ms)
+        misaligned[-2]["timestamp"] -= 60_000
         with self.assertRaisesRegex(ValueError, "no alineado"):
-            validate_candles(old, "5m", self.now)
+            validate_candles(misaligned, "5m", self.now)
 
     def test_rejects_insufficient_history(self):
         with self.assertRaisesRegex(ValueError, "200"):
