@@ -20,7 +20,7 @@ jobs:
       - name: Checkout isolated JSON store branch
         uses: actions/checkout@v4
         with:
-          ref: paper-report-json-store
+          ref: paper-report-export
           persist-credentials: false
 
       - name: Set up Python
@@ -28,11 +28,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run execution, ledger, report, history and JSON store tests
-        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py test_paper_account.py test_paper_portfolio_scenarios.py test_paper_report.py test_paper_report_history.py test_paper_report_json_store.py
+      - name: Run execution, ledger, report, history, JSON store and export tests
+        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py test_paper_account.py test_paper_portfolio_scenarios.py test_paper_report.py test_paper_report_history.py test_paper_report_json_store.py test_paper_report_export.py
 
       - name: Confirm simulator integration and working tree remain untouched
         run: |
           git diff --exit-code -- paper_bot.py paper_trading.py market_data.py
           test -z "$(git status --porcelain)"
-          ! grep -nE 'requests\\.|ccxt|websocket|paper_state\\.json|paper_bot' paper_execution.py paper_account.py paper_report.py paper_report_history.py paper_report_json_store.py
+          ! grep -nE 'requests\\.|ccxt|websocket|paper_state\\.json|paper_bot' paper_execution.py paper_account.py paper_report.py paper_report_history.py paper_report_json_store.py paper_report_export.py
