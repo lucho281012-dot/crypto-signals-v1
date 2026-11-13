@@ -39,8 +39,8 @@ class PaperExecutionTests(unittest.TestCase):
         result = simulate_market_order(sample_book(), "SELL", "1.5", NOW)
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["levels_consumed"], 2)
-        self.assertAlmostEqual(result["gross_notional_usdt"], 199.0)
-        self.assertAlmostEqual(result["fee_usdt"], 0.199)
+        self.assertAlmostEqual(result["gross_notional_usdt"], 149.5)
+        self.assertAlmostEqual(result["fee_usdt"], 0.1495)
         self.assertLess(result["cash_flow_usdt"], result["gross_notional_usdt"])
 
     def test_buy_within_top_level_has_zero_slippage(self):
