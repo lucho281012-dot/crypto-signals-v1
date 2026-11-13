@@ -1,6 +1,8 @@
 from pathlib import Path
 import unittest
 
+from paper_report_history import deserialize_report_history
+
 
 class PaperDashboardUITests(unittest.TestCase):
     @classmethod
@@ -82,6 +84,19 @@ class PaperDashboardUITests(unittest.TestCase):
         self.assertIn("Se conservan los datos que ya estaban cargados", self.html)
         self.assertIn('status.textContent = "No se pudo importar:', self.html)
         self.assertIn('input.value = "";', self.html)
+
+    def test_sample_history_fixture_is_valid_and_has_expected_metrics(self):
+        fixture = Path(__file__).parent / "dashboard" / "sample_history_demo.json"
+        history = deserialize_report_history(fixture.read_text(encoding="utf-8"))
+        self.assertEqual(len(history), 4)
+        self.assertEqual(history[-1]["snapshot_id"], "demo-004")
+        latest = history[-1]["report"]
+        self.assertEqual(latest["equity_usdt"], "1009.80")
+        self.assertEqual(latest["cash_usdt"], "249.80")
+        self.assertEqual(latest["market_value_usdt"], "760.00")
+        self.assertEqual(latest["total_pnl_usdt"], "9.80")
+        self.assertEqual(latest["total_return_pct"], "0.98")
+        self.assertEqual(set(latest["positions"]), {"BTC", "ETH"})
 
     def test_ui_has_no_network_or_persistence_code(self):
         forbidden = (
