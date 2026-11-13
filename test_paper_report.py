@@ -1,5 +1,6 @@
 import copy
 import unittest
+from decimal import Decimal
 
 from paper_account import apply_execution, create_account
 from paper_report import build_performance_report
@@ -26,6 +27,12 @@ class PaperPerformanceReportTests(unittest.TestCase):
         report = build_performance_report(account, {"BTC": "110", "ETH": "11"})
 
         self.assertEqual(report["initial_cash_usdt"], "1000")
+        self.assertEqual(report["cash_usdt"], "829.77")
+        self.assertEqual(report["market_value_usdt"], "192.50")
+        self.assertEqual(report["equity_usdt"], "1022.27")
+        self.assertEqual(report["total_pnl_usdt"], "22.27")
+        self.assertEqual(report["realized_pnl_usdt"], "4.945")
+        self.assertEqual(report["unrealized_pnl_usdt"], "17.325")
         self.assertEqual(report["fees_paid_usdt"], "0.23")
         self.assertEqual(report["trade_count"], 3)
         self.assertEqual(report["buy_count"], 2)
@@ -33,12 +40,21 @@ class PaperPerformanceReportTests(unittest.TestCase):
         self.assertEqual(report["open_position_count"], 2)
         self.assertEqual(report["positions"]["BTC"]["quantity"], "0.75")
         self.assertEqual(report["positions"]["ETH"]["quantity"], "10")
-        self.assertAlmostEqual(
-            float(report["total_pnl_usdt"]),
-            float(report["realized_pnl_usdt"]) + float(report["unrealized_pnl_usdt"]),
-            places=8,
+
+        total_pnl = Decimal(report["total_pnl_usdt"])
+        realized = Decimal(report["realized_pnl_usdt"])
+        unrealized = Decimal(report["unrealized_pnl_usdt"])
+        self.assertEqual(total_pnl, realized + unrealized)
+        self.assertEqual(
+            Decimal(report["total_return_pct"]),
+            total_pnl / Decimal(report["initial_cash_usdt"]) * Decimal("100"),
         )
-        self.assertGreater(float(report["total_return_pct"]), 0)
+
+        weights = Decimal(report["cash_weight_pct"]) + sum(
+            Decimal(position["portfolio_weight_pct"])
+            for position in report["positions"].values()
+        )
+        self.assertLessEqual(abs(weights - Decimal("100")), Decimal("1e-24"))
 
     def test_empty_account_reports_initial_cash_and_zero_return(self):
         account = create_account("250")
