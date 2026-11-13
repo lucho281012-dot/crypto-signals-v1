@@ -1,0 +1,186 @@
+name: Kraken Repeated USDT Quote Freshness Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-repeated-usdt-quote-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Repeat public book and ticker samples without trading
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout transaction-safety candidate
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-transaction-safety
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install requests
+
+      - name: Collect five repeated public samples per USDT pair
+        run: |
+          python - <<'PY'
+          from datetime import datetime
+          import math
+          import time
+          import requests
+          import ccxt
+
+          PAIRS = ("BTC/USDT", "ETH/USDT", "SOL/USDT")
+          SAMPLES = 5
+          MAX_BEST_LEVEL_AGE_MS = 15000
+          URL = "https://api.kraken.com/0/public/PreTrade"
+          exchange = ccxt.kraken({"enableRateLimit": True})
+          exchange.load_markets()
+          session = requests.Session()
+          failures = []
+          metrics = {pair: [] for pair in PAIRS}
+
+          def finite(value):
+              try:
+                  number = float(value)
+              except (TypeError, ValueError, OverflowError):
+                  return None
+              return number if math.isfinite(number) else None
+
+          def publication_ms(level):
+              raw = level.get("publication_ts")
+              if not isinstance(raw, str):
+                  return None
+              try:
+                  parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+              except ValueError:
+                  return None
+              return parsed.timestamp() * 1000 if parsed.tzinfo else None
+
+          def pct_diff(a, b):
+              if a is None or b is None or b <= 0:
+                  return None
+              return abs(a - b) / b * 100
+
+          print("MODE=READ_ONLY_PUBLIC_MARKET_DATA")
+          print("AUTHENTICATION=none")
+          print("BOT_EXECUTION=none")
+          print("PAPER_STATE_ACCESS=none")
+          print("ORDER_ACTIONS=none")
+          print(f"SAMPLES_PER_PAIR={SAMPLES}")
+          print(f"MAX_BEST_LEVEL_AGE_MS={MAX_BEST_LEVEL_AGE_MS}")
+          print(f"CCXT_VERSION={ccxt.__version__}")
+
+          for pair in PAIRS:
+              if pair not in exchange.markets:
+                  failures.append(f"{pair}: CCXT market unavailable")
+                  continue
+              for index in range(1, SAMPLES + 1):
+                  try:
+                      request_start = int(time.time() * 1000)
+                      response = session.get(
+                          URL, params={"symbol": pair},
+                          headers={"Accept": "application/json"}, timeout=20
+                      )
+                      book_received = int(time.time() * 1000)
+                      response.raise_for_status()
+                      payload = response.json()
+                      if payload.get("error"):
+                          raise RuntimeError(f"PreTrade API error: {payload['error']}")
+                      book = payload.get("result")
+                      if not isinstance(book, dict) or book.get("symbol") != pair:
+                          raise RuntimeError("PreTrade response symbol mismatch")
+                      bids, asks = book.get("bids"), book.get("asks")
+                      if not isinstance(bids, list) or not bids or not isinstance(asks, list) or not asks:
+                          raise RuntimeError("Missing order-book sides")
+                      bid_px = finite(bids[0].get("price"))
+                      ask_px = finite(asks[0].get("price"))
+                      bid_ts = publication_ms(bids[0])
+                      ask_ts = publication_ms(asks[0])
+                      if (bid_px is None or ask_px is None or bid_px <= 0 or
+                          ask_px < bid_px or bid_ts is None or ask_ts is None):
+                          raise RuntimeError("Invalid best bid/ask or publication timestamp")
+
+                      ticker = exchange.fetch_ticker(pair)
+                      ticker_received = int(time.time() * 1000)
+                      last = finite(ticker.get("last"))
+                      ticker_bid = finite(ticker.get("bid"))
+                      ticker_ask = finite(ticker.get("ask"))
+                      if last is None or last <= 0:
+                          raise RuntimeError("Ticker last missing or invalid")
+
+                      bid_age = book_received - bid_ts
+                      ask_age = book_received - ask_ts
+                      midpoint = (bid_px + ask_px) / 2
+                      spread_pct = (ask_px - bid_px) / midpoint * 100
+                      if bid_age < -10000 or ask_age < -10000:
+                          raise RuntimeError("Future publication timestamp beyond tolerance")
+                      fresh = 0 <= bid_age <= MAX_BEST_LEVEL_AGE_MS and 0 <= ask_age <= MAX_BEST_LEVEL_AGE_MS
+
+                      row = {
+                          "sample": index,
+                          "bid_age_ms": bid_age,
+                          "ask_age_ms": ask_age,
+                          "spread_pct": spread_pct,
+                          "ticker_mid_diff_pct": pct_diff(last, midpoint),
+                          "ticker_bid_diff_pct": pct_diff(ticker_bid, bid_px),
+                          "ticker_ask_diff_pct": pct_diff(ticker_ask, ask_px),
+                          "fresh": fresh,
+                      }
+                      metrics[pair].append(row)
+                      print(
+                          f"PAIR={pair} SAMPLE={index} "
+                          f"BOOK_BID={bid_px} BOOK_ASK={ask_px} "
+                          f"BID_AGE_MS={bid_age:.1f} ASK_AGE_MS={ask_age:.1f} "
+                          f"SPREAD_PCT={spread_pct:.6f} "
+                          f"TICKER_LAST={last} TICKER_BID={ticker_bid} TICKER_ASK={ticker_ask} "
+                          f"LAST_VS_BOOK_MID_DIFF_PCT={row['ticker_mid_diff_pct']} "
+                          f"TICKER_BID_VS_BOOK_BID_DIFF_PCT={row['ticker_bid_diff_pct']} "
+                          f"TICKER_ASK_VS_BOOK_ASK_DIFF_PCT={row['ticker_ask_diff_pct']} "
+                          f"TICKER_TIMESTAMP={ticker.get('timestamp')} "
+                          f"REQUEST_START_MS={request_start} BOOK_RECEIVED_MS={book_received} "
+                          f"TICKER_RECEIVED_MS={ticker_received} HTTP_DATE={response.headers.get('Date')} "
+                          f"BEST_LEVELS_FRESH={fresh}"
+                      )
+                  except Exception as exc:
+                      failures.append(f"{pair} sample {index}: {type(exc).__name__}: {exc}")
+                      print(f"PAIR={pair} SAMPLE={index} STATUS=ERROR ERROR={type(exc).__name__}: {exc}")
+                  time.sleep(2)
+
+          for pair, rows in metrics.items():
+              fresh_count = sum(1 for row in rows if row["fresh"])
+              print(f"SUMMARY_PAIR={pair} SAMPLES_OK={len(rows)} FRESH_BEST_LEVEL_SAMPLES={fresh_count}/{SAMPLES}")
+              if rows:
+                  print(
+                      f"SUMMARY_PAIR={pair} MAX_BID_AGE_MS={max(r['bid_age_ms'] for r in rows):.1f} "
+                      f"MAX_ASK_AGE_MS={max(r['ask_age_ms'] for r in rows):.1f} "
+                      f"MAX_SPREAD_PCT={max(r['spread_pct'] for r in rows):.6f}"
+                  )
+
+          if failures:
+              raise SystemExit("PROBE_FAILURES: " + "; ".join(failures))
+          if any(len(rows) != SAMPLES for rows in metrics.values()):
+              raise SystemExit("INCOMPLETE_SAMPLE_SET")
+          print("PROBE_RESULT=PASS_REPEATED_PUBLIC_USDT_SAMPLES")
+          print("NOTE=publication_ts timestamps each individual order-book level, not ticker last or a synchronized full-book snapshot. Ticker comparisons are diagnostic only; midpoint is not an executable fill. This workflow never imports or runs the trading bot and never reads or writes paper state.")
+          PY
+
+      - name: Confirm working tree is unchanged
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
