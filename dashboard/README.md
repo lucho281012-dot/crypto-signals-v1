@@ -5,7 +5,7 @@ La página `index.html` es una maqueta estática y adaptable a móviles.
 ## Estado actual
 
 - Todos los números son ficticios y se muestran como DEMO.
-- No consume APIs, archivos JSON, almacenamiento local ni datos del exchange.
+- No consume APIs ni datos del exchange. Permite importar manualmente un archivo JSON local de historial.
 - No se conecta a `paper_state.json`, al bot ni a la cuenta paper.
 - No ejecuta operaciones ni tiene credenciales.
 - El diseño se adapta a pantallas pequeñas; la tabla de snapshots permite desplazamiento horizontal.
@@ -21,7 +21,7 @@ La fuente futura será el resultado validado de `build_report_dashboard_model(hi
 - `charts`: series históricas ya validadas.
 - `snapshot_count`: número de snapshots incluidos.
 
-La integración deberá ser estrictamente de lectura, validar el esquema y los valores finitos, y mantener separada la fuente de historial del archivo operativo `paper_state.json`. Esta documentación no activa esa integración.
+La importación actual es estrictamente de lectura y trabaja solo con el archivo seleccionado por el usuario. No accede a `paper_state.json`, al bot ni a otros archivos del dispositivo. Los datos viven únicamente en memoria mientras la página está abierta. La interfaz de importación no realiza escritura ni transmisión de datos.
 
 ## Vista en Android
 
