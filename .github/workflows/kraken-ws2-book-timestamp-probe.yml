@@ -1,0 +1,206 @@
+name: Kraken WebSocket v2 Book Timestamp Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-ws2-book-timestamp-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Inspect timestamped public WebSocket order books
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout transaction-safety candidate
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-transaction-safety
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install WebSocket client
+        run: python -m pip install websocket-client
+
+      - name: Subscribe to public WebSocket v2 books
+        run: |
+          python - <<'PY'
+          import json
+          import math
+          import threading
+          import time
+          from datetime import datetime
+          import websocket
+
+          URL = "wss://ws.kraken.com/v2"
+          SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+          RUN_SECONDS = 25
+          lock = threading.Lock()
+          state = {s: {"snapshot": False, "updates": 0, "last_server_ts": None,
+                       "last_received_ms": None, "best_bid": None, "best_ask": None,
+                       "last_age_ms": None, "errors": []} for s in SYMBOLS}
+          connected = threading.Event()
+          finished = threading.Event()
+          fatal = []
+
+          def to_ms(raw):
+              if not isinstance(raw, str):
+                  return None
+              try:
+                  dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                  if dt.tzinfo is None:
+                      return None
+                  return dt.timestamp() * 1000
+              except ValueError:
+                  return None
+
+          def valid_level(level):
+              try:
+                  p, q = float(level["price"]), float(level["qty"])
+                  return math.isfinite(p) and math.isfinite(q) and p > 0 and q >= 0
+              except (KeyError, TypeError, ValueError, OverflowError):
+                  return False
+
+          books = {s: {"bids": {}, "asks": {}} for s in SYMBOLS}
+
+          def on_open(ws):
+              print("WS_CONNECTED=1")
+              ws.send(json.dumps({
+                  "method": "subscribe",
+                  "params": {
+                      "channel": "book",
+                      "symbol": SYMBOLS,
+                      "depth": 10,
+                      "snapshot": True
+                  },
+                  "req_id": 1
+              }))
+              connected.set()
+
+          def on_message(ws, raw):
+              received_ms = int(time.time() * 1000)
+              try:
+                  msg = json.loads(raw)
+              except Exception as exc:
+                  fatal.append(f"invalid JSON: {exc}")
+                  return
+              if msg.get("method") == "subscribe":
+                  if not msg.get("success", False):
+                      fatal.append(f"subscription rejected: {msg}")
+                  else:
+                      print(f"SUBSCRIPTION_ACK={msg.get('result')} TIME_IN={msg.get('time_in')} TIME_OUT={msg.get('time_out')}")
+                  return
+              if msg.get("channel") == "heartbeat":
+                  return
+              if msg.get("channel") != "book":
+                  return
+              typ = msg.get("type")
+              for item in msg.get("data", []):
+                  symbol = item.get("symbol")
+                  if symbol not in state:
+                      continue
+                  ts = to_ms(item.get("timestamp"))
+                  if ts is None:
+                      state[symbol]["errors"].append("missing or invalid server timestamp")
+                      continue
+                  if typ == "snapshot":
+                      books[symbol] = {"bids": {}, "asks": {}}
+                      state[symbol]["snapshot"] = True
+                  elif typ != "update":
+                      continue
+                  for side in ("bids", "asks"):
+                      levels = item.get(side, [])
+                      if not isinstance(levels, list):
+                          state[symbol]["errors"].append(f"{side} not a list")
+                          continue
+                      for level in levels:
+                          if not valid_level(level):
+                              state[symbol]["errors"].append(f"invalid {side} level")
+                              continue
+                          price, qty = float(level["price"]), float(level["qty"])
+                          if qty == 0:
+                              books[symbol][side].pop(price, None)
+                          else:
+                              books[symbol][side][price] = qty
+                  bids = books[symbol]["bids"]
+                  asks = books[symbol]["asks"]
+                  best_bid = max(bids) if bids else None
+                  best_ask = min(asks) if asks else None
+                  age = received_ms - ts
+                  state[symbol]["last_server_ts"] = item.get("timestamp")
+                  state[symbol]["last_received_ms"] = received_ms
+                  state[symbol]["last_age_ms"] = age
+                  state[symbol]["best_bid"] = best_bid
+                  state[symbol]["best_ask"] = best_ask
+                  if typ == "update":
+                      state[symbol]["updates"] += 1
+                  print(
+                      f"BOOK_EVENT={typ} SYMBOL={symbol} SERVER_TIMESTAMP={item.get('timestamp')} "
+                      f"RECEIVED_MS={received_ms} SERVER_EVENT_AGE_MS={age:.1f} "
+                      f"BEST_BID={best_bid} BEST_ASK={best_ask} "
+                      f"BID_LEVELS={len(bids)} ASK_LEVELS={len(asks)} "
+                      f"CHECKSUM_PRESENT={item.get('checksum') is not None}"
+                  )
+
+          def on_error(ws, error):
+              fatal.append(f"websocket error: {error}")
+              print(f"WS_ERROR={error}")
+
+          def on_close(ws, code, reason):
+              print(f"WS_CLOSED_CODE={code} REASON={reason}")
+              finished.set()
+
+          print("MODE=PUBLIC_READ_ONLY_WEBSOCKET")
+          print("ENDPOINT=" + URL)
+          print("AUTHENTICATION=none")
+          print("BOT_EXECUTION=none")
+          print("PAPER_STATE_ACCESS=none")
+          print("ORDER_ACTIONS=none")
+          app = websocket.WebSocketApp(URL, on_open=on_open, on_message=on_message,
+                                       on_error=on_error, on_close=on_close)
+          thread = threading.Thread(target=lambda: app.run_forever(ping_interval=10, ping_timeout=5), daemon=True)
+          thread.start()
+          if not connected.wait(10):
+              raise SystemExit("WebSocket connection did not open within 10 seconds")
+          time.sleep(RUN_SECONDS)
+          app.close()
+          thread.join(timeout=5)
+
+          failures = list(fatal)
+          for symbol, item in state.items():
+              print(
+                  f"SUMMARY_SYMBOL={symbol} SNAPSHOT={item['snapshot']} UPDATES={item['updates']} "
+                  f"LAST_SERVER_TIMESTAMP={item['last_server_ts']} "
+                  f"LAST_EVENT_AGE_MS={item['last_age_ms']} "
+                  f"BEST_BID={item['best_bid']} BEST_ASK={item['best_ask']} "
+                  f"ERRORS={item['errors']}"
+              )
+              if not item["snapshot"]:
+                  failures.append(f"{symbol}: no initial book snapshot")
+              if item["last_received_ms"] is None:
+                  failures.append(f"{symbol}: no timestamped book data")
+              if item["best_bid"] is None or item["best_ask"] is None or item["best_bid"] >= item["best_ask"]:
+                  failures.append(f"{symbol}: invalid best bid/ask")
+              if item["last_age_ms"] is not None and item["last_age_ms"] < -10000:
+                  failures.append(f"{symbol}: server timestamp too far in future")
+              failures.extend(f"{symbol}: {e}" for e in item["errors"])
+
+          if failures:
+              raise SystemExit("PROBE_FAILURES: " + "; ".join(failures))
+          print("PROBE_RESULT=PASS_TIMESTAMPED_PUBLIC_WS_BOOKS")
+          print("NOTE=This probe observes timestamped snapshots and updates only. It does not implement Kraken checksum validation or certify a production-grade local order book, executable fills, or trading readiness.")
+          PY
+
+      - name: Confirm working tree is unchanged
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
