@@ -1,4 +1,4 @@
-name: Paper Report Visualization and History Tests
+name: Paper Report Dashboard and History Tests
 
 on:
   workflow_dispatch:
@@ -7,20 +7,20 @@ permissions:
   contents: read
 
 concurrency:
-  group: paper-report-visualization-tests
+  group: paper-report-dashboard-tests
   cancel-in-progress: false
 
 jobs:
   test:
-    name: Test isolated report visualization and history
+    name: Test isolated paper report dashboard and history
     runs-on: ubuntu-latest
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - name: Checkout isolated report visualization branch
+      - name: Checkout isolated report dashboard branch
         uses: actions/checkout@v4
         with:
-          ref: paper-report-visualization
+          ref: paper-report-dashboard
           persist-credentials: false
 
       - name: Set up Python
@@ -28,11 +28,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run execution, ledger, report, history, storage, export and visualization tests
-        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py test_paper_account.py test_paper_portfolio_scenarios.py test_paper_report.py test_paper_report_history.py test_paper_report_json_store.py test_paper_report_export.py test_paper_report_visualization.py
+      - name: Run execution, ledger, report, history, storage, export, visualization and dashboard tests
+        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py test_paper_account.py test_paper_portfolio_scenarios.py test_paper_report.py test_paper_report_history.py test_paper_report_json_store.py test_paper_report_export.py test_paper_report_visualization.py test_paper_report_dashboard.py
 
       - name: Confirm simulator integration and working tree remain untouched
         run: |
           git diff --exit-code -- paper_bot.py paper_trading.py market_data.py
           test -z "$(git status --porcelain)"
-          ! grep -nE 'requests\\.|ccxt|websocket|paper_state\\.json|paper_bot' paper_execution.py paper_account.py paper_report.py paper_report_history.py paper_report_json_store.py paper_report_export.py paper_report_visualization.py
+          ! grep -nE 'requests\\.|ccxt|websocket|paper_state\\.json|paper_bot' paper_execution.py paper_account.py paper_report.py paper_report_history.py paper_report_json_store.py paper_report_export.py paper_report_visualization.py paper_report_dashboard.py
