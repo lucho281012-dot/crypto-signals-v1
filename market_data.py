@@ -11,14 +11,17 @@ SYMBOLS = [
 ]
 
 
-def get_market_price(symbol):
+def get_market_quote(symbol):
     exchange.load_markets()
-
     if symbol not in exchange.markets:
         raise ValueError(f"Par no disponible en Kraken: {symbol}")
-
     ticker = exchange.fetch_ticker(symbol)
-    return ticker["last"]
+    return ticker["last"], ticker.get("timestamp")
+
+
+def get_market_price(symbol):
+    price, _ = get_market_quote(symbol)
+    return price
 
 
 def get_candles(symbol, timeframe="5m", limit=250):
@@ -27,7 +30,6 @@ def get_candles(symbol, timeframe="5m", limit=250):
         timeframe=timeframe,
         limit=limit
     )
-
     return [
         {
             "timestamp": candle[0],
@@ -43,7 +45,6 @@ def get_candles(symbol, timeframe="5m", limit=250):
 
 def get_all_market_data():
     results = {}
-
     exchange.load_markets()
 
     for symbol in SYMBOLS:
@@ -52,12 +53,13 @@ def get_all_market_data():
                 print(f"Par no disponible: {symbol}")
                 continue
 
+            price, price_timestamp = get_market_quote(symbol)
             results[symbol] = {
-                "price": get_market_price(symbol),
+                "price": price,
+                "price_timestamp": price_timestamp,
                 "candles_5m": get_candles(symbol, "5m"),
                 "candles_15m": get_candles(symbol, "15m")
             }
-
             print(f"Datos recibidos correctamente: {symbol}")
 
         except Exception as error:
