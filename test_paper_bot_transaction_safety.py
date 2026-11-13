@@ -75,10 +75,10 @@ class TransactionSafetyTests(unittest.TestCase):
         now_ms = 2_000_000_000_000
         state = self.base_state()
         payload = market_payload(now_ms=now_ms)
-        with patch.object(paper_bot, "load_state", return_value=state), \\
-             patch.object(paper_bot, "get_all_market_data", return_value=payload), \\
-             patch.object(paper_bot, "analyze_spot", return_value={"side": "BUY", "atr": 1.0}), \\
-             patch.object(paper_bot, "save_state") as bot_save, \\
+        with patch.object(paper_bot, "load_state", return_value=state), \
+             patch.object(paper_bot, "get_all_market_data", return_value=payload), \
+             patch.object(paper_bot, "analyze_spot", return_value={"side": "BUY", "atr": 1.0}), \
+             patch.object(paper_bot, "save_state") as bot_save, \
              patch("paper_trading.save_state") as trade_save:
             paper_bot.run_bot(now_ms=now_ms)
         self.assertIn("BTC/USDT", state["positions"])
@@ -100,9 +100,9 @@ class TransactionSafetyTests(unittest.TestCase):
         # La vela cerrada toca el stop.
         payload["BTC/USDT"]["candles_5m"][-2]["low"] = 98.5
         payload["BTC/USDT"]["candles_5m"][-2]["open"] = 98.8
-        with patch.object(paper_bot, "load_state", return_value=state), \\
-             patch.object(paper_bot, "get_all_market_data", return_value=payload), \\
-             patch.object(paper_bot, "save_state") as bot_save, \\
+        with patch.object(paper_bot, "load_state", return_value=state), \
+             patch.object(paper_bot, "get_all_market_data", return_value=payload), \
+             patch.object(paper_bot, "save_state") as bot_save, \
              patch("paper_trading.save_state") as trade_save:
             paper_bot.run_bot(now_ms=now_ms)
         self.assertNotIn("BTC/USDT", state["positions"])
@@ -145,9 +145,9 @@ class MarketDataValidationTests(unittest.TestCase):
         now_ms = 2_000_000_000_000
         state = self.base_state()
         payload = market_payload(now_ms, price=102.0)  # 1.49% sobre cierre 100.5
-        with patch.object(paper_bot, "load_state", return_value=state), \\
-             patch.object(paper_bot, "get_all_market_data", return_value=payload), \\
-             patch.object(paper_bot, "analyze_spot", return_value={"side": "BUY", "atr": 1.0}), \\
+        with patch.object(paper_bot, "load_state", return_value=state), \
+             patch.object(paper_bot, "get_all_market_data", return_value=payload), \
+             patch.object(paper_bot, "analyze_spot", return_value={"side": "BUY", "atr": 1.0}), \
              patch.object(paper_bot, "save_state"):
             paper_bot.run_bot(now_ms=now_ms)
         self.assertNotIn("BTC/USDT", state["positions"])
