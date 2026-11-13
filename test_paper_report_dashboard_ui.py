@@ -79,7 +79,7 @@ class PaperDashboardUITests(unittest.TestCase):
                 self.assertIn(token, self.html)
 
     def test_import_errors_keep_demo_data_and_report_status(self):
-        self.assertIn("Se conservan los datos DEMO", self.html)
+        self.assertIn("Se conservan los datos que ya estaban cargados", self.html)
         self.assertIn('status.textContent = "No se pudo importar:', self.html)
         self.assertIn('input.value = "";', self.html)
 
