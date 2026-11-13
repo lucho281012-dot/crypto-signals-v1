@@ -1,0 +1,101 @@
+[
+  {
+    "schema_version": 1,
+    "snapshot_id": "demo-001",
+    "captured_at": "2026-11-13T09:00:00-06:00",
+    "report": {
+      "quote_currency": "USDT",
+      "initial_cash_usdt": "1000.00",
+      "equity_usdt": "1000.00",
+      "cash_usdt": "1000.00",
+      "market_value_usdt": "0.00",
+      "total_pnl_usdt": "0.00",
+      "total_return_pct": "0.00",
+      "realized_pnl_usdt": "0.00",
+      "fees_paid_usdt": "0.00",
+      "trade_count": 0,
+      "buy_count": 0,
+      "sell_count": 0,
+      "positions": {}
+    }
+  },
+  {
+    "schema_version": 1,
+    "snapshot_id": "demo-002",
+    "captured_at": "2026-11-13T09:15:00-06:00",
+    "report": {
+      "quote_currency": "USDT",
+      "initial_cash_usdt": "1000.00",
+      "equity_usdt": "999.90",
+      "cash_usdt": "499.90",
+      "market_value_usdt": "500.00",
+      "total_pnl_usdt": "-0.10",
+      "total_return_pct": "-0.01",
+      "realized_pnl_usdt": "0.00",
+      "fees_paid_usdt": "0.10",
+      "trade_count": 1,
+      "buy_count": 1,
+      "sell_count": 0,
+      "positions": {
+        "BTC": {
+          "quantity": "0.005",
+          "market_value_usdt": "500.00"
+        }
+      }
+    }
+  },
+  {
+    "schema_version": 1,
+    "snapshot_id": "demo-003",
+    "captured_at": "2026-11-13T09:30:00-06:00",
+    "report": {
+      "quote_currency": "USDT",
+      "initial_cash_usdt": "1000.00",
+      "equity_usdt": "1009.90",
+      "cash_usdt": "499.90",
+      "market_value_usdt": "510.00",
+      "total_pnl_usdt": "9.90",
+      "total_return_pct": "0.99",
+      "realized_pnl_usdt": "0.00",
+      "fees_paid_usdt": "0.10",
+      "trade_count": 1,
+      "buy_count": 1,
+      "sell_count": 0,
+      "positions": {
+        "BTC": {
+          "quantity": "0.005",
+          "market_value_usdt": "510.00"
+        }
+      }
+    }
+  },
+  {
+    "schema_version": 1,
+    "snapshot_id": "demo-004",
+    "captured_at": "2026-11-13T09:45:00-06:00",
+    "report": {
+      "quote_currency": "USDT",
+      "initial_cash_usdt": "1000.00",
+      "equity_usdt": "1009.80",
+      "cash_usdt": "249.80",
+      "market_value_usdt": "760.00",
+      "total_pnl_usdt": "9.80",
+      "total_return_pct": "0.98",
+      "realized_pnl_usdt": "0.00",
+      "fees_paid_usdt": "0.30",
+      "trade_count": 2,
+      "buy_count": 2,
+      "sell_count": 0,
+      "positions": {
+        "BTC": {
+          "quantity": "0.005",
+          "market_value_usdt": "510.00"
+        },
+        "ETH": {
+          "quantity": "0.10",
+          "market_value_usdt": "250.00"
+        }
+      }
+    }
+  }
+]
