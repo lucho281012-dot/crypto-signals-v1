@@ -34,6 +34,9 @@ class PaperDashboardUITests(unittest.TestCase):
     def test_page_is_responsive_and_accessible(self):
         self.assertIn('name="viewport"', self.html)
         self.assertIn("@media(max-width:520px)", self.html)
+        self.assertIn("overflow-x:auto", self.html)
+        self.assertIn("mobile-hint", self.html)
+        self.assertIn('aria-label="Tabla desplazable de snapshots"', self.html)
         self.assertIn('role="img"', self.html)
         self.assertIn('lang="es"', self.html)
 
