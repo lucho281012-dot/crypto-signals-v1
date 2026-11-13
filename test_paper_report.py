@@ -33,7 +33,7 @@ class PaperPerformanceReportTests(unittest.TestCase):
         self.assertEqual(report["open_position_count"], 2)
         self.assertEqual(report["positions"]["BTC"]["quantity"], "0.75")
         self.assertEqual(report["positions"]["ETH"]["quantity"], "10")
-        self.assertEqual(
+        self.assertAlmostEqual(
             float(report["total_pnl_usdt"]),
             float(report["realized_pnl_usdt"]) + float(report["unrealized_pnl_usdt"]),
             places=8,
