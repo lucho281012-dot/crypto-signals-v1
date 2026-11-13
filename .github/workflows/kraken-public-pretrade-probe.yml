@@ -37,7 +37,6 @@ jobs:
         run: |
           python - <<'PY'
           from datetime import datetime, timezone
-          from urllib.parse import urlencode
           import math
           import time
           import requests
@@ -81,13 +80,15 @@ jobs:
                   failures.append(f"{symbol}: result is not an object")
                   continue
 
-              book = result.get(symbol)
-              if book is None and len(result) == 1:
-                  returned_key, book = next(iter(result.items()))
-                  print(f"PAIR_REQUESTED={symbol} PAIR_RETURNED={returned_key}")
-              if not isinstance(book, dict):
-                  failures.append(f"{symbol}: order book missing")
+              # The documented response puts symbol, bids, and asks directly
+              # inside result; it is not keyed by the pair symbol.
+              returned_symbol = result.get("symbol")
+              if returned_symbol != symbol:
+                  failures.append(
+                      f"{symbol}: unexpected or missing result.symbol={returned_symbol!r}"
+                  )
                   continue
+              book = result
 
               pair_failed = False
               for side in ("bids", "asks"):
@@ -118,7 +119,6 @@ jobs:
                       pair_failed = True
                       continue
 
-                  # Kraken returns book levels ordered from best to worse.
                   best_price, best_qty, best_ts_ms = parsed[0]
                   age_ms = received_ms - best_ts_ms
                   oldest_age_ms = max(received_ms - item[2] for item in parsed)
