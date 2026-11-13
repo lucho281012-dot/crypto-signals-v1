@@ -707,10 +707,10 @@
     "score": 4,
     "rsi": 48.915139774237076,
     "volume_ratio": 0.39413945885854856,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": null
+    "last_checked_ts": 1794561000000
   }
 ]
