@@ -1,0 +1,56 @@
+name: Paper Trading Read-Only Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-trading-read-only-preflight
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Validate live market data without trading
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout read-only preflight utilities
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-recovery-audit
+          path: recovery
+          persist-credentials: false
+
+      - name: Checkout simulator branch read-only
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-v1-2
+          path: target
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: target/requirements.txt
+
+      - name: Install simulator dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r target/requirements.txt
+
+      - name: Test read-only preflight safeguards
+        env:
+          PYTHONPATH: recovery
+        run: python -m unittest -v recovery/test_preflight_paper_trading.py
+
+      - name: Inspect Kraken market data and signals (read-only)
+        env:
+          PYTHONPATH: target:recovery
+        run: python recovery/preflight_paper_trading.py --state-path target/data/paper_state.json
+
+      - name: Confirm simulator checkout was not modified
+        run: |
+          git -C target diff --exit-code
+          test -z "$(git -C target status --porcelain)"
