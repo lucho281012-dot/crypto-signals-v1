@@ -29,9 +29,15 @@
     .asset-value{text-align:right;font-variant-numeric:tabular-nums}.muted{color:#8292ae;font-size:11px}
     table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:#8394b1;font-weight:600;padding:10px 8px;border-bottom:1px solid #2a3851}
     td{padding:12px 8px;border-bottom:1px solid #202d43;color:#d8e1f0}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+    .secondary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+    .mini-card{background:#101a2c;border:1px solid #25344e;border-radius:13px;padding:13px;min-width:0}
+    .mini-card strong{display:block;font-size:17px;margin-top:7px;font-variant-numeric:tabular-nums}
+    .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:9px}
+    .table-scroll table{min-width:470px}
+    .mobile-hint{display:none;color:#8192b0;font-size:10px;margin:7px 0 0}
     .footer{margin-top:20px;color:#71819e;font-size:11px;line-height:1.6;text-align:center}
-    @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}}
-    @media(max-width:520px){.wrap{width:min(100% - 22px,1180px);padding-top:22px}header{align-items:flex-start;flex-direction:column}.grid{gap:10px}.card{padding:14px}.metric{font-size:22px}.wide{grid-column:span 2}.chart{height:185px}table{font-size:11px}td,th{padding:10px 5px}}
+    @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}.secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:520px){.wrap{width:min(100% - 22px,1180px);padding-top:18px;padding-bottom:28px}header{align-items:flex-start;flex-direction:column;gap:12px;margin-bottom:18px}.grid{gap:9px}.card{padding:13px;border-radius:14px}.metric{font-size:21px}.metric-label{font-size:11px}.sub{font-size:10px}.wide{grid-column:span 2}.chart{height:175px}.section-head{align-items:flex-start;flex-direction:column;gap:8px}.tag{font-size:10px}.asset-row{grid-template-columns:36px minmax(0,1fr) auto;gap:8px}.coin{width:31px;height:31px}.asset-value{font-size:12px}.mobile-hint{display:block}.notice{font-size:12px;padding:11px 12px}.mini-card{padding:11px}.mini-card strong{font-size:16px}}
   </style>
 </head>
 <body>
@@ -46,6 +52,15 @@
       <article class="card"><div class="metric-label">P&amp;L total</div><div class="metric positive" id="pnl">+$84.60</div><div class="sub">+8.46% sobre capital inicial</div></article>
       <article class="card"><div class="metric-label">Drawdown máximo</div><div class="metric negative" id="drawdown">-$22.40</div><div class="sub">-2.03% desde el máximo</div></article>
       <article class="card"><div class="metric-label">Operaciones cerradas</div><div class="metric" id="trades">18</div><div class="sub">12 compras · 6 ventas</div></article>
+      <article class="card wide">
+        <div class="section-head"><h2>Resumen de cuenta</h2><span class="tag">Valores de ejemplo</span></div>
+        <div class="secondary-grid">
+          <div class="mini-card"><span class="muted">Efectivo</span><strong>$308.00</strong></div>
+          <div class="mini-card"><span class="muted">Valor de mercado</span><strong>$776.60</strong></div>
+          <div class="mini-card"><span class="muted">P&amp;L realizado</span><strong class="positive">+$31.20</strong></div>
+          <div class="mini-card"><span class="muted">Comisiones</span><strong>$2.14</strong></div>
+        </div>
+      </article>
       <article class="card wide">
         <div class="section-head"><h2>Evolución del equity</h2><span class="tag">Últimos 7 snapshots</span></div>
         <svg class="chart" viewBox="0 0 620 220" role="img" aria-label="Gráfico ficticio de evolución del equity">
@@ -68,14 +83,14 @@
       </article>
       <article class="card wide">
         <div class="section-head"><h2>Últimos snapshots</h2><span class="tag">Historial simulado</span></div>
-        <table><thead><tr><th>Fecha</th><th class="num">Equity</th><th class="num">P&amp;L</th><th class="num">Retorno</th></tr></thead>
+        <div class="table-scroll" tabindex="0" aria-label="Tabla desplazable de snapshots"><table><thead><tr><th>Fecha</th><th class="num">Equity</th><th class="num">P&amp;L</th><th class="num">Retorno</th></tr></thead>
           <tbody>
             <tr><td>Nov 13 · 12:00</td><td class="num">$1,084.60</td><td class="num positive">+$84.60</td><td class="num positive">+8.46%</td></tr>
             <tr><td>Nov 12 · 12:00</td><td class="num">$1,071.20</td><td class="num positive">+$71.20</td><td class="num positive">+7.12%</td></tr>
             <tr><td>Nov 11 · 12:00</td><td class="num">$1,052.80</td><td class="num positive">+$52.80</td><td class="num positive">+5.28%</td></tr>
             <tr><td>Nov 10 · 12:00</td><td class="num">$1,039.10</td><td class="num positive">+$39.10</td><td class="num positive">+3.91%</td></tr>
           </tbody>
-        </table>
+        </table></div><p class="mobile-hint">Desliza horizontalmente para ver todas las columnas.</p>
       </article>
       <article class="card wide">
         <div class="section-head"><h2>Lectura del panel</h2><span class="tag">Solo visual</span></div>
