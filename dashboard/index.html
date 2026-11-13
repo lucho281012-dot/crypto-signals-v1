@@ -47,18 +47,25 @@
       <div class="demo">● DEMO · DATOS FICTICIOS</div>
     </header>
     <div class="notice"><strong>Entorno de demostración.</strong> Las cifras y operaciones de esta pantalla son inventadas para probar el diseño. No representan el saldo real del simulador, no consultan exchanges y no ejecutan operaciones.</div>
+    <section class="card" aria-labelledby="import-title" style="margin-bottom:16px">
+      <div class="section-head"><h2 id="import-title">Cargar historial paper</h2><span class="tag">Importación local · Solo lectura</span></div>
+      <p class="sub" style="font-size:13px;line-height:1.6">Selecciona un archivo JSON exportado del historial paper. El archivo se procesa únicamente en este navegador; no se sube a ningún servidor ni se guarda.</p>
+      <label for="history-file" class="tag" style="display:inline-block;cursor:pointer;padding:10px 13px">Seleccionar historial JSON</label>
+      <input id="history-file" type="file" accept=".json,application/json" style="display:block;margin-top:12px;color:#b8c8e3;max-width:100%">
+      <p id="import-status" class="sub" role="status" aria-live="polite" style="margin:12px 0 0">Mostrando datos ficticios de demostración. No se ha cargado ningún historial.</p>
+    </section>
     <section class="grid" aria-label="Indicadores principales">
-      <article class="card"><div class="metric-label">Equity total</div><div class="metric" id="equity">$1,084.60</div><div class="sub">Efectivo + valor de posiciones</div></article>
-      <article class="card"><div class="metric-label">P&amp;L total</div><div class="metric positive" id="pnl">+$84.60</div><div class="sub">+8.46% sobre capital inicial</div></article>
-      <article class="card"><div class="metric-label">Drawdown máximo</div><div class="metric negative" id="drawdown">-$22.40</div><div class="sub">-2.03% desde el máximo</div></article>
-      <article class="card"><div class="metric-label">Operaciones cerradas</div><div class="metric" id="trades">18</div><div class="sub">12 compras · 6 ventas</div></article>
+      <article class="card"><div class="metric-label">Equity total</div><div class="metric" id="equity">$1,084.60</div><div class="sub" id="equity-sub">Efectivo + valor de posiciones</div></article>
+      <article class="card"><div class="metric-label">P&amp;L total</div><div class="metric positive" id="pnl">+$84.60</div><div class="sub" id="pnl-sub">+8.46% sobre capital inicial</div></article>
+      <article class="card"><div class="metric-label">Drawdown máximo</div><div class="metric negative" id="drawdown">-$22.40</div><div class="sub" id="drawdown-sub">-2.03% desde el máximo</div></article>
+      <article class="card"><div class="metric-label">Operaciones cerradas</div><div class="metric" id="trades">18</div><div class="sub" id="trades-sub">12 compras · 6 ventas</div></article>
       <article class="card wide">
         <div class="section-head"><h2>Resumen de cuenta</h2><span class="tag">Valores de ejemplo</span></div>
         <div class="secondary-grid">
-          <div class="mini-card"><span class="muted">Efectivo</span><strong>$308.00</strong></div>
-          <div class="mini-card"><span class="muted">Valor de mercado</span><strong>$776.60</strong></div>
-          <div class="mini-card"><span class="muted">P&amp;L realizado</span><strong class="positive">+$31.20</strong></div>
-          <div class="mini-card"><span class="muted">Comisiones</span><strong>$2.14</strong></div>
+          <div class="mini-card"><span class="muted">Efectivo</span><strong id="cash-value">$308.00</strong></div>
+          <div class="mini-card"><span class="muted">Valor de mercado</span><strong id="market-value">$776.60</strong></div>
+          <div class="mini-card"><span class="muted">P&amp;L realizado</span><strong class="positive" id="realized-value">+$31.20</strong></div>
+          <div class="mini-card"><span class="muted">Comisiones</span><strong id="fees-value">$2.14</strong></div>
         </div>
       </article>
       <article class="card wide">
@@ -99,5 +106,133 @@
     </section>
     <footer class="footer">Crypto Signals · Dashboard UI v0.1 · Datos 100% ficticios · Sin conexión a API ni persistencia</footer>
   </main>
+
+<script>
+(() => {
+  "use strict";
+  const input = document.getElementById("history-file");
+  const status = document.getElementById("import-status");
+  const MAX_BYTES = 5 * 1024 * 1024;
+  const MAX_SNAPSHOTS = 10000;
+  const number = (value, field) => {
+    if (typeof value === "boolean" || value === null || value === undefined || value === "") throw new Error(field + ": valor numérico ausente");
+    const n = Number(value);
+    if (!Number.isFinite(n)) throw new Error(field + ": debe ser un número finito");
+    return n;
+  };
+  const money = value => new Intl.NumberFormat("en-US", {style:"currency",currency:"USD",minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
+  const signedMoney = value => (value >= 0 ? "+" : "−") + money(Math.abs(value));
+  const pct = value => (value >= 0 ? "+" : "−") + Math.abs(value).toFixed(2) + "%";
+  const dateLabel = value => new Date(value).toLocaleString("es-NI", {month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  function validate(history) {
+    if (!Array.isArray(history)) throw new Error("El JSON debe contener una lista de snapshots.");
+    if (!history.length) throw new Error("El historial está vacío.");
+    if (history.length > MAX_SNAPSHOTS) throw new Error("El historial supera el límite de 10,000 snapshots.");
+    const ids = new Set();
+    let previous = -Infinity;
+    const required = ["equity_usdt","cash_usdt","market_value_usdt","total_pnl_usdt","total_return_pct"];
+    history.forEach((snapshot, i) => {
+      if (!snapshot || typeof snapshot !== "object" || snapshot.schema_version !== 1) throw new Error("Snapshot " + (i+1) + ": schema_version no válido.");
+      if (typeof snapshot.snapshot_id !== "string" || !snapshot.snapshot_id.trim() || ids.has(snapshot.snapshot_id)) throw new Error("Snapshot " + (i+1) + ": ID vacío o duplicado.");
+      ids.add(snapshot.snapshot_id);
+      if (typeof snapshot.captured_at !== "string") throw new Error("Snapshot " + (i+1) + ": fecha ausente.");
+      const time = Date.parse(snapshot.captured_at);
+      if (!Number.isFinite(time) || !/(Z|[+-]\d{2}:?\d{2})$/i.test(snapshot.captured_at)) throw new Error("Snapshot " + (i+1) + ": fecha ISO-8601 con zona horaria requerida.");
+      if (time <= previous) throw new Error("Las fechas deben estar en orden estrictamente creciente.");
+      previous = time;
+      const report = snapshot.report;
+      if (!report || typeof report !== "object" || Array.isArray(report)) throw new Error("Snapshot " + (i+1) + ": reporte inválido.");
+      required.forEach(key => number(report[key], "Snapshot " + (i+1) + " · " + key));
+      if (report.positions !== undefined && (!report.positions || typeof report.positions !== "object" || Array.isArray(report.positions))) throw new Error("Snapshot " + (i+1) + ": posiciones inválidas.");
+      Object.entries(report.positions || {}).forEach(([asset, position]) => {
+        if (!asset.trim() || !position || typeof position !== "object") throw new Error("Posición de activo inválida.");
+        number(position.market_value_usdt, "market_value_usdt · " + asset);
+      });
+    });
+    return history;
+  }
+  function setText(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+  function render(history) {
+    const first = history[0].report;
+    const latest = history[history.length - 1].report;
+    const equity = number(latest.equity_usdt, "equity");
+    const pnl = number(latest.total_pnl_usdt, "P&L");
+    const ret = number(latest.total_return_pct, "retorno");
+    let peak = -Infinity, worstAmount = 0, worstPct = 0;
+    history.forEach(s => {
+      const e = number(s.report.equity_usdt, "equity");
+      peak = Math.max(peak, e);
+      const dd = e - peak;
+      worstAmount = Math.min(worstAmount, dd);
+      if (peak > 0) worstPct = Math.min(worstPct, dd / peak * 100);
+    });
+    setText("equity", money(equity));
+    setText("pnl", signedMoney(pnl));
+    setText("pnl-sub", pct(ret) + " de retorno total");
+    setText("drawdown", signedMoney(worstAmount));
+    setText("drawdown-sub", pct(worstPct) + " desde el máximo histórico");
+    setText("trades", String(number(latest.trade_count ?? 0, "trade_count")));
+    setText("trades-sub", String(number(latest.buy_count ?? 0, "buy_count")) + " compras · " + String(number(latest.sell_count ?? 0, "sell_count")) + " ventas");
+    setText("cash-value", money(number(latest.cash_usdt, "cash")));
+    setText("market-value", money(number(latest.market_value_usdt, "market value")));
+    setText("realized-value", signedMoney(number(latest.realized_pnl_usdt ?? 0, "realized P&L")));
+    setText("fees-value", money(number(latest.fees_paid_usdt ?? 0, "fees")));
+    setText("equity-sub", "Capital inicial: " + money(number(first.initial_cash_usdt ?? first.equity_usdt, "capital inicial")));
+    document.getElementById("pnl").className = "metric " + (pnl >= 0 ? "positive" : "negative");
+    document.getElementById("drawdown").className = "metric negative";
+    document.getElementById("realized-value").className = number(latest.realized_pnl_usdt ?? 0, "realized P&L") >= 0 ? "positive" : "negative";
+    const assets = document.querySelector(".asset-list");
+    assets.replaceChildren();
+    const positions = Object.entries(latest.positions || {}).map(([asset, p]) => ({asset, value:number(p.market_value_usdt, "market value " + asset)})).sort((a,b) => b.value-a.value);
+    const total = positions.reduce((sum,p) => sum+p.value, 0);
+    positions.forEach(p => {
+      const row = document.createElement("div"); row.className = "asset-row";
+      const coin = document.createElement("div"); coin.className = "coin"; coin.textContent = p.asset;
+      const middle = document.createElement("div"); const name = document.createElement("strong"); name.textContent = p.asset;
+      const track = document.createElement("div"); track.className = "track";
+      const fill = document.createElement("div"); fill.className = "fill"; fill.style.width = (total > 0 ? Math.max(0,p.value/total*100) : 0) + "%";
+      track.append(fill); middle.append(name,track);
+      const value = document.createElement("div"); value.className = "asset-value"; value.textContent = money(p.value);
+      const share = document.createElement("div"); share.className = "muted"; share.textContent = (total > 0 ? p.value/total*100 : 0).toFixed(1) + "%"; value.append(share);
+      row.append(coin,middle,value); assets.append(row);
+    });
+    const tbody = document.querySelector(".table-scroll tbody"); tbody.replaceChildren();
+    history.slice(-5).reverse().forEach(s => {
+      const tr = document.createElement("tr");
+      [dateLabel(s.captured_at),money(number(s.report.equity_usdt,"equity")),signedMoney(number(s.report.total_pnl_usdt,"P&L")),pct(number(s.report.total_return_pct,"return"))].forEach((v,i) => {
+        const td = document.createElement("td"); td.textContent = v; if(i>0) td.className = "num"; if(i>1) td.classList.add(number(i===2?s.report.total_pnl_usdt:s.report.total_return_pct,"metric")>=0?"positive":"negative"); tr.append(td);
+      });
+      tbody.append(tr);
+    });
+    const svg = document.querySelector(".chart");
+    const line = svg.querySelector(".line"), area = svg.querySelector(".area"), point = svg.querySelector(".point");
+    const values = history.map(s => number(s.report.equity_usdt,"equity"));
+    const min = Math.min(...values), max = Math.max(...values), span = max-min || Math.max(1,Math.abs(max)*0.01);
+    const coords = values.map((v,i) => [42 + (values.length===1?558:i*558/(values.length-1)), 185 - ((v-min)/span)*150]);
+    const path = coords.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+    line.setAttribute("d",path); area.setAttribute("d",path+" L600 185 L42 185Z");
+    point.setAttribute("cx",coords[coords.length-1][0]); point.setAttribute("cy",coords[coords.length-1][1]);
+    const labels = document.querySelector(".labels"); labels.replaceChildren();
+    [history[0],history[Math.floor((history.length-1)/2)],history[history.length-1]].forEach(s=>{const spanEl=document.createElement("span");spanEl.textContent=dateLabel(s.captured_at);labels.append(spanEl);});
+    document.querySelectorAll(".tag").forEach(el=>{if(el.textContent==="Valores de ejemplo")el.textContent="Datos importados";});
+    setText("import-status","Historial válido: " + history.length + " snapshots · último: " + dateLabel(history[history.length-1].captured_at) + ". Datos cargados solo en memoria de esta página.");
+    document.querySelector(".demo").textContent = "● HISTORIAL IMPORTADO";
+    document.querySelector(".demo").style.borderColor = "#286b54";
+    document.querySelector(".demo").style.background = "#123326";
+    document.querySelector(".demo").style.color = "#8ce0b9";
+  }
+  input.addEventListener("change", async () => {
+    const file = input.files && input.files[0]; if (!file) return;
+    if (file.size > MAX_BYTES) { status.textContent = "Archivo demasiado grande (máximo 5 MB)."; input.value=""; return; }
+    try {
+      const parsed = JSON.parse(await file.text());
+      render(validate(parsed));
+    } catch (error) {
+      status.textContent = "No se pudo importar: " + error.message + " Se conservan los datos DEMO.";
+      input.value = "";
+    }
+  });
+})();
+</script>
 </body>
 </html>
