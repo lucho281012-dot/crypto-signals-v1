@@ -134,6 +134,13 @@ class MarketDataValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "desalineada|timestamps"):
             paper_bot.validate_market_data(payload, now_ms)
 
+    def test_missing_candle_interval_rejected(self):
+        now_ms = 2_000_000_000_000
+        payload = market_payload(now_ms)
+        payload["ETH/USDT"]["candles_15m"][-2]["timestamp"] -= 15 * 60 * 1000
+        with self.assertRaisesRegex(ValueError, "hueco de velas|timestamps"):
+            paper_bot.validate_market_data(payload, now_ms)
+
     def test_stale_quote_rejected(self):
         now_ms = 2_000_000_000_000
         payload = market_payload(now_ms)
