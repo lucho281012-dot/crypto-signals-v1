@@ -46,7 +46,7 @@ def export_report_history_csv(history):
     """Return deterministic CSV text with one row per validated snapshot."""
     validate_report_history(history)
     output = io.StringIO(newline="")
-    writer = csv.DictWriter(output, fieldnames=_CSV_COLUMNS, lineterminator="\\n")
+    writer = csv.DictWriter(output, fieldnames=_CSV_COLUMNS, lineterminator="\n")
     writer.writeheader()
     for snapshot in history:
         report = snapshot["report"]
