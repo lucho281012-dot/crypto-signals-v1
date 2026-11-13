@@ -1,0 +1,134 @@
+name: Kraken Public Recent Trades Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kraken-public-recent-trades-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Compare public ticker with recent executed trades
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout transaction-safety candidate
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-transaction-safety
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Query public Kraken trades and ticker only
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          import math
+          import time
+          import ccxt
+
+          symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+          exchange = ccxt.kraken({"enableRateLimit": True})
+          exchange.load_markets()
+
+          server_ms = exchange.fetch_time()
+          local_ms = int(time.time() * 1000)
+          print(f"CCXT_VERSION={ccxt.__version__}")
+          print(f"KRAKEN_SERVER_TIME={datetime.fromtimestamp(server_ms / 1000, timezone.utc).isoformat()}")
+          print(f"LOCAL_SERVER_SKEW_MS={local_ms - server_ms}")
+
+          failures = []
+          for symbol in symbols:
+              if symbol not in exchange.markets:
+                  print(f"PAIR={symbol} AVAILABLE=false")
+                  failures.append(f"{symbol}: market unavailable")
+                  continue
+
+              request_start_ms = int(time.time() * 1000)
+              trades = exchange.fetch_trades(symbol, limit=10)
+              trades_received_ms = int(time.time() * 1000)
+              ticker = exchange.fetch_ticker(symbol)
+              ticker_received_ms = int(time.time() * 1000)
+
+              if not isinstance(trades, list) or not trades:
+                  print(f"PAIR={symbol} TRADES_EMPTY=true")
+                  failures.append(f"{symbol}: no public trades returned")
+                  continue
+
+              valid = []
+              for trade in trades:
+                  if not isinstance(trade, dict):
+                      continue
+                  timestamp = trade.get("timestamp")
+                  price = trade.get("price")
+                  if isinstance(timestamp, bool) or not isinstance(timestamp, (int, float)):
+                      continue
+                  if not math.isfinite(float(timestamp)) or int(timestamp) != timestamp:
+                      continue
+                  try:
+                      price = float(price)
+                  except (TypeError, ValueError):
+                      continue
+                  if not math.isfinite(price) or price <= 0:
+                      continue
+                  valid.append((int(timestamp), price, trade.get("id")))
+
+              if not valid:
+                  failures.append(f"{symbol}: no trades with valid timestamp and price")
+                  continue
+
+              latest_ts, latest_price, latest_id = max(valid, key=lambda item: item[0])
+              ticker_last = ticker.get("last")
+              try:
+                  ticker_last = float(ticker_last)
+              except (TypeError, ValueError):
+                  ticker_last = None
+
+              age_at_receive_ms = trades_received_ms - latest_ts
+              ticker_trade_diff_pct = None
+              if ticker_last is not None and math.isfinite(ticker_last) and ticker_last > 0:
+                  ticker_trade_diff_pct = abs(ticker_last - latest_price) / latest_price * 100
+              else:
+                  failures.append(f"{symbol}: ticker last missing or invalid")
+
+              print(
+                  f"PAIR={symbol} TRADE_COUNT={len(trades)} VALID_TRADE_COUNT={len(valid)} "
+                  f"LATEST_TRADE_ID={latest_id} LATEST_TRADE_PRICE={latest_price} "
+                  f"LATEST_TRADE_TIMESTAMP_MS={latest_ts} "
+                  f"LATEST_TRADE_UTC={datetime.fromtimestamp(latest_ts / 1000, timezone.utc).isoformat()} "
+                  f"TRADE_AGE_AT_RECEIVE_MS={age_at_receive_ms} TICKER_LAST={ticker_last} "
+                  f"TICKER_TRADE_DIFF_PCT={ticker_trade_diff_pct} "
+                  f"REQUEST_START_MS={request_start_ms} TRADES_RECEIVED_MS={trades_received_ms} "
+                  f"TICKER_RECEIVED_MS={ticker_received_ms}"
+              )
+
+              if age_at_receive_ms < -10000:
+                  failures.append(f"{symbol}: latest trade timestamp is more than 10s in the future")
+
+          if failures:
+              raise SystemExit("PROBE_FAILURES: " + "; ".join(failures))
+
+          print("PROBE_RESULT=PASS_PUBLIC_TRADES_AND_TICKER_RECEIVED")
+          print("NOTE=Trade timestamps identify executed trades, not a guaranteed timestamp for the entire order book or ticker snapshot. Age and price difference are diagnostic observations, not proof of quote freshness.")
+          PY
+
+      - name: Confirm working tree is unchanged
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
