@@ -20,7 +20,7 @@ jobs:
       - name: Checkout isolated report dashboard branch
         uses: actions/checkout@v4
         with:
-          ref: paper-report-dashboard-ui
+          ref: paper-report-dashboard-bridge
           persist-credentials: false
 
       - name: Set up Python
