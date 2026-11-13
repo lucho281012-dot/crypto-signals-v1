@@ -29,10 +29,10 @@ jobs:
           python-version: "3.11"
 
       - name: Run paper execution unit tests
-        run: python -m unittest -v test_paper_execution.py
+        run: python -m unittest -v test_paper_execution.py test_paper_execution_integration.py
 
       - name: Confirm simulator integration was not changed
         run: |
           git diff --exit-code -- paper_bot.py paper_trading.py market_data.py
           test -z "$(git status --porcelain)"
-          ! grep -nE 'requests\.|ccxt|websocket|paper_state\.json|paper_bot' paper_execution.py
+          ! grep -nE 'requests\\.|ccxt|websocket|paper_state\\.json|paper_bot' paper_execution.py
