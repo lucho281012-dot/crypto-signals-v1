@@ -46,8 +46,22 @@ def build_report_chart_data(history):
             "asset_market_value_usdt": {},
         }
 
+    # Discover every asset first so each asset line has one point per snapshot,
+    # including zero-value points before the asset first appears.
+    all_assets = set()
+    for index, snapshot in enumerate(history):
+        positions = snapshot["report"].get("positions", {})
+        if not isinstance(positions, dict):
+            raise ValueError(f"history[{index}].positions must be a dictionary")
+        for asset, position in positions.items():
+            if not isinstance(asset, str) or not asset.strip():
+                raise ValueError(f"history[{index}] has an invalid asset name")
+            if not isinstance(position, dict):
+                raise ValueError(f"history[{index}].positions[{asset}] must be a dictionary")
+            all_assets.add(asset)
+
     series = {metric: [] for metric in _METRICS}
-    asset_values = {}
+    asset_values = {asset: [] for asset in sorted(all_assets)}
     timestamps = []
 
     for index, snapshot in enumerate(history):
@@ -64,21 +78,14 @@ def build_report_chart_data(history):
             })
 
         positions = report.get("positions", {})
-        if not isinstance(positions, dict):
-            raise ValueError(f"history[{index}].positions must be a dictionary")
         normalized_positions = {}
         for asset, position in positions.items():
-            if not isinstance(asset, str) or not asset.strip():
-                raise ValueError(f"history[{index}] has an invalid asset name")
-            if not isinstance(position, dict):
-                raise ValueError(f"history[{index}].positions[{asset}] must be a dictionary")
             normalized_positions[asset] = _finite_decimal(
                 position.get("market_value_usdt"),
                 f"history[{index}].positions[{asset}].market_value_usdt",
             )
 
-        for asset in set(asset_values) | set(normalized_positions):
-            asset_values.setdefault(asset, [])
+        for asset in asset_values:
             asset_values[asset].append({
                 "snapshot_id": snapshot["snapshot_id"],
                 "captured_at": captured_at,
@@ -90,7 +97,5 @@ def build_report_chart_data(history):
         "snapshot_count": len(history),
         "timestamps": timestamps,
         "series": series,
-        "asset_market_value_usdt": {
-            asset: asset_values[asset] for asset in sorted(asset_values)
-        },
+        "asset_market_value_usdt": asset_values,
     }
