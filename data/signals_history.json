@@ -816,7 +816,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1794587700000
+    "last_checked_ts": 1794590700000
   },
   {
     "id": "ETH-USDT-SHORT-1794585000000",
@@ -837,7 +837,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1794587700000
+    "last_checked_ts": 1794590700000
   },
   {
     "id": "SOL-USDT-SHORT-1794585000000",
@@ -858,6 +858,6 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1794587700000
+    "last_checked_ts": 1794590700000
   }
 ]
