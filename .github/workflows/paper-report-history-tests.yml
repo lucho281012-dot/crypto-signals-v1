@@ -1,4 +1,4 @@
-name: Paper Report JSON Store Tests
+name: Paper Report Export and JSON Store Tests
 
 on:
   workflow_dispatch:
@@ -7,17 +7,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: paper-report-json-store-tests
+  group: paper-report-export-tests
   cancel-in-progress: false
 
 jobs:
   test:
-    name: Test atomic JSON report history storage
+    name: Test isolated report export and JSON history storage
     runs-on: ubuntu-latest
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - name: Checkout isolated JSON store branch
+      - name: Checkout isolated report export branch
         uses: actions/checkout@v4
         with:
           ref: paper-report-export
