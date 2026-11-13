@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Crypto Signals · Paper Dashboard</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e8edf7;background:#0b1020;font-synthesis:none}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% -10%,#1b2a4a 0,transparent 42%),#0b1020}
+    .wrap{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:34px 0 48px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:26px}
+    .eyebrow{color:#8fa4c8;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+    h1{font-size:clamp(25px,4vw,36px);margin:7px 0 0;letter-spacing:-.04em}
+    .demo{border:1px solid #765b27;background:#332713;color:#ffd98b;padding:9px 13px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.08em;white-space:nowrap}
+    .notice{border:1px solid #34486a;background:#111c31;color:#b8c8e3;border-radius:13px;padding:13px 16px;margin-bottom:20px;font-size:13px;line-height:1.55}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .card{background:linear-gradient(145deg,#151f34,#111827);border:1px solid #25344e;border-radius:17px;padding:18px;min-width:0;box-shadow:0 12px 30px #0002}
+    .metric-label{color:#93a4c2;font-size:12px}.metric{font-size:clamp(22px,3vw,29px);font-weight:750;letter-spacing:-.04em;margin:9px 0 4px;font-variant-numeric:tabular-nums}
+    .sub{font-size:12px;color:#91a0ba}.positive{color:#62d6a5}.negative{color:#ff8e9b}
+    .wide{grid-column:span 2}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+    h2{font-size:15px;margin:0;letter-spacing:-.01em}.tag{font-size:11px;color:#9fb1d0;background:#202d43;padding:5px 8px;border-radius:7px}
+    .chart{width:100%;height:220px;display:block;overflow:visible}.axis{stroke:#33425c;stroke-width:1}.gridline{stroke:#24334b;stroke-dasharray:4 5}
+    .line{fill:none;stroke:#73a7ff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.area{fill:url(#fill)}
+    .point{fill:#a9c8ff;stroke:#18253c;stroke-width:3}.labels{display:flex;justify-content:space-between;color:#7f91b1;font-size:10px;margin-top:4px}
+    .asset-list{display:grid;gap:15px}.asset-row{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center;font-size:13px}
+    .coin{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#202e46;font-weight:800}
+    .track{height:7px;background:#26334a;border-radius:10px;margin-top:7px;overflow:hidden}.fill{height:100%;border-radius:10px;background:#73a7ff}
+    .asset-value{text-align:right;font-variant-numeric:tabular-nums}.muted{color:#8292ae;font-size:11px}
+    table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:#8394b1;font-weight:600;padding:10px 8px;border-bottom:1px solid #2a3851}
+    td{padding:12px 8px;border-bottom:1px solid #202d43;color:#d8e1f0}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+    .footer{margin-top:20px;color:#71819e;font-size:11px;line-height:1.6;text-align:center}
+    @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}}
+    @media(max-width:520px){.wrap{width:min(100% - 22px,1180px);padding-top:22px}header{align-items:flex-start;flex-direction:column}.grid{gap:10px}.card{padding:14px}.metric{font-size:22px}.wide{grid-column:span 2}.chart{height:185px}table{font-size:11px}td,th{padding:10px 5px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div><div class="eyebrow">Crypto Signals · Paper Trading</div><h1>Panel de rendimiento</h1></div>
+      <div class="demo">● DEMO · DATOS FICTICIOS</div>
+    </header>
+    <div class="notice"><strong>Entorno de demostración.</strong> Las cifras y operaciones de esta pantalla son inventadas para probar el diseño. No representan el saldo real del simulador, no consultan exchanges y no ejecutan operaciones.</div>
+    <section class="grid" aria-label="Indicadores principales">
+      <article class="card"><div class="metric-label">Equity total</div><div class="metric" id="equity">$1,084.60</div><div class="sub">Efectivo + valor de posiciones</div></article>
+      <article class="card"><div class="metric-label">P&amp;L total</div><div class="metric positive" id="pnl">+$84.60</div><div class="sub">+8.46% sobre capital inicial</div></article>
+      <article class="card"><div class="metric-label">Drawdown máximo</div><div class="metric negative" id="drawdown">-$22.40</div><div class="sub">-2.03% desde el máximo</div></article>
+      <article class="card"><div class="metric-label">Operaciones cerradas</div><div class="metric" id="trades">18</div><div class="sub">12 compras · 6 ventas</div></article>
+      <article class="card wide">
+        <div class="section-head"><h2>Evolución del equity</h2><span class="tag">Últimos 7 snapshots</span></div>
+        <svg class="chart" viewBox="0 0 620 220" role="img" aria-label="Gráfico ficticio de evolución del equity">
+          <defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#73a7ff" stop-opacity=".28"/><stop offset="1" stop-color="#73a7ff" stop-opacity="0"/></linearGradient></defs>
+          <path class="gridline" d="M42 35H600 M42 85H600 M42 135H600 M42 185H600"/><path class="axis" d="M42 15V185H600"/>
+          <path class="area" d="M42 160 L135 144 L228 151 L321 103 L414 117 L507 64 L600 34 L600 185 L42 185Z"/>
+          <path class="line" d="M42 160 L135 144 L228 151 L321 103 L414 117 L507 64 L600 34"/>
+          <circle class="point" cx="600" cy="34" r="5"/>
+          <g fill="#8192b0" font-size="10"><text x="4" y="38">$1,100</text><text x="4" y="88">$1,060</text><text x="4" y="138">$1,020</text><text x="4" y="188">$980</text></g>
+        </svg>
+        <div class="labels"><span>Nov 07</span><span>Nov 08</span><span>Nov 09</span><span>Nov 10</span><span>Nov 11</span><span>Nov 12</span><span>Nov 13</span></div>
+      </article>
+      <article class="card wide">
+        <div class="section-head"><h2>Distribución de activos</h2><span class="tag">Valor de mercado</span></div>
+        <div class="asset-list">
+          <div class="asset-row"><div class="coin">₿</div><div><strong>BTC</strong><div class="track"><div class="fill" style="width:54%"></div></div></div><div class="asset-value">$420.00<div class="muted">54.1%</div></div></div>
+          <div class="asset-row"><div class="coin">Ξ</div><div><strong>ETH</strong><div class="track"><div class="fill" style="width:29%"></div></div></div><div class="asset-value">$225.00<div class="muted">29.0%</div></div></div>
+          <div class="asset-row"><div class="coin">◎</div><div><strong>SOL</strong><div class="track"><div class="fill" style="width:17%"></div></div></div><div class="asset-value">$131.60<div class="muted">16.9%</div></div></div>
+        </div>
+      </article>
+      <article class="card wide">
+        <div class="section-head"><h2>Últimos snapshots</h2><span class="tag">Historial simulado</span></div>
+        <table><thead><tr><th>Fecha</th><th class="num">Equity</th><th class="num">P&amp;L</th><th class="num">Retorno</th></tr></thead>
+          <tbody>
+            <tr><td>Nov 13 · 12:00</td><td class="num">$1,084.60</td><td class="num positive">+$84.60</td><td class="num positive">+8.46%</td></tr>
+            <tr><td>Nov 12 · 12:00</td><td class="num">$1,071.20</td><td class="num positive">+$71.20</td><td class="num positive">+7.12%</td></tr>
+            <tr><td>Nov 11 · 12:00</td><td class="num">$1,052.80</td><td class="num positive">+$52.80</td><td class="num positive">+5.28%</td></tr>
+            <tr><td>Nov 10 · 12:00</td><td class="num">$1,039.10</td><td class="num positive">+$39.10</td><td class="num positive">+3.91%</td></tr>
+          </tbody>
+        </table>
+      </article>
+      <article class="card wide">
+        <div class="section-head"><h2>Lectura del panel</h2><span class="tag">Solo visual</span></div>
+        <p class="sub" style="font-size:13px;line-height:1.7;margin:0">Esta maqueta valida la jerarquía visual y la lectura en móvil. El siguiente paso, después de aprobar el diseño, será sustituir estos valores de muestra por datos exportados y validados del historial paper, manteniendo la integración de solo lectura.</p>
+      </article>
+    </section>
+    <footer class="footer">Crypto Signals · Dashboard UI v0.1 · Datos 100% ficticios · Sin conexión a API ni persistencia</footer>
+  </main>
+</body>
+</html>
