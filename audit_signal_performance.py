@@ -67,11 +67,21 @@ def metrics(records, fee_bps):
     gross = [2.0 if r["status"] == "TP2" else -1.0 for r in definite]
     fees = [fee_r(r, fee_bps) for r in definite]
     net = [g-f for g, f in zip(gross, fees)] if fee_bps is not None else None
-    ordered = sorted(records, key=lambda r: (int(r.get("signal_candle_ts", 0)), str(r["id"])))
-    streak = maximum = 0
-    for r in ordered:
-        streak = streak + 1 if r["status"] == "SL" else 0
-        maximum = max(maximum, streak)
+    # Losing streaks are calculated within each symbol. Pooling symbols can
+    # create artificial streaks when multiple assets signal on the same candle.
+    by_asset = {}
+    for record in records:
+        by_asset.setdefault(str(record["symbol"]), []).append(record)
+    maximum = 0
+    for asset_records in by_asset.values():
+        ordered = sorted(
+            asset_records,
+            key=lambda r: (int(r.get("signal_candle_ts", 0)), str(r["id"])),
+        )
+        streak = 0
+        for record in ordered:
+            streak = streak + 1 if record["status"] == "SL" else 0
+            maximum = max(maximum, streak)
     partial_records = [r for r in records if r["status"] in ("TP2", "SL", "SL_AFTER_TP1")]
     scenario_sensitivity = {}
     for scenario, scenario_r in SCENARIOS.items():
