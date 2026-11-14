@@ -1530,7 +1530,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": null
+    "last_checked_ts": 1794684600000
   },
   {
     "id": "ETH-USDT-SHORT-1794682200000",
@@ -1551,7 +1551,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": null
+    "last_checked_ts": 1794684600000
   },
   {
     "id": "SOL-USDT-SHORT-1794682200000",
@@ -1568,6 +1568,27 @@
     "score": 5,
     "rsi": 37.095692194248535,
     "volume_ratio": 1.16006733572002,
+    "tp1_hit": true,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": 1794684600000
+  },
+  {
+    "id": "SOL-USDT-SHORT-1794684600000",
+    "symbol": "SOL/USDT",
+    "side": "SHORT",
+    "timeframe": "5m",
+    "signal_candle_ts": 1794684600000,
+    "start_tracking_ts": 1794684900000,
+    "sent_at": "2026-11-14T19:37:44.181011+00:00",
+    "entry": 71.96,
+    "stop": 72.386840856044,
+    "tp1": 71.53315914395598,
+    "tp2": 71.10631828791198,
+    "score": 4,
+    "rsi": 39.7263228287036,
+    "volume_ratio": 1.055419705989868,
     "tp1_hit": false,
     "tp2_hit": false,
     "status": "ACTIVE",
