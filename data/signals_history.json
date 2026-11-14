@@ -1043,11 +1043,11 @@
     "score": 5,
     "rsi": 36.263609230841105,
     "volume_ratio": 1.511835994894565,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794622800000
   },
   {
     "id": "ETH-USDT-SHORT-1794622500000",
@@ -1064,11 +1064,11 @@
     "score": 4,
     "rsi": 31.802842721831766,
     "volume_ratio": 2.2513171441343665,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794622800000
   },
   {
     "id": "SOL-USDT-SHORT-1794622500000",
@@ -1085,10 +1085,10 @@
     "score": 4,
     "rsi": 17.887884370321174,
     "volume_ratio": 2.9871930870058008,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794623100000
   }
 ]
