@@ -1192,8 +1192,8 @@
     "volume_ratio": 1.2614110517290162,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1794647100000
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794647400000
   }
 ]
