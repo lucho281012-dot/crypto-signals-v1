@@ -1,0 +1,28 @@
+name: Signal Performance Audit Tests
+
+on:
+  push:
+    branches:
+      - signal-performance-audit
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run audit unit tests
+        run: python -m unittest -v test_audit_signal_performance.py
+      - name: Run read-only audit against current history
+        run: python audit_signal_performance.py --format markdown
