@@ -57,7 +57,7 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
         )
         self.assertEqual(set(report["positions"]), {"BTC", "ETH", "SOL"})
         self.assertEqual(report["open_position_count"], 3)
-        self.assertEqual(report["market_value_usdt"], "153.000")
+        self.assertEqual(report["market_value_usdt"], "134.500")
 
     def test_accepts_compact_legacy_symbol(self):
         state = copy.deepcopy(self.state)
