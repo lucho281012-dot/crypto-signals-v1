@@ -1569,10 +1569,10 @@
     "rsi": 37.095692194248535,
     "volume_ratio": 1.16006733572002,
     "tp1_hit": true,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1794689100000
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794689400000
   },
   {
     "id": "SOL-USDT-SHORT-1794684600000",
@@ -1610,11 +1610,11 @@
     "score": 4,
     "rsi": 44.13110608837938,
     "volume_ratio": 0.39410440638869904,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794689400000
   },
   {
     "id": "SOL-USDT-SHORT-1794689100000",
@@ -1631,10 +1631,10 @@
     "score": 4,
     "rsi": 39.45951950126822,
     "volume_ratio": 0.5103636243114791,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1794689400000
   }
 ]
