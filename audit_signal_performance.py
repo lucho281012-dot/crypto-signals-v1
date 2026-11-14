@@ -67,11 +67,20 @@ def metrics(records, fee_bps):
     gross = [2.0 if r["status"] == "TP2" else -1.0 for r in definite]
     fees = [fee_r(r, fee_bps) for r in definite]
     net = [g-f for g, f in zip(gross, fees)] if fee_bps is not None else None
-    ordered = sorted(definite, key=lambda r: (int(r.get("signal_candle_ts", 0)), str(r["id"])))
+    ordered = sorted(records, key=lambda r: (int(r.get("signal_candle_ts", 0)), str(r["id"])))
     streak = maximum = 0
     for r in ordered:
         streak = streak + 1 if r["status"] == "SL" else 0
         maximum = max(maximum, streak)
+    partial_records = [r for r in records if r["status"] in ("TP2", "SL", "SL_AFTER_TP1")]
+    scenario_sensitivity = {}
+    for scenario, scenario_r in SCENARIOS.items():
+        scenario_total = sum(gross) + scenario_r * sum(r["status"] == "SL_AFTER_TP1" for r in records)
+        scenario_sensitivity[scenario] = {
+            "closed_including_sl_after_tp1": len(partial_records),
+            "total_gross_r": round(scenario_total, 6),
+            "expectancy_r": round(scenario_total / len(partial_records), 6) if partial_records else None,
+        }
     profit = sum(x for x in gross if x > 0)
     loss = -sum(x for x in gross if x < 0)
     return {
@@ -87,6 +96,7 @@ def metrics(records, fee_bps):
         "gross_profit_factor": round(profit/loss, 6) if loss else ("infinite" if profit else None),
         "max_consecutive_sl": maximum,
         "sl_after_tp1_scenarios_r": SCENARIOS,
+        "sl_after_tp1_sensitivity": scenario_sensitivity,
         "fee_bps_per_side": fee_bps,
         "estimated_round_trip_fee_r": round(sum(fees), 6) if fee_bps is not None else None,
         "net_total_r": round(sum(net), 6) if net is not None else None,
@@ -131,9 +141,10 @@ def markdown(report):
             "| R neto estimado | " + str(t["net_total_r"]) + " |",
             "| Expectativa neta estimada (R) | " + str(t["net_expectancy_r"]) + " |",
         ])
-    rows.extend(["", "## Escenarios hipotéticos para SL_AFTER_TP1", "", "| Gestión | R por señal |", "|---|---:|"])
+    rows.extend(["", "## Escenarios hipotéticos para SL_AFTER_TP1", "", "| Gestión | Impacto individual y sensibilidad total |", "|---|---|"])
     for name, value in SCENARIOS.items():
-        rows.append("| " + name + " | " + format(value, "+.2f") + "R |")
+        sensitivity = t["sl_after_tp1_sensitivity"][name]
+        rows.append("| " + name + " | " + format(value, "+.2f") + "R por señal; total " + str(sensitivity["total_gross_r"]) + "R; expectativa " + str(sensitivity["expectancy_r"]) + "R |")
     rows.extend(["", "## Por símbolo", "", "| Símbolo | Señales | TP2 | SL | SL tras TP1 | Ambiguas | Activas | Cerradas | Expectativa bruta (R) |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for symbol, m in report["by_symbol"].items():
         values = [symbol, m["signals"], m["tp2"], m["sl"], m["sl_after_tp1"], m["ambiguous"], m["active"], m["definite_closed"], m["gross_expectancy_r"]]
