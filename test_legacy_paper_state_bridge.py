@@ -13,7 +13,7 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
             "initial_balance": "1000",
             "cash_usdt": "700",
             "positions": {
-                "BTCUSDT": {
+                "BTC/USDT": {
                     "entry_price": "50000",
                     "stop_price": "49000",
                     "quantity": "0.005",
@@ -21,12 +21,12 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
                 }
             },
             "history": [{
-                "symbol": "ETHUSDT",
+                "symbol": "ETH/USDT",
                 "entry_fee": "0.10",
                 "exit_fee": "0.10",
                 "net_pnl": "4.80",
             }],
-            "last_processed_candle": {"BTCUSDT": "123"},
+            "last_processed_candle": {"BTC/USDT": "123"},
         }
         self.marks = {"BTC": "52000"}
 
@@ -45,6 +45,38 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
         self.assertEqual(report["buy_count"], 1)
         self.assertEqual(report["sell_count"], 1)
 
+    def test_accepts_all_symbols_used_by_paper_simulator(self):
+        state = copy.deepcopy(self.state)
+        state["positions"] = {
+            "BTC/USDT": {"entry_price": "50000", "quantity": "0.001", "entry_fee": "0.05"},
+            "ETH/USDT": {"entry_price": "3000", "quantity": "0.01", "entry_fee": "0.03"},
+            "SOL/USDT": {"entry_price": "100", "quantity": "0.5", "entry_fee": "0.05"},
+        }
+        report = build_legacy_state_report(
+            state, {"BTC": "51000", "ETH": "3100", "SOL": "105"}
+        )
+        self.assertEqual(set(report["positions"]), {"BTC", "ETH", "SOL"})
+        self.assertEqual(report["open_position_count"], 3)
+        self.assertEqual(report["market_value_usdt"], "153.000")
+
+    def test_accepts_compact_legacy_symbol(self):
+        state = copy.deepcopy(self.state)
+        state["positions"] = {"BTCUSDT": state["positions"]["BTC/USDT"]}
+        report = build_legacy_state_report(state, self.marks)
+        self.assertIn("BTC", report["positions"])
+
+    def test_rejects_duplicate_normalized_assets(self):
+        state = copy.deepcopy(self.state)
+        state["positions"]["BTCUSDT"] = state["positions"]["BTC/USDT"]
+        with self.assertRaisesRegex(ValueError, "duplicate position"):
+            build_legacy_state_report(state, self.marks)
+
+    def test_rejects_malformed_symbols(self):
+        state = copy.deepcopy(self.state)
+        state["positions"] = {"BTC-USDT": state["positions"]["BTC/USDT"]}
+        with self.assertRaisesRegex(ValueError, "unsupported paper symbol"):
+            build_legacy_state_report(state, self.marks)
+
     def test_open_position_requires_explicit_mark(self):
         with self.assertRaisesRegex(ValueError, "missing mark price"):
             build_legacy_state_report(self.state, {})
@@ -55,7 +87,7 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "finite"):
             build_legacy_state_report(bad, self.marks)
         bad = copy.deepcopy(self.state)
-        bad["positions"]["BTCUSDT"]["quantity"] = "-1"
+        bad["positions"]["BTC/USDT"]["quantity"] = "-1"
         with self.assertRaisesRegex(ValueError, "positive"):
             build_legacy_state_report(bad, self.marks)
 

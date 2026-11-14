@@ -31,9 +31,13 @@ def _decimal(value, field, *, positive=False, non_negative=False):
 
 
 def _base_asset(symbol):
-    if not isinstance(symbol, str) or not re.fullmatch(r"[A-Z0-9]+USDT", symbol):
+    """Normalize simulator symbols (BTC/USDT) and compact legacy symbols (BTCUSDT)."""
+    if not isinstance(symbol, str):
         raise ValueError(f"unsupported paper symbol: {symbol!r}")
-    return symbol[:-4]
+    match = re.fullmatch(r"([A-Z0-9]+)(?:/)?USDT", symbol)
+    if not match:
+        raise ValueError(f"unsupported paper symbol: {symbol!r}")
+    return match.group(1)
 
 
 def build_legacy_state_report(state, marks):
@@ -52,6 +56,8 @@ def build_legacy_state_report(state, marks):
     fees = Decimal("0")
     for symbol, position in positions.items():
         base = _base_asset(symbol)
+        if base in report_positions:
+            raise ValueError(f"duplicate position for normalized asset: {base}")
         if not isinstance(position, dict):
             raise ValueError(f"position {symbol} must be an object")
         quantity = _decimal(position.get("quantity"), f"{symbol}.quantity", positive=True)
