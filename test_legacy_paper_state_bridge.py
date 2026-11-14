@@ -112,6 +112,46 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
             self.assertEqual(state_path.read_bytes(), before_state)
             self.assertEqual(marks_path.read_bytes(), before_marks)
 
+    def test_exported_snapshot_matches_dashboard_import_contract(self):
+        from paper_report_history import deserialize_report_history
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "paper_state.json"
+            marks_path = root / "marks.json"
+            state_path.write_text(json.dumps(self.state), encoding="utf-8")
+            marks_path.write_text(json.dumps(self.marks), encoding="utf-8")
+
+            payload = export_state_json(
+                state_path,
+                marks_path,
+                captured_at="2026-11-14T10:00:00-06:00",
+                snapshot_id="dashboard-contract-001",
+            )
+            history = deserialize_report_history(payload)
+
+        self.assertEqual(len(history), 1)
+        snapshot = history[0]
+        self.assertEqual(snapshot["schema_version"], 1)
+        self.assertTrue(snapshot["captured_at"].endswith("Z"))
+        report = snapshot["report"]
+        for field in (
+            "equity_usdt",
+            "cash_usdt",
+            "market_value_usdt",
+            "total_pnl_usdt",
+            "total_return_pct",
+        ):
+            with self.subTest(field=field):
+                self.assertIn(field, report)
+                self.assertTrue(str(report[field]))
+
+        self.assertIn("positions", report)
+        for asset, position in report["positions"].items():
+            with self.subTest(asset=asset):
+                self.assertIn("market_value_usdt", position)
+                self.assertTrue(str(position["market_value_usdt"]))
+
     def test_refuses_wrong_input_filename(self):
         with tempfile.TemporaryDirectory() as directory:
             wrong = Path(directory) / "other.json"
