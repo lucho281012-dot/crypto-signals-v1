@@ -1215,7 +1215,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": null
+    "last_checked_ts": 1794656100000
   },
   {
     "id": "ETH-USDT-SHORT-1794654000000",
@@ -1234,9 +1234,9 @@
     "volume_ratio": 0.4576074031448083,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794654900000
   },
   {
     "id": "SOL-USDT-SHORT-1794654000000",
@@ -1253,6 +1253,27 @@
     "score": 4,
     "rsi": 45.006525430036504,
     "volume_ratio": 0.962879448497563,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794654600000
+  },
+  {
+    "id": "BTC-USDT-SHORT-1794656100000",
+    "symbol": "BTC/USDT",
+    "side": "SHORT",
+    "timeframe": "5m",
+    "signal_candle_ts": 1794656100000,
+    "start_tracking_ts": 1794656400000,
+    "sent_at": "2026-11-14T11:43:16.394729+00:00",
+    "entry": 67168.6,
+    "stop": 67286.45420155236,
+    "tp1": 67050.74579844765,
+    "tp2": 66932.89159689528,
+    "score": 5,
+    "rsi": 45.02367175270807,
+    "volume_ratio": 1.4126063029867781,
     "tp1_hit": false,
     "tp2_hit": false,
     "status": "ACTIVE",
