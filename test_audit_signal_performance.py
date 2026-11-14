@@ -42,6 +42,8 @@ class SignalPerformanceAuditTests(unittest.TestCase):
         self.assertEqual(total["ambiguous"], 1)
         self.assertEqual(total["active"], 1)
         self.assertEqual(total["sl_after_tp1_scenarios_r"]["half_at_tp1_half_at_break_even"], 0.5)
+        self.assertEqual(total["sl_after_tp1_sensitivity"]["half_at_tp1_half_at_break_even"]["total_gross_r"], 2.5)
+        self.assertEqual(total["sl_after_tp1_sensitivity"]["no_partial"]["closed_including_sl_after_tp1"], 2)
 
     def test_fee_is_optional(self):
         gross = build_report([make_signal("win", "TP2")])
