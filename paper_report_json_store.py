@@ -155,6 +155,7 @@ def recover_report_history(path):
     silently runs during load or save.
     """
     target = _history_path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
     with _exclusive_history_lock(target):
         backup = target.with_name(target.name + ".bak")
         if target.exists():
