@@ -141,7 +141,7 @@ def save_report_history(path, history):
             if len(history) < len(previous) or history[:len(previous)] != previous:
                 raise ValueError("history update must preserve all existing entries")
 
-        payload = (serialize_report_history(history) + "\\n").encode("utf-8")
+        payload = (serialize_report_history(history) + "\n").encode("utf-8")
         if previous_bytes is not None:
             backup = target.with_name(target.name + ".bak")
             _atomic_write(backup, previous_bytes)
