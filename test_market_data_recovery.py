@@ -12,7 +12,7 @@ class KrakenCandleRecoveryTests(unittest.TestCase):
         milliseconds = patch.object(
             market_data.exchange,
             "milliseconds",
-            return_value=300000 * 1000
+            return_value=300000 * 720
         )
         fetch = patch.object(
             market_data.exchange,
