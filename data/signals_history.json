@@ -1993,5 +1993,26 @@
     "status": "SL_AFTER_TP1",
     "result": "SL_AFTER_TP1",
     "last_checked_ts": 1794759900000
+  },
+  {
+    "id": "BTC-USDT-SHORT-1794765000000",
+    "symbol": "BTC/USDT",
+    "side": "SHORT",
+    "timeframe": "5m",
+    "signal_candle_ts": 1794765000000,
+    "start_tracking_ts": 1794765300000,
+    "sent_at": "2026-11-15T17:56:12.047307+00:00",
+    "entry": 64531.5,
+    "stop": 64750.4635201289,
+    "tp1": 64312.5364798711,
+    "tp2": 64093.5729597422,
+    "score": 5,
+    "rsi": 44.97337049070722,
+    "volume_ratio": 1.6339014803371443,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": null
   }
 ]
