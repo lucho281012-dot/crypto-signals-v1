@@ -132,7 +132,10 @@ class ReadOnlyPaperReportTests(unittest.TestCase):
             Decimal("0"),
         )
         expected_open_fees = sum(
-            (Decimal(str(position["entry_fee"]) for position in open_positions.values()),
+            (
+                Decimal(str(position["entry_fee"]))
+                for position in open_positions.values()
+            ),
             Decimal("0"),
         )
         expected_fees = expected_open_fees + sum(
