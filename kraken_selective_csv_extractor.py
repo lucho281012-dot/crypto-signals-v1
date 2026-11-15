@@ -262,6 +262,7 @@ def run_live_validation() -> dict[str, Any]:
     segment_reports = []
     backtest_reports = []
     out_of_sample_reports = []
+    out_of_sample_5of5_reports = []
     with tempfile.TemporaryDirectory(prefix="kraken-selective-") as temp_dir:
         root = Path(temp_dir)
         extracted_paths = {}
@@ -320,12 +321,17 @@ def run_live_validation() -> dict[str, Any]:
                    if key not in ("segments", "trades")},
                 "segment_results": backtest["segments"],
             })
-            oos = backtest_out_of_sample(paired["segments"], initial_balance=100.0, train_fraction=0.70)
+            oos = backtest_out_of_sample(paired["segments"], initial_balance=100.0, train_fraction=0.70, minimum_conditions=4)
             out_of_sample_reports.append({
                 "symbol": market,
                 **oos,
             })
-            del backtest, oos, paired, five, fifteen
+            oos_5of5 = backtest_out_of_sample(paired["segments"], initial_balance=100.0, train_fraction=0.70, minimum_conditions=5)
+            out_of_sample_5of5_reports.append({
+                "symbol": market,
+                **oos_5of5,
+            })
+            del backtest, oos, oos_5of5, paired, five, fifteen
     return {        "status": "all_six_csvs_extracted_and_validated",
         "archive_size_bytes": archive.total_size,
         "metadata_bytes_read": metadata_bytes_read,
@@ -340,6 +346,7 @@ def run_live_validation() -> dict[str, Any]:
         "gap_aware_segments": segment_reports,
         "historical_backtest": backtest_reports,
         "out_of_sample_backtest": out_of_sample_reports,
+        "out_of_sample_5of5_counterfactual": out_of_sample_5of5_reports,
         "gaps_filled": False,
         "note": "CSV payloads were temporary to this CI job; no market data was committed to Git.",
     }

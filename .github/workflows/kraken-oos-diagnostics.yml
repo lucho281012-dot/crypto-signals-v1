@@ -4,9 +4,11 @@ on:
     branches:
       - paper-kraken-oos-diagnostics
       - paper-kraken-oos-signal-attribution
+      - paper-kraken-oos-5of5-counterfactual
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
+      - "kraken_selective_csv_extractor.py"
       - "test_historical_oos_validation.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
   pull_request:
