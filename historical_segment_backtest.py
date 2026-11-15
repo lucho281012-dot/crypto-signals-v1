@@ -47,13 +47,15 @@ def generate_segment_signals(candles_5m, candles_15m, start_index=199):
             current["volume"] > current["volume_sma20"],
             current["close"] > current["ema20"],
         )
-        if sum(conditions) >= 4 and trend["ema20"] > trend["ema200"]:
+        score = sum(conditions)
+        if score >= 4 and trend["ema20"] > trend["ema200"]:
             atr = float(current["atr"])
             if atr > 0:
                 signals.append({
                     "timestamp": int(candle5["timestamp"]),
                     "side": "BUY",
                     "atr": atr,
+                    "conditions_met": int(score),
                 })
     return signals
 

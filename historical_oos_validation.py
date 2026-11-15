@@ -1,7 +1,7 @@
 """Chronological out-of-sample validation and trade diagnostics."""
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from statistics import mean, median
 
 from backtest_engine import run_long_backtest
@@ -20,6 +20,8 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
 
     rows = []
     all_trades = []
+    signal_condition_counts = Counter()
+    trade_groups = defaultdict(list)
     for segment_index, segment in enumerate(segments):
         five = segment["candles_5m"]
         fifteen = segment["candles_15m"]
@@ -30,9 +32,27 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
         signals = generate_segment_signals(
             five, fifteen, start_index=split_index
         )
+        for signal in signals:
+            signal_condition_counts[int(signal["conditions_met"])] += 1
+
+        # Backtest opens at the next candle's open. Match that timestamp back
+        # to the signal so score attribution only includes actually executed trades.
+        index_by_timestamp = {
+            int(candle["timestamp"]): i for i, candle in enumerate(five)
+        }
+        score_by_entry_timestamp = {
+            int(five[index_by_timestamp[int(signal["timestamp"])] + 1]["timestamp"]):
+                int(signal["conditions_met"])
+            for signal in signals
+        }
         result = run_long_backtest(
             five, signals, initial_balance=initial_balance
         )
+        for trade in result["trades"]:
+            score = score_by_entry_timestamp.get(int(trade["opened_at"]))
+            if score is not None:
+                trade_groups[score].append(trade)
+
         rows.append({
             "segment_index": segment_index,
             "train_fraction": float(train_fraction),
@@ -69,6 +89,27 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
     ]
     exit_reasons = Counter(t.get("reason", "unknown") for t in all_trades)
 
+    trade_results_by_condition_count = {}
+    for score in sorted(set(signal_condition_counts) | set(trade_groups)):
+        group = trade_groups[score]
+        group_wins = [t for t in group if t["net_pnl"] > 0]
+        group_losses = [t for t in group if t["net_pnl"] < 0]
+        gross_group_profit = sum(t["net_pnl"] for t in group_wins)
+        gross_group_loss = -sum(t["net_pnl"] for t in group_losses)
+        trade_results_by_condition_count[str(score)] = {
+            "generated_signals": signal_condition_counts[score],
+            "executed_trades": len(group),
+            "wins": len(group_wins),
+            "losses": len(group_losses),
+            "breakeven_count": len(group) - len(group_wins) - len(group_losses),
+            "win_rate_percent": len(group_wins) / len(group) * 100 if group else 0.0,
+            "profit_factor": gross_group_profit / gross_group_loss if gross_group_loss else (
+                None if not gross_group_profit else float("inf")
+            ),
+            "net_pnl": sum(t["net_pnl"] for t in group),
+            "mean_net_pnl": mean(t["net_pnl"] for t in group) if group else None,
+        }
+
     return {
         "segment_count": len(rows),
         "segments_with_trades": sum(row["trade_count"] > 0 for row in rows),
@@ -96,6 +137,8 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
         "mean_trade_net_pnl": mean(t["net_pnl"] for t in all_trades) if all_trades else None,
         "mean_holding_minutes": mean(holding_minutes) if holding_minutes else None,
         "median_holding_minutes": median(holding_minutes) if holding_minutes else None,
+        "signal_condition_counts": dict(sorted(signal_condition_counts.items())),
+        "trade_results_by_condition_count": trade_results_by_condition_count,
         "segment_results": rows,
         "portfolio_compounded_across_gaps": False,
         "test_only_trades": True,
