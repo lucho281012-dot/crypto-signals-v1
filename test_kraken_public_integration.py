@@ -40,17 +40,17 @@ def main():
         f"last={datetime.fromtimestamp(timestamps[-1] / 1000, timezone.utc).isoformat()}",
     )
 
-    # Kraken only exposes its most recent 720 OHLC entries. A request from
-    # Unix epoch must therefore be rejected as incomplete, never accepted.
+    # Validate the old-cursor guard locally. It must reject before making
+    # another public OHLC request, avoiding CCXT pagination/rate-limit bursts.
     try:
         get_candles_since(SYMBOL, 0, timeframe=TIMEFRAME)
     except RuntimeError as error:
-        if "máximo 720 velas" not in str(error):
+        if "fuera del histórico recuperable" not in str(error):
             raise
-        print("OLD_RANGE_REJECTED_OK", str(error))
+        print("OLD_RANGE_REJECTED_BEFORE_REQUEST_OK", str(error))
     else:
         raise AssertionError(
-            "An epoch-to-present request was accepted despite Kraken's OHLC history cap"
+            "An out-of-range cursor was not rejected before the API request"
         )
 
 
