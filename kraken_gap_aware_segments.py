@@ -92,6 +92,7 @@ def build_aligned_contiguous_segments(
         if candle_15m is None:
             skipped_5m_without_15m += 1
             if current_5m:
+                breaks_15m += 1
                 finish_segment()
             last_5m_timestamp = None
             last_selected_15m_timestamp = None
