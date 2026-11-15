@@ -64,7 +64,7 @@ class KrakenCandleRecoveryTests(unittest.TestCase):
 
         fetch_mock.assert_not_called()
 
-    def test_rejects_incomplete_response_inside_supported_window(self):
+    def test_allows_missing_cursor_candle_when_kraken_omits_no_trade_interval(self):
         raw = [
             [900000, 3, 4, 2, 3.5, 12],
             [1200000, 4, 5, 3, 4.5, 13],
@@ -72,15 +72,48 @@ class KrakenCandleRecoveryTests(unittest.TestCase):
         load_markets, markets, milliseconds, fetch = self._mock_exchange(raw)
 
         with load_markets, markets, milliseconds, fetch:
-            with self.assertRaisesRegex(
-                RuntimeError,
-                "no devolvió la primera vela solicitada"
-            ):
-                market_data.get_candles_since(
-                    "BTC/USDT",
-                    since=300000,
-                    timeframe="5m"
-                )
+            candles = market_data.get_candles_since(
+                "BTC/USDT",
+                since=300000,
+                timeframe="5m"
+            )
+
+        self.assertEqual([candle["timestamp"] for candle in candles], [900000, 1200000])
+
+    def test_paper_bot_requires_persisted_close_when_kraken_omits_cursor_candle(self):
+        import paper_bot
+
+        raw = [
+            [900000, 4, 5, 3, 4.5, 2],
+        ]
+        load_markets, markets, milliseconds, fetch = self._mock_exchange(raw)
+        latest = {
+            "timestamp": 900000,
+            "open": 4,
+            "high": 5,
+            "low": 3,
+            "close": 4.5,
+            "volume": 2
+        }
+
+        with load_markets, markets, milliseconds, fetch:
+            recovered = market_data.get_candles_since(
+                "BTC/USDT", since=300000, timeframe="5m"
+            )
+
+        with patch("paper_bot.get_candles_since", return_value=recovered):
+            with self.assertRaisesRegex(RuntimeError, "no existe un cierre persistido"):
+                paper_bot.get_pending_candles("BTC/USDT", "300000", latest)
+
+            pending = paper_bot.get_pending_candles(
+                "BTC/USDT",
+                "300000",
+                latest,
+                last_processed_close=3.5
+            )
+
+        self.assertEqual([candle["timestamp"] for candle in pending], [600000, 900000])
+        self.assertEqual(pending[0]["close"], 3.5)
 
     def test_rejects_empty_ohlc_response(self):
         load_markets, markets, milliseconds, fetch = self._mock_exchange([])
