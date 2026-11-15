@@ -1,0 +1,26 @@
+name: Read-only Paper Report Efficiency
+
+on:
+  push:
+    branches:
+      - paper-report-readonly-efficiency
+  pull_request:
+    branches:
+      - paper-report-readonly-connection
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-report-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test read-only report connection
+        run: python -m unittest -v test_paper_report_dry_run.py
