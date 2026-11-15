@@ -3,7 +3,7 @@ on:
   push:
     branches: [paper-strategy-backtest-integration]
   pull_request:
-    branches: [paper-trading-v1-2]
+    branches: [paper-historical-backtest-foundation]
     paths:
       - "strategy_backtest_adapter.py"
       - "test_strategy_backtest_adapter.py"
