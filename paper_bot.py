@@ -36,43 +36,77 @@ def process_position_exit(state, symbol, candle):
 
 
 def get_pending_candles(symbol, last_processed, latest_closed):
-    """Devuelve velas cerradas posteriores al cursor, sin duplicados."""
+    """Recupera velas cerradas y reconstruye intervalos sin operaciones."""
     if last_processed is None:
         return [latest_closed]
 
+    last_timestamp = int(last_processed)
+    latest_timestamp = int(latest_closed["timestamp"])
+    interval_ms = 300000
+
+    if last_timestamp % interval_ms != 0 or latest_timestamp % interval_ms != 0:
+        raise RuntimeError(
+            f"Cursor o vela fuera de alineación de 5 minutos para {symbol}."
+        )
+
+    # Incluimos la última vela procesada como semilla para conocer el último
+    # cierre negociado. Kraken omite intervalos en los que no hubo trades.
     recovered = get_candles_since(
         symbol,
-        int(last_processed) + 1,
+        last_timestamp,
         timeframe="5m"
     )
-    latest_timestamp = int(latest_closed["timestamp"])
 
     unique = {
         int(candle["timestamp"]): candle
         for candle in recovered
-        if int(last_processed) < int(candle["timestamp"]) <= latest_timestamp
+        if last_timestamp <= int(candle["timestamp"]) <= latest_timestamp
     }
-    pending = [unique[key] for key in sorted(unique)]
 
-    # La última vela presente no basta: verificamos también que no falte
-    # ninguna vela de 5 minutos desde el cursor. Ante un hueco, detenemos
-    # la recuperación para no saltarnos un posible stop/objetivo.
-    expected_timestamp = int(last_processed) + 300000
-    for candle in pending:
-        candle_timestamp = int(candle["timestamp"])
-        if candle_timestamp != expected_timestamp:
-            raise RuntimeError(
-                f"Recuperación incompleta para {symbol}: "
-                f"falta la vela esperada en {expected_timestamp}."
-            )
-        expected_timestamp += 300000
+    seed = unique.get(last_timestamp)
+    if seed is None:
+        raise RuntimeError(
+            f"Recuperación incompleta para {symbol}: "
+            "no se pudo recuperar la vela usada como cursor."
+        )
 
-    # Nunca avanzamos el cursor si la descarga no llegó hasta la última
-    # vela cerrada que el feed actual ya conoce.
-    if not pending or int(pending[-1]["timestamp"]) != latest_timestamp:
+    # La última vela cerrada conocida por el feed debe existir realmente;
+    # no la sustituimos por una vela sintética si falta en la descarga.
+    if latest_timestamp not in unique:
         raise RuntimeError(
             f"Recuperación incompleta para {symbol}: "
             "no se recibió la última vela cerrada."
+        )
+
+    pending = []
+    previous_close = float(seed["close"])
+    expected_timestamp = last_timestamp + interval_ms
+
+    while expected_timestamp <= latest_timestamp:
+        candle = unique.get(expected_timestamp)
+
+        if candle is None:
+            # Sin operaciones no hay rango negociado: mantenemos el último
+            # precio conocido y volumen cero para poder evaluar el tiempo
+            # transcurrido sin inventar movimiento de mercado.
+            candle = {
+                "timestamp": expected_timestamp,
+                "open": previous_close,
+                "high": previous_close,
+                "low": previous_close,
+                "close": previous_close,
+                "volume": 0.0
+            }
+        else:
+            previous_close = float(candle["close"])
+
+        pending.append(candle)
+        expected_timestamp += interval_ms
+
+    if not pending or int(pending[-1]["timestamp"]) != latest_timestamp:
+        raise RuntimeError(
+            f"Recuperación incompleta para {symbol}: "
+            "no se pudo reconstruir hasta la última vela cerrada."
         )
 
     return pending
