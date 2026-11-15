@@ -8,7 +8,7 @@ from backtest_engine import run_long_backtest
 from historical_segment_backtest import generate_segment_signals
 
 
-def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70):
+def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70, minimum_conditions=4):
     """Train period is indicator warm-up only; all simulated trades are in the tail.
 
     Indicators are calculated causally over each full segment, but signal
@@ -17,6 +17,8 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
     """
     if not 0.5 <= float(train_fraction) < 0.9:
         raise ValueError("train_fraction debe estar entre 0.5 y menos de 0.9")
+    if minimum_conditions not in (4, 5):
+        raise ValueError("minimum_conditions debe ser 4 o 5")
 
     rows = []
     all_trades = []
@@ -30,7 +32,8 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
             raise ValueError("El segmento no deja velas suficientes para test")
 
         signals = generate_segment_signals(
-            five, fifteen, start_index=split_index
+            five, fifteen, start_index=split_index,
+            minimum_conditions=minimum_conditions,
         )
         for signal in signals:
             signal_condition_counts[int(signal["conditions_met"])] += 1
@@ -114,6 +117,7 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
         "segment_count": len(rows),
         "segments_with_trades": sum(row["trade_count"] > 0 for row in rows),
         "train_fraction": float(train_fraction),
+        "minimum_conditions": minimum_conditions,
         "trade_count": trade_count,
         "wins": wins,
         "losses": len(losers),
