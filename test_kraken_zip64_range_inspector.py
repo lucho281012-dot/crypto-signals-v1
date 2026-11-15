@@ -81,8 +81,8 @@ class Zip64RangeInspectorTests(unittest.TestCase):
             return raw[starts[index] + start:starts[index] + end + 1]
         parts = [Part(PART_NAMES[i], sizes[i]) for i in range(5)]
         reader = RangeArchive(parts, fetch)
-        self.assertEqual(reader.read_at(1, 7), b"bcdefghi")
-        self.assertEqual(reader.bytes_read, 7)
+        self.assertEqual(reader.read_at(1, 8), b"bcdefghi")
+        self.assertEqual(reader.bytes_read, 8)
 
     def test_rejects_directory_above_safety_cap(self):
         archive = bytearray(make_zip64_archive(self.TARGETS))
