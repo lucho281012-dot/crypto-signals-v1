@@ -9,6 +9,7 @@ on:
       - "market_data.py"
       - "test_paper_gap_recovery.py"
       - "test_market_data_recovery.py"
+      - "test_run_bot_recovery.py"
       - "requirements.txt"
       - ".github/workflows/paper-gap-recovery-tests.yml"
   workflow_dispatch:
@@ -37,4 +38,4 @@ jobs:
 
       - name: Run recovery tests
         run: |
-          pytest -q test_paper_gap_recovery.py test_market_data_recovery.py
+          pytest -q test_paper_gap_recovery.py test_market_data_recovery.py test_run_bot_recovery.py
