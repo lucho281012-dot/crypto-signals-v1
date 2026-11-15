@@ -1,0 +1,47 @@
+name: Kraken Selective CSV Extraction
+on:
+  push:
+    branches: [paper-kraken-selective-csv-extractor]
+    paths:
+      - "kraken_archive_range_probe.py"
+      - "kraken_zip64_range_inspector.py"
+      - "kraken_ohlcvt.py"
+      - "kraken_selective_csv_extractor.py"
+      - "test_kraken_selective_csv_extractor.py"
+      - ".github/workflows/kraken-selective-csv-extraction.yml"
+  pull_request:
+    branches: [paper-kraken-zip64-range-inspector]
+    paths:
+      - "kraken_archive_range_probe.py"
+      - "kraken_zip64_range_inspector.py"
+      - "kraken_ohlcvt.py"
+      - "kraken_selective_csv_extractor.py"
+      - "test_kraken_selective_csv_extractor.py"
+      - ".github/workflows/kraken-selective-csv-extraction.yml"
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test selective member extraction
+        run: python -m unittest -v test_kraken_selective_csv_extractor.py
+      - name: Test ZIP64 metadata parser
+        run: python -m unittest -v test_kraken_zip64_range_inspector.py
+      - name: Test Kraken OHLCVT importer
+        run: python -m unittest -v test_kraken_ohlcvt.py
+  live-selective-extraction:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Extract selected Kraken CSV members and validate OHLCVT
+        run: python kraken_selective_csv_extractor.py
