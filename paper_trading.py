@@ -21,6 +21,7 @@ def load_state():
         state.setdefault("positions", {})
         state.setdefault("history", [])
         state.setdefault("last_processed_candle", {})
+        state.setdefault("last_processed_close", {})
         return state
 
     return {
@@ -28,7 +29,8 @@ def load_state():
         "cash_usdt": INITIAL_BALANCE,
         "positions": {},
         "history": [],
-        "last_processed_candle": {}
+        "last_processed_candle": {},
+        "last_processed_close": {}
     }
 
 
