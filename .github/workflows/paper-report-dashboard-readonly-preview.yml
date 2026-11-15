@@ -1,0 +1,26 @@
+name: Paper Report Dashboard Read-only Preview
+
+on:
+  push:
+    branches:
+      - paper-report-dashboard-readonly-preview
+  pull_request:
+    branches:
+      - paper-trading-v1-2
+      - paper-report-readonly-efficiency
+      - paper-report-dashboard-readonly-preview
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard-preview-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run read-only dashboard preview tests
+        run: python -m unittest -v test_paper_report_dashboard_preview.py
