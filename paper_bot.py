@@ -54,6 +54,19 @@ def get_pending_candles(symbol, last_processed, latest_closed):
     }
     pending = [unique[key] for key in sorted(unique)]
 
+    # La última vela presente no basta: verificamos también que no falte
+    # ninguna vela de 5 minutos desde el cursor. Ante un hueco, detenemos
+    # la recuperación para no saltarnos un posible stop/objetivo.
+    expected_timestamp = int(last_processed) + 300000
+    for candle in pending:
+        candle_timestamp = int(candle["timestamp"])
+        if candle_timestamp != expected_timestamp:
+            raise RuntimeError(
+                f"Recuperación incompleta para {symbol}: "
+                f"falta la vela esperada en {expected_timestamp}."
+            )
+        expected_timestamp += 300000
+
     # Nunca avanzamos el cursor si la descarga no llegó hasta la última
     # vela cerrada que el feed actual ya conoce.
     if not pending or int(pending[-1]["timestamp"]) != latest_timestamp:
