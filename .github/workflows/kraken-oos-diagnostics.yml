@@ -24,3 +24,15 @@ jobs:
           python-version: "3.12"
       - run: pip install "pandas>=2.2.0"
       - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py
+  live-diagnostics:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pandas>=2.2.0"
+      - name: Extract verified Kraken history and print OOS trade diagnostics
+        run: python kraken_selective_csv_extractor.py
