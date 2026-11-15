@@ -251,6 +251,7 @@ def _parse_central_directory(data: bytes, expected_entries: int) -> dict[str, li
                 "local_header_offset": local_offset,
                 "disk_start": disk_start,
                 "encrypted": bool(flags & 0x0001),
+                "flags": flags,
             })
         entries_seen += 1
         cursor = end
