@@ -102,5 +102,36 @@ class PaperGapRecoveryTests(unittest.TestCase):
         close.assert_called_once_with(state, "BTC/USDT", 110, "take_profit")
 
 
+
+    def test_recovers_full_720_candle_window_without_skipping_or_reordering(self):
+        seed_timestamp = 0
+        interval_ms = 300000
+        recovered = [
+            {
+                "timestamp": index * interval_ms,
+                "open": 100.0,
+                "high": 100.0,
+                "low": 100.0,
+                "close": 100.0,
+                "volume": 1.0
+            }
+            for index in range(720)
+        ]
+        latest = recovered[-1]
+
+        with patch("paper_bot.get_candles_since", return_value=recovered):
+            pending = paper_bot.get_pending_candles(
+                "BTC/USDT", str(seed_timestamp), latest
+            )
+
+        self.assertEqual(len(pending), 719)
+        self.assertEqual(pending[0]["timestamp"], interval_ms)
+        self.assertEqual(pending[-1]["timestamp"], 719 * interval_ms)
+        self.assertEqual(
+            [candle["timestamp"] for candle in pending],
+            sorted(candle["timestamp"] for candle in pending)
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
