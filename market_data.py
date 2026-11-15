@@ -10,6 +10,9 @@ SYMBOLS = [
     "SOL/USDT"
 ]
 
+# Kraken's Spot OHLC endpoint exposes at most its 720 most recent entries.
+KRAKEN_OHLC_MAX_CANDLES = 720
+
 
 def _format_candles(raw_candles):
     return [
@@ -45,28 +48,53 @@ def get_candles(symbol, timeframe="5m", limit=250):
 
 
 def get_candles_since(symbol, since, timeframe="5m"):
-    """Recupera velas desde un timestamp (ms), usando paginación CCXT."""
+    """Recupera velas desde un timestamp (ms), rechazando rangos truncados."""
     exchange.load_markets()
 
     if symbol not in exchange.markets:
         raise ValueError(f"Par no disponible en Kraken: {symbol}")
 
+    since = int(since)
+    timeframe_ms = int(exchange.parse_timeframe(timeframe) * 1000)
+    if timeframe_ms <= 0:
+        raise ValueError(f"Timeframe no válido: {timeframe}")
+
+    # Alinea el primer timestamp solicitado al siguiente límite de vela.
+    expected_first_timestamp = (
+        (since + timeframe_ms - 1) // timeframe_ms
+    ) * timeframe_ms
+
     candles = exchange.fetch_ohlcv(
         symbol,
         timeframe=timeframe,
-        since=int(since),
-        limit=720,
+        since=since,
+        limit=KRAKEN_OHLC_MAX_CANDLES,
         params={"paginate": True}
     )
 
-    # Kraken/CCXT puede incluir la vela del límite inicial.
-    # Filtramos estrictamente después del último timestamp procesado.
+    # Kraken/CCXT puede incluir la vela del límite inicial. Eliminamos
+    # duplicados y cualquier vela anterior al timestamp solicitado.
     unique = {
-        candle[0]: candle
+        int(candle[0]): candle
         for candle in candles
-        if candle[0] >= int(since)
+        if int(candle[0]) >= since
     }
-    return _format_candles([unique[key] for key in sorted(unique)])
+    ordered = [unique[key] for key in sorted(unique)]
+
+    # Kraken solo expone sus 720 velas OHLC más recientes. Si la primera
+    # devuelta es posterior a la primera solicitada, no fingimos que el
+    # historial está completo: el llamador debe conservar su cursor.
+    if not ordered or int(ordered[0][0]) != expected_first_timestamp:
+        raise RuntimeError(
+            f"Kraken no devolvió la primera vela solicitada para {symbol}. "
+            f"Esperada: {expected_first_timestamp}; "
+            f"recibida: {int(ordered[0][0]) if ordered else 'ninguna'}. "
+            "El rango puede exceder el histórico OHLC disponible "
+            f"(máximo {KRAKEN_OHLC_MAX_CANDLES} velas) o contener "
+            "un intervalo sin datos."
+        )
+
+    return _format_candles(ordered)
 
 
 def get_all_market_data():
