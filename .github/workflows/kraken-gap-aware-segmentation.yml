@@ -1,0 +1,30 @@
+name: Kraken Gap-Aware Segmentation
+on:
+  push:
+    branches: [paper-kraken-gap-aware-segmentation]
+    paths:
+      - "kraken_gap_aware_segments.py"
+      - "test_kraken_gap_aware_segments.py"
+      - ".github/workflows/kraken-gap-aware-segmentation.yml"
+  pull_request:
+    branches: [paper-kraken-selective-csv-extractor]
+    paths:
+      - "kraken_gap_aware_segments.py"
+      - "test_kraken_gap_aware_segments.py"
+      - ".github/workflows/kraken-gap-aware-segmentation.yml"
+permissions:
+  contents: read
+jobs:
+  gap-aware-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test gap-aware paired segmentation
+        run: python -m unittest -v test_kraken_gap_aware_segments.py
+      - name: Install strategy engine dependency
+        run: python -m pip install pandas
+      - name: Test closed-candle adapter
+        run: python -m unittest -v test_strategy_backtest_adapter.py
