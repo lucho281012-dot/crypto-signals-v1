@@ -1,4 +1,5 @@
 import unittest
+from contextlib import ExitStack
 from unittest.mock import patch
 
 import paper_bot
@@ -29,33 +30,38 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
         }
 
     def _run_with_mocks(self, state, pending=None, recovery_error=None):
-        patches = [
-            patch("paper_bot.load_state", return_value=state),
-            patch("paper_bot.get_all_market_data", return_value=self.market_data),
-            patch("paper_bot.save_state") as save_state,
-            patch("paper_bot.get_status", return_value={"ok": True}),
-            patch("builtins.print"),
-            patch("paper_bot.process_position_exit") as process_exit,
-            patch("paper_bot.open_signal_position") as open_signal
-        ]
-
-        if recovery_error is not None:
-            recovery = patch(
-                "paper_bot.get_pending_candles",
-                side_effect=recovery_error
+        with ExitStack() as stack:
+            stack.enter_context(patch("paper_bot.load_state", return_value=state))
+            stack.enter_context(
+                patch("paper_bot.get_all_market_data", return_value=self.market_data)
             )
-        else:
-            recovery = patch(
-                "paper_bot.get_pending_candles",
-                return_value=pending
+            save_state = stack.enter_context(patch("paper_bot.save_state"))
+            stack.enter_context(
+                patch("paper_bot.get_status", return_value={"ok": True})
+            )
+            stack.enter_context(patch("builtins.print"))
+            process_exit = stack.enter_context(
+                patch("paper_bot.process_position_exit")
+            )
+            open_signal = stack.enter_context(
+                patch("paper_bot.open_signal_position")
             )
 
-        with patches[0], patches[1], patches[2] as save_state_mock, \\
-             patches[3], patches[4], patches[5] as exit_mock, \\
-             patches[6] as open_mock, recovery:
+            if recovery_error is not None:
+                recovery = patch(
+                    "paper_bot.get_pending_candles",
+                    side_effect=recovery_error
+                )
+            else:
+                recovery = patch(
+                    "paper_bot.get_pending_candles",
+                    return_value=pending
+                )
+            stack.enter_context(recovery)
+
             paper_bot.run_bot()
 
-        return save_state_mock, exit_mock, open_mock
+        return save_state, process_exit, open_signal
 
     def test_gap_processes_each_recovered_candle_but_opens_only_once_at_latest(self):
         state = {
