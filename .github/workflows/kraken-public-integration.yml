@@ -1,0 +1,35 @@
+name: Kraken Public Integration
+
+on:
+  push:
+    branches:
+      - fix/paper-gap-recovery
+    paths:
+      - "test_kraken_public_integration.py"
+      - "market_data.py"
+      - "requirements.txt"
+      - ".github/workflows/kraken-public-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-read-only-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/paper-gap-recovery
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check recent candles and historical limit using public Kraken data
+        run: python test_kraken_public_integration.py
