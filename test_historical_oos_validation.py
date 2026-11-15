@@ -74,6 +74,34 @@ class OutOfSampleTests(unittest.TestCase):
         self.assertIsNone(result["mean_trade_net_pnl"])
         self.assertIsNone(result["median_holding_minutes"])
 
+
+    def test_five_of_five_counterfactual_filters_entries_before_execution(self):
+        five = rising(900, 300_000)
+        fifteen = rising(300, 900_000)
+        split = int(len(five) * 0.70)
+        signals = generate_segment_signals(
+            five, fifteen, start_index=split, minimum_conditions=5
+        )
+        self.assertTrue(signals)
+        self.assertTrue(all(s["conditions_met"] == 5 for s in signals))
+
+        segments = [{"candles_5m": five, "candles_15m": fifteen}]
+        result = backtest_out_of_sample(segments, minimum_conditions=5)
+        self.assertEqual(result["minimum_conditions"], 5)
+        self.assertEqual(set(result["signal_condition_counts"]), {5})
+        self.assertEqual(
+            set(result["trade_results_by_condition_count"]).issubset({"5"}),
+            True,
+        )
+        self.assertEqual(
+            sum(result["signal_condition_counts"].values()),
+            result["segment_results"][0]["test_signal_count"],
+        )
+
+    def test_rejects_invalid_minimum_conditions(self):
+        with self.assertRaises(ValueError):
+            backtest_out_of_sample([], minimum_conditions=3)
+
     def test_rejects_invalid_split(self):
         with self.assertRaises(ValueError):
             backtest_out_of_sample([], train_fraction=0.95)
