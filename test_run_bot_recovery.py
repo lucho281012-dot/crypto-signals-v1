@@ -484,5 +484,52 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
         self.assertEqual(state["last_processed_close"], {})
 
 
+    def test_legacy_state_load_preserves_financial_data_and_adds_close_map(self):
+        import json
+        import tempfile
+        import paper_trading
+
+        legacy_state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 87.654,
+            "positions": {
+                "BTC/USDT": {
+                    "entry_price": 50000.0,
+                    "stop_price": 49000.0,
+                    "quantity": 0.001,
+                    "entry_fee": 0.05,
+                    "custom_position_field": "preserve-me"
+                }
+            },
+            "history": [
+                {
+                    "symbol": "ETH/USDT",
+                    "net_pnl": 1.234,
+                    "custom_trade_field": "preserve-me-too"
+                }
+            ],
+            "last_processed_candle": {"BTC/USDT": "1230000"},
+            "custom_state_field": {"keep": True}
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = paper_trading.Path(directory) / "paper_state.json"
+            with state_path.open("w", encoding="utf-8") as file:
+                json.dump(legacy_state, file)
+
+            with patch.object(paper_trading, "STATE_FILE", state_path):
+                loaded = paper_trading.load_state()
+
+            self.assertEqual(loaded["last_processed_close"], {})
+            for key, value in legacy_state.items():
+                self.assertEqual(loaded[key], value)
+
+            # La migración en memoria no reescribe ni altera el archivo
+            # hasta que el flujo normal guarde un estado actualizado.
+            with state_path.open("r", encoding="utf-8") as file:
+                still_on_disk = json.load(file)
+            self.assertEqual(still_on_disk, legacy_state)
+
+
 if __name__ == "__main__":
     unittest.main()
