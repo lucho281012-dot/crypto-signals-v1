@@ -39,7 +39,9 @@ class LegacyPaperReportAdapterTests(unittest.TestCase):
         self.assertEqual(report["realized_pnl_usdt"], "9.79")
         self.assertEqual(report["unrealized_pnl_usdt"], "19.8")
         self.assertEqual(report["fees_paid_usdt"], "0.41")
-        self.assertEqual(report["trade_count"], 1)
+        self.assertEqual(report["trade_count"], 3)
+        self.assertEqual(report["buy_count"], 2)
+        self.assertEqual(report["sell_count"], 1)
         self.assertEqual(report["open_position_count"], 1)
         self.assertEqual(report["positions"]["BTC"]["market_value_usdt"], "220")
 
