@@ -63,6 +63,9 @@ class SelectiveCSVExtractorTests(unittest.TestCase):
     def test_rejects_crc_mismatch_and_removes_partial_output(self):
         archive, member, _ = make_member()
         member["crc32"] = "00000000"
+        archive = bytearray(archive)
+        archive[14:18] = (0).to_bytes(4, "little")
+        archive = bytes(archive)
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "bad.csv"
             with self.assertRaisesRegex(SelectiveExtractionError, "CRC32 mismatch"):
