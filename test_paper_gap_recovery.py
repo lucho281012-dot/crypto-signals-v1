@@ -8,6 +8,7 @@ class PaperGapRecoveryTests(unittest.TestCase):
 
     def test_pending_candles_are_sorted_deduplicated_and_closed_only(self):
         recovered = [
+            {"timestamp": 300000, "open": 3, "high": 4, "low": 2, "close": 3, "volume": 1},
             {"timestamp": 900000, "open": 9, "high": 10, "low": 8, "close": 9, "volume": 1},
             {"timestamp": 600000, "open": 6, "high": 7, "low": 5, "close": 6, "volume": 1},
             {"timestamp": 600000, "open": 6, "high": 7, "low": 5, "close": 6, "volume": 1},
@@ -22,33 +23,47 @@ class PaperGapRecoveryTests(unittest.TestCase):
 
     def test_pending_candles_reject_incomplete_recovery(self):
         latest = {"timestamp": 900000, "open": 9, "high": 10, "low": 8, "close": 9, "volume": 1}
+        recovered = [
+            {"timestamp": 300000, "open": 3, "high": 4, "low": 2, "close": 3, "volume": 1},
+            {"timestamp": 600000, "open": 6, "high": 7, "low": 5, "close": 6, "volume": 1},
+        ]
 
-        with patch("paper_bot.get_candles_since", return_value=[
-            {"timestamp": 600000, "open": 6, "high": 7, "low": 5, "close": 6, "volume": 1}
-        ]):
-            with self.assertRaises(RuntimeError):
+        with patch("paper_bot.get_candles_since", return_value=recovered):
+            with self.assertRaisesRegex(RuntimeError, "última vela cerrada"):
                 paper_bot.get_pending_candles("BTC/USDT", "300000", latest)
 
-    def test_pending_candles_reject_internal_gap(self):
+    def test_no_trade_interval_is_reconstructed_with_zero_volume(self):
+        recovered = [
+            {"timestamp": 300000, "open": 3, "high": 4, "low": 2, "close": 3.5, "volume": 7},
+            {"timestamp": 900000, "open": 4, "high": 5, "low": 3, "close": 4.5, "volume": 2},
+        ]
+        latest = {"timestamp": 900000, "open": 4, "high": 5, "low": 3, "close": 4.5, "volume": 2}
+
+        with patch("paper_bot.get_candles_since", return_value=recovered):
+            pending = paper_bot.get_pending_candles("BTC/USDT", "300000", latest)
+
+        self.assertEqual([c["timestamp"] for c in pending], [600000, 900000])
+        self.assertEqual(
+            pending[0],
+            {
+                "timestamp": 600000,
+                "open": 3.5,
+                "high": 3.5,
+                "low": 3.5,
+                "close": 3.5,
+                "volume": 0.0
+            }
+        )
+
+    def test_pending_candles_reject_missing_cursor_seed(self):
         recovered = [
             {"timestamp": 600000, "open": 6, "high": 7, "low": 5, "close": 6, "volume": 1},
-            {"timestamp": 1200000, "open": 12, "high": 13, "low": 11, "close": 12, "volume": 1},
-        ]
-        latest = {"timestamp": 1200000, "open": 12, "high": 13, "low": 11, "close": 12, "volume": 1}
-
-        with patch("paper_bot.get_candles_since", return_value=recovered):
-            with self.assertRaisesRegex(RuntimeError, "falta la vela esperada"):
-                paper_bot.get_pending_candles("BTC/USDT", "300000", latest)
-
-    def test_pending_candles_reject_missing_first_expected_candle(self):
-        recovered = [
             {"timestamp": 900000, "open": 9, "high": 10, "low": 8, "close": 9, "volume": 1},
-            {"timestamp": 1200000, "open": 12, "high": 13, "low": 11, "close": 12, "volume": 1},
         ]
-        latest = {"timestamp": 1200000, "open": 12, "high": 13, "low": 11, "close": 12, "volume": 1}
+        latest = {"timestamp": 900000, "open": 9, "high": 10, "low": 8, "close": 9, "volume": 1}
 
         with patch("paper_bot.get_candles_since", return_value=recovered):
-            with self.assertRaisesRegex(RuntimeError, "falta la vela esperada"):
+            with self.assertRaisesRegex(RuntimeError, "vela usada como cursor"):
                 paper_bot.get_pending_candles("BTC/USDT", "300000", latest)
 
     def test_first_run_uses_only_latest_closed_candle(self):
