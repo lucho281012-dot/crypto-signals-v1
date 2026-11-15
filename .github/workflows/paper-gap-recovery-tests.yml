@@ -1,0 +1,39 @@
+name: Paper Gap Recovery Tests
+
+on:
+  push:
+    branches:
+      - fix/paper-gap-recovery
+    paths:
+      - "paper_bot.py"
+      - "market_data.py"
+      - "test_paper_gap_recovery.py"
+      - "requirements.txt"
+      - ".github/workflows/paper-gap-recovery-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix/paper-gap-recovery
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run recovery tests
+        run: |
+          pytest -q test_paper_gap_recovery.py
