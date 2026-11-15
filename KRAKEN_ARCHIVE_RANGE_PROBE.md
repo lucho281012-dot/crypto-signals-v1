@@ -17,7 +17,7 @@ This utility checks whether all five official Kraken archive parts support HTTP 
 The live command requires network access to Kraken. A network failure is a probe error, not evidence that the archive is unavailable.
 
 ## GitHub Actions
-The workflow runs mocked unit tests on push and pull request. The live network probe is manual (workflow_dispatch) so ordinary CI does not depend on Kraken availability. In Actions, select Kraken Archive Range Probe and choose Run workflow for the metadata-only check.
+The workflow runs mocked unit tests on push and pull request. The live metadata-only network probe runs on pushes to the isolated `paper-kraken-archive-range-probe` branch, and can also be started manually with `workflow_dispatch` when the workflow is available from the repository's default branch. The probe is bounded to HEAD plus a one-byte Range request for each of the five official parts; it never reads or saves response bodies.
 
 ## Interpretation and limits
 If all five parts return valid byte ranges and known totals, range retrieval may be technically feasible. This does not prove that the ZIP central directory can be fetched and interpreted safely or that selected CSV members can be extracted remotely. A follow-up must validate ZIP64/end-of-central-directory metadata and member byte ranges before reading member data.
