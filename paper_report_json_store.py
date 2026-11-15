@@ -18,10 +18,16 @@ from paper_report_history import (
 
 def _history_path(path):
     result = Path(path)
-    if result.name == "paper_state.json":
-        raise ValueError("refusing to use the paper trading state file")
     if not result.name:
         raise ValueError("history path must name a file")
+    try:
+        resolved = result.resolve(strict=False)
+    except (OSError, RuntimeError) as exc:
+        raise ValueError("history path cannot be resolved safely") from exc
+    if result.name.casefold() == "paper_state.json" or resolved.name.casefold() == "paper_state.json":
+        raise ValueError("refusing to use the paper trading state file")
+    if result.is_symlink():
+        raise ValueError("history path must not be a symbolic link")
     return result
 
 
