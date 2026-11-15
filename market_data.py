@@ -98,15 +98,15 @@ def get_candles_since(symbol, since, timeframe="5m"):
     }
     ordered = [unique[key] for key in sorted(unique)]
 
-    if not ordered or int(ordered[0][0]) != expected_first_timestamp:
+    if not ordered:
         raise RuntimeError(
-            f"Kraken no devolvió la primera vela solicitada para {symbol}. "
-            f"Esperada: {expected_first_timestamp}; "
-            f"recibida: {int(ordered[0][0]) if ordered else 'ninguna'}. "
-            "El rango puede contener un intervalo sin datos o haber "
-            "quedado fuera del histórico disponible. Se conserva el cursor."
+            f"Kraken no devolvió velas para {symbol} desde {since}. "
+            "Se conserva el cursor."
         )
 
+    # Kraken puede omitir intervalos sin operaciones, incluso la vela usada
+    # como cursor. La validación de la semilla se hace en paper_bot.py, donde
+    # también se conoce si existe last_processed_close persistido.
     return _format_candles(ordered)
 
 
