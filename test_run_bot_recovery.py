@@ -471,5 +471,18 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
                     self.assertEqual(fetch_recovery.call_count, 2)
 
 
+    def test_new_paper_state_initializes_persisted_close_map(self):
+        import tempfile
+        import paper_trading
+
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = paper_trading.Path(directory) / "paper_state.json"
+            with patch.object(paper_trading, "STATE_FILE", state_path):
+                state = paper_trading.load_state()
+
+        self.assertEqual(state["last_processed_candle"], {})
+        self.assertEqual(state["last_processed_close"], {})
+
+
 if __name__ == "__main__":
     unittest.main()
