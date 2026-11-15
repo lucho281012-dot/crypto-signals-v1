@@ -1,0 +1,22 @@
+name: Kraken Public Market Verification
+on:
+  push:
+    branches: [paper-kraken-market-identity-audit]
+  pull_request:
+    branches: [paper-kraken-historical-data-validation]
+    paths:
+      - "kraken_market_identity.py"
+      - ".github/workflows/kraken-public-market-verification.yml"
+jobs:
+  public-market-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CCXT
+        run: python -m pip install "ccxt>=4.4.0"
+      - name: Resolve configured spot markets using public Kraken metadata
+        run: python kraken_market_identity.py
