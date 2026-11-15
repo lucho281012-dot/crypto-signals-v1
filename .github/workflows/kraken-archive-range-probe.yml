@@ -1,0 +1,30 @@
+name: Kraken Archive Range Probe
+on:
+  push:
+    branches: [paper-kraken-archive-range-probe]
+    paths: ["kraken_archive_range_probe.py", "test_kraken_archive_range_probe.py", ".github/workflows/kraken-archive-range-probe.yml"]
+  pull_request:
+    branches: [paper-kraken-archive-integrity]
+    paths: ["kraken_archive_range_probe.py", "test_kraken_archive_range_probe.py", ".github/workflows/kraken-archive-range-probe.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Test range probe without network
+        run: python -m unittest -v test_kraken_archive_range_probe.py
+  live-metadata-probe:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Probe official archive HTTP range support
+        run: python kraken_archive_range_probe.py
