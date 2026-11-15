@@ -280,5 +280,99 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
         self.assertEqual(save_cursor.call_count, 2)
         self.assertEqual(save_trade.call_count, 1)
 
+
+    def test_restart_reloads_persisted_cursor_and_closes_recovered_position_once(self):
+        import tempfile
+        import paper_trading
+
+        initial_state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 89.99,
+            "positions": {
+                "BTC/USDT": {
+                    "entry_price": 10.0,
+                    "stop_price": 8.0,
+                    "target_price": 12.0,
+                    "quantity": 1.0,
+                    "entry_fee": 0.01,
+                    "risk_budget": 1.0,
+                    "opened_at": "2026-11-15T00:00:00+00:00"
+                }
+            },
+            "history": [],
+            "last_processed_candle": {"BTC/USDT": "300000"}
+        }
+
+        first_latest = {
+            "timestamp": 600000, "open": 10.0, "high": 11.0,
+            "low": 9.0, "close": 10.5, "volume": 1.0
+        }
+        second_latest = {
+            "timestamp": 900000, "open": 8.5, "high": 9.0,
+            "low": 7.0, "close": 8.0, "volume": 1.0
+        }
+        first_data = {"BTC/USDT": {
+            "price": 10.5,
+            "candles_5m": [
+                {"timestamp": 300000, "open": 10, "high": 11, "low": 9, "close": 10, "volume": 1},
+                first_latest,
+                {"timestamp": 900000, "open": 10.5, "high": 11, "low": 10, "close": 10.5, "volume": 1}
+            ],
+            "candles_15m": self.market_data["BTC/USDT"]["candles_15m"]
+        }}
+        second_data = {"BTC/USDT": {
+            "price": 8.0,
+            "candles_5m": [
+                {"timestamp": 600000, "open": 10, "high": 11, "low": 9, "close": 10.5, "volume": 1},
+                second_latest,
+                {"timestamp": 1200000, "open": 8, "high": 9, "low": 7, "close": 8, "volume": 1}
+            ],
+            "candles_15m": self.market_data["BTC/USDT"]["candles_15m"]
+        }}
+
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = paper_trading.Path(directory) / "paper_state.json"
+            with patch.object(paper_trading, "STATE_FILE", state_path):
+                paper_trading.save_state(initial_state)
+
+                with patch("paper_bot.get_all_market_data", side_effect=[first_data, second_data, second_data]), \\
+                     patch("paper_bot.get_pending_candles", side_effect=[
+                         [first_latest], [second_latest]
+                     ]) as recover, \\
+                     patch("paper_bot.open_signal_position") as open_signal, \\
+                     patch("builtins.print"):
+                    # Proceso 1: avanza el cursor y persiste el estado.
+                    paper_bot.run_bot()
+                    after_first_run = paper_trading.load_state()
+                    self.assertEqual(
+                        after_first_run["last_processed_candle"]["BTC/USDT"],
+                        "600000"
+                    )
+                    self.assertIn("BTC/USDT", after_first_run["positions"])
+                    self.assertEqual(after_first_run["history"], [])
+
+                    # Proceso 2: carga el archivo persistido y recupera la vela
+                    # posterior; el stop se ejecuta una sola vez.
+                    paper_bot.run_bot()
+                    after_restart = paper_trading.load_state()
+                    self.assertNotIn("BTC/USDT", after_restart["positions"])
+                    self.assertEqual(len(after_restart["history"]), 1)
+                    self.assertEqual(after_restart["history"][0]["reason"], "stop_loss")
+                    self.assertAlmostEqual(after_restart["cash_usdt"], 97.982)
+                    self.assertEqual(
+                        after_restart["last_processed_candle"]["BTC/USDT"],
+                        "900000"
+                    )
+
+                    # Proceso 3: el cursor evita repetir el cierre.
+                    paper_bot.run_bot()
+                    final_state = paper_trading.load_state()
+
+                self.assertEqual(len(final_state["history"]), 1)
+                self.assertAlmostEqual(final_state["cash_usdt"], 97.982)
+                self.assertEqual(recover.call_count, 2)
+                open_signal.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
