@@ -40,7 +40,7 @@ class KrakenOHLCVTTests(unittest.TestCase):
         try:
             with self.assertRaisesRegex(ValueError, "intervalos sin operaciones"):
                 load_kraken_ohlcvt_csv(path, 5)
-            result = load_kraken_ohlcv(path, 5, require_contiguous=False)
+            result = load_kraken_ohlcvt_csv(path, 5, require_contiguous=False)
             self.assertEqual(result["metadata"]["missing_intervals"], 1)
             self.assertEqual(len(result["candles"]), 2)
             self.assertFalse(result["metadata"]["gaps_filled"])
