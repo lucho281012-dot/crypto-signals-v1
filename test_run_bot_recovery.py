@@ -335,12 +335,12 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             with patch.object(paper_trading, "STATE_FILE", state_path):
                 paper_trading.save_state(initial_state)
 
-                with patch("paper_bot.get_all_market_data", side_effect=[first_data, second_data, second_data]), \\
-                     patch("paper_bot.get_pending_candles", side_effect=[
-                         [first_latest], [second_latest]
-                     ]) as recover, \\
-                     patch("paper_bot.open_signal_position") as open_signal, \\
-                     patch("builtins.print"):
+                with (
+                    patch("paper_bot.get_all_market_data", side_effect=[first_data, second_data, second_data]),
+                    patch("paper_bot.get_pending_candles", side_effect=[[first_latest], [second_latest]]) as recover,
+                    patch("paper_bot.open_signal_position") as open_signal,
+                    patch("builtins.print"),
+                ):
                     # Proceso 1: avanza el cursor y persiste el estado.
                     paper_bot.run_bot()
                     after_first_run = paper_trading.load_state()
