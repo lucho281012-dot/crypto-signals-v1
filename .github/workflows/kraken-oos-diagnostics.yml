@@ -1,0 +1,26 @@
+name: Kraken OOS Trade Diagnostics
+on:
+  push:
+    branches: [paper-kraken-oos-diagnostics]
+    paths:
+      - "historical_oos_validation.py"
+      - "test_historical_oos_validation.py"
+      - ".github/workflows/kraken-oos-diagnostics.yml"
+  pull_request:
+    branches: [paper-kraken-out-of-sample-validation]
+    paths:
+      - "historical_oos_validation.py"
+      - "test_historical_oos_validation.py"
+      - ".github/workflows/kraken-oos-diagnostics.yml"
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pandas>=2.2.0"
+      - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py
