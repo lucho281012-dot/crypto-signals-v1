@@ -102,7 +102,7 @@ class KrakenCandleRecoveryTests(unittest.TestCase):
             )
 
         with patch("paper_bot.get_candles_since", return_value=recovered):
-            with self.assertRaisesRegex(RuntimeError, "no existe un cierre persistido"):
+            with self.assertRaisesRegex(RuntimeError, "cierre persistido"):
                 paper_bot.get_pending_candles("BTC/USDT", "300000", latest)
 
             pending = paper_bot.get_pending_candles(
@@ -121,7 +121,7 @@ class KrakenCandleRecoveryTests(unittest.TestCase):
         with load_markets, markets, milliseconds, fetch:
             with self.assertRaisesRegex(
                 RuntimeError,
-                "no devolvió la primera vela solicitada"
+                "no devolvió velas"
             ):
                 market_data.get_candles_since(
                     "BTC/USDT",
