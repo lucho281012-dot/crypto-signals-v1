@@ -132,7 +132,7 @@ def build_legacy_paper_report(state, marks):
         "unrealized_pnl_usdt": str(unrealized_total),
         "fees_paid_usdt": str(fees),
         "cash_weight_pct": str(cash / equity * Decimal("100")) if equity > 0 else "0",
-        "trade_count": len(history) * 2 + len(report_positions),
+        "trade_count": len(history),
         "buy_count": len(history) + len(report_positions),
         "sell_count": len(history),
         "open_position_count": len(report_positions),
