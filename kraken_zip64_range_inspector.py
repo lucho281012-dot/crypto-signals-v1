@@ -266,8 +266,6 @@ def _parse_central_directory(data: bytes, expected_entries: int) -> dict[str, li
 def inspect_with_reader(read_at: Callable[[int, int], bytes], total_size: int,
                         bytes_read: int = 0, requests: int = 0) -> dict[str, Any]:
     directory = _parse_zip64_directory(read_at, total_size)
-    central = RangeArchive.read_bounded  # documents the same bounded-read policy
-    del central
     cd_data = bytearray()
     cursor = directory["central_directory_offset"]
     remaining = directory["central_directory_size"]
