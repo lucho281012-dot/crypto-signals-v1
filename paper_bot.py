@@ -35,7 +35,7 @@ def process_position_exit(state, symbol, candle):
     return None
 
 
-def get_pending_candles(symbol, last_processed, latest_closed):
+def get_pending_candles(symbol, last_processed, latest_closed, last_processed_close=None):
     """Recupera velas cerradas y reconstruye intervalos sin operaciones."""
     if last_processed is None:
         return [latest_closed]
@@ -64,10 +64,11 @@ def get_pending_candles(symbol, last_processed, latest_closed):
     }
 
     seed = unique.get(last_timestamp)
-    if seed is None:
+    if seed is None and last_processed_close is None:
         raise RuntimeError(
             f"Recuperación incompleta para {symbol}: "
-            "no se pudo recuperar la vela usada como cursor."
+            "no se pudo recuperar la vela usada como cursor ni existe "
+            "un cierre persistido para reconstruirla."
         )
 
     # La última vela cerrada conocida por el feed debe existir realmente;
@@ -79,7 +80,7 @@ def get_pending_candles(symbol, last_processed, latest_closed):
         )
 
     pending = []
-    previous_close = float(seed["close"])
+    previous_close = float(seed["close"] if seed is not None else last_processed_close)
     expected_timestamp = last_timestamp + interval_ms
 
     while expected_timestamp <= latest_timestamp:
@@ -143,6 +144,7 @@ def open_signal_position(state, symbol, data):
 def run_bot():
     state = load_state()
     state.setdefault("last_processed_candle", {})
+    state.setdefault("last_processed_close", {})
     state.setdefault("positions", {})
 
     market_data = get_all_market_data()
@@ -164,7 +166,8 @@ def run_bot():
             pending = get_pending_candles(
                 symbol,
                 last_processed,
-                latest_closed
+                latest_closed,
+                state["last_processed_close"].get(symbol)
             )
         except Exception as error:
             # No movemos el cursor ante datos incompletos o fallos de API.
@@ -177,6 +180,7 @@ def run_bot():
         for candle in pending[:-1]:
             process_position_exit(state, symbol, candle)
             state["last_processed_candle"][symbol] = str(candle["timestamp"])
+            state["last_processed_close"][symbol] = float(candle["close"])
             save_state(state)
 
         # La última vela recuperada es la más reciente ya cerrada.
@@ -190,6 +194,7 @@ def run_bot():
             open_signal_position(state, symbol, data)
 
         state["last_processed_candle"][symbol] = latest_id
+        state["last_processed_close"][symbol] = float(pending[-1]["close"])
         save_state(state)
 
     print("Estado del simulador:")
