@@ -1,0 +1,24 @@
+name: Strategy Backtest Integration
+on:
+  push:
+    branches: [paper-strategy-backtest-integration]
+  pull_request:
+    branches: [paper-trading-v1-2]
+    paths:
+      - "strategy_backtest_adapter.py"
+      - "test_strategy_backtest_adapter.py"
+      - ".github/workflows/strategy-backtest-integration.yml"
+      - "signal_engine.py"
+      - "backtest_engine.py"
+jobs:
+  adapter-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install signal engine dependency
+        run: python -m pip install pandas
+      - name: Test closed-candle strategy adapter
+        run: python -m unittest -v test_strategy_backtest_adapter.py
