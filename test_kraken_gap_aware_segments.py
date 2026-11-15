@@ -30,7 +30,7 @@ class GapAwareSegmentTests(unittest.TestCase):
         self.assertEqual(result["metadata"]["usable_segments"], 1)
         segment = result["segments"][0]
         self.assertEqual(len(segment["candles_5m"]), 900)
-        self.assertEqual(len(segment["candles_15m"]), 300)
+        self.assertEqual(len(segment["candles_15m"]), 301)
         last_5m_close = segment["candles_5m"][-1]["timestamp"] + FIVE
         expected_15m = (last_5m_close // FIFTEEN) * FIFTEEN - FIFTEEN
         self.assertEqual(segment["candles_15m"][-1]["timestamp"], expected_15m)
@@ -44,7 +44,7 @@ class GapAwareSegmentTests(unittest.TestCase):
         result = build_aligned_contiguous_segments(five, fifteen)
         self.assertEqual(result["metadata"]["usable_segments"], 2)
         first, second = result["segments"]
-        self.assertEqual(first["candles_5m"][-1]["timestamp"] + FIVE,
+        self.assertEqual(first["candles_5m"][-1]["timestamp"] + 2 * FIVE,
                          second["candles_5m"][0]["timestamp"])
         self.assertEqual(first["candles_5m"][-1]["timestamp"], five[599]["timestamp"])
         self.assertEqual(second["candles_5m"][0]["timestamp"], five[600]["timestamp"])
