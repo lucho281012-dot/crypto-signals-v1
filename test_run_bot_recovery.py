@@ -207,10 +207,6 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
         self.assertEqual(save_cursor.call_count, 2)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
     def test_recovered_take_profit_updates_cash_history_and_cursor_once(self):
         import paper_trading
 
@@ -283,3 +279,6 @@ if __name__ == "__main__":
         self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "900000")
         self.assertEqual(save_cursor.call_count, 2)
         self.assertEqual(save_trade.call_count, 1)
+
+if __name__ == "__main__":
+    unittest.main()
