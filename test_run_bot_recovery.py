@@ -209,3 +209,77 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_recovered_take_profit_updates_cash_history_and_cursor_once(self):
+        import paper_trading
+
+        state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 89.99,
+            "positions": {
+                "BTC/USDT": {
+                    "entry_price": 10.0,
+                    "stop_price": 8.0,
+                    "target_price": 12.0,
+                    "quantity": 1.0,
+                    "entry_fee": 0.01,
+                    "risk_budget": 1.0,
+                    "opened_at": "2026-11-15T00:00:00+00:00"
+                }
+            },
+            "history": [],
+            "last_processed_candle": {"BTC/USDT": "300000"}
+        }
+        target_candle = {
+            "timestamp": 600000,
+            "open": 10.0,
+            "high": 13.0,
+            "low": 9.0,
+            "close": 12.5,
+            "volume": 1.0
+        }
+        pending = [target_candle, self.latest]
+
+        with ExitStack() as stack:
+            stack.enter_context(patch("paper_bot.load_state", return_value=state))
+            stack.enter_context(
+                patch("paper_bot.get_all_market_data", return_value=self.market_data)
+            )
+            save_cursor = stack.enter_context(patch("paper_bot.save_state"))
+            save_trade = stack.enter_context(patch("paper_trading.save_state"))
+            stack.enter_context(
+                patch("paper_bot.get_pending_candles", return_value=pending)
+            )
+            open_signal = stack.enter_context(
+                patch("paper_bot.open_signal_position")
+            )
+            stack.enter_context(patch("paper_bot.get_status", return_value={"ok": True}))
+            stack.enter_context(patch("builtins.print"))
+
+            paper_bot.run_bot()
+
+            self.assertNotIn("BTC/USDT", state["positions"])
+            self.assertEqual(len(state["history"]), 1)
+            trade = state["history"][0]
+            self.assertEqual(trade["reason"], "take_profit")
+            self.assertEqual(trade["exit_price"], 12.0)
+            self.assertAlmostEqual(trade["exit_fee"], 0.012)
+            self.assertAlmostEqual(trade["net_pnl"], 1.978)
+            self.assertAlmostEqual(state["cash_usdt"], 101.978)
+            self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "900000")
+            # Solo se evalúa una posible entrada en la vela más reciente,
+            # nunca en la vela histórica que alcanzó el objetivo.
+            open_signal.assert_called_once_with(
+                state, "BTC/USDT", self.market_data["BTC/USDT"]
+            )
+            save_trade.assert_called_once()
+
+            # Repetir el ciclo con el cursor actualizado no duplica el cierre.
+            paper_bot.run_bot()
+
+        self.assertEqual(len(state["history"]), 1)
+        self.assertAlmostEqual(state["cash_usdt"], 101.978)
+        self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "900000")
+        self.assertEqual(save_cursor.call_count, 2)
+        self.assertEqual(save_trade.call_count, 1)
