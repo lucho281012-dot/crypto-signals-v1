@@ -103,6 +103,30 @@ class PaperGapRecoveryTests(unittest.TestCase):
 
 
 
+    def test_persisted_close_recovers_when_synthetic_cursor_is_absent_from_kraken(self):
+        recovered = [
+            {"timestamp": 900000, "open": 4, "high": 5, "low": 3, "close": 4.5, "volume": 2}
+        ]
+        latest = {
+            "timestamp": 900000,
+            "open": 4,
+            "high": 5,
+            "low": 3,
+            "close": 4.5,
+            "volume": 2
+        }
+
+        with patch("paper_bot.get_candles_since", return_value=recovered):
+            pending = paper_bot.get_pending_candles(
+                "BTC/USDT",
+                "600000",
+                latest,
+                last_processed_close=3.5
+            )
+
+        self.assertEqual(pending, [latest])
+
+
     def test_recovers_full_720_candle_window_without_skipping_or_reordering(self):
         seed_timestamp = 0
         interval_ms = 300000
