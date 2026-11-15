@@ -374,5 +374,102 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
                 open_signal.assert_not_called()
 
 
+    def test_restart_after_synthetic_cursor_uses_persisted_close_when_kraken_omits_seed(self):
+        import tempfile
+        import paper_trading
+
+        initial_state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 100.0,
+            "positions": {},
+            "history": [],
+            "last_processed_candle": {"BTC/USDT": "300000"},
+            "last_processed_close": {"BTC/USDT": 3.5}
+        }
+        seed = {
+            "timestamp": 300000, "open": 3, "high": 4,
+            "low": 2, "close": 3.5, "volume": 7
+        }
+        first_latest = {
+            "timestamp": 900000, "open": 4, "high": 5,
+            "low": 3, "close": 4.5, "volume": 2
+        }
+        second_latest = {
+            "timestamp": 1200000, "open": 4.5, "high": 5.5,
+            "low": 4, "close": 5.0, "volume": 3
+        }
+        current = {
+            "timestamp": 1500000, "open": 5, "high": 5.5,
+            "low": 4.5, "close": 5.1, "volume": 1
+        }
+        first_data = {"BTC/USDT": {
+            "price": 4.5,
+            "candles_5m": [seed, first_latest, second_latest],
+            "candles_15m": self.market_data["BTC/USDT"]["candles_15m"]
+        }}
+        second_data = {"BTC/USDT": {
+            "price": 5.0,
+            "candles_5m": [first_latest, second_latest, current],
+            "candles_15m": self.market_data["BTC/USDT"]["candles_15m"]
+        }}
+
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = paper_trading.Path(directory) / "paper_state.json"
+            with patch.object(paper_trading, "STATE_FILE", state_path):
+                paper_trading.save_state(initial_state)
+
+                original_save = paper_trading.save_state
+                save_calls = {"count": 0}
+
+                def persist_then_interrupt(state):
+                    original_save(state)
+                    save_calls["count"] += 1
+                    if save_calls["count"] == 1:
+                        raise RuntimeError("simulated process interruption")
+
+                with (
+                    patch("paper_bot.get_all_market_data", side_effect=[first_data, second_data]),
+                    patch(
+                        "paper_bot.get_candles_since",
+                        side_effect=[
+                            [seed, first_latest, second_latest],
+                            [first_latest, second_latest]
+                        ]
+                    ) as fetch_recovery,
+                    patch("paper_bot.save_state", side_effect=persist_then_interrupt),
+                    patch("paper_bot.open_signal_position"),
+                    patch("builtins.print"),
+                ):
+                    # The first cycle persists synthetic candle 600000,
+                    # then simulates a crash before the remaining candles.
+                    with self.assertRaisesRegex(RuntimeError, "interruption"):
+                        paper_bot.run_bot()
+
+                    after_interrupt = paper_trading.load_state()
+                    self.assertEqual(
+                        after_interrupt["last_processed_candle"]["BTC/USDT"],
+                        "600000"
+                    )
+                    self.assertEqual(
+                        after_interrupt["last_processed_close"]["BTC/USDT"],
+                        3.5
+                    )
+
+                    # On restart Kraken omits 600000. The persisted close
+                    # must seed recovery so the bot can continue to 1200000.
+                    paper_bot.run_bot()
+
+                    after_restart = paper_trading.load_state()
+                    self.assertEqual(
+                        after_restart["last_processed_candle"]["BTC/USDT"],
+                        "1200000"
+                    )
+                    self.assertEqual(
+                        after_restart["last_processed_close"]["BTC/USDT"],
+                        5.0
+                    )
+                    self.assertEqual(fetch_recovery.call_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
