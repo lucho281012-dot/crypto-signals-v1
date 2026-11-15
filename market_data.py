@@ -11,6 +11,20 @@ SYMBOLS = [
 ]
 
 
+def _format_candles(raw_candles):
+    return [
+        {
+            "timestamp": candle[0],
+            "open": candle[1],
+            "high": candle[2],
+            "low": candle[3],
+            "close": candle[4],
+            "volume": candle[5]
+        }
+        for candle in raw_candles
+    ]
+
+
 def get_market_price(symbol):
     exchange.load_markets()
 
@@ -27,18 +41,32 @@ def get_candles(symbol, timeframe="5m", limit=250):
         timeframe=timeframe,
         limit=limit
     )
+    return _format_candles(candles)
 
-    return [
-        {
-            "timestamp": candle[0],
-            "open": candle[1],
-            "high": candle[2],
-            "low": candle[3],
-            "close": candle[4],
-            "volume": candle[5]
-        }
+
+def get_candles_since(symbol, since, timeframe="5m"):
+    """Recupera velas desde un timestamp (ms), usando paginación CCXT."""
+    exchange.load_markets()
+
+    if symbol not in exchange.markets:
+        raise ValueError(f"Par no disponible en Kraken: {symbol}")
+
+    candles = exchange.fetch_ohlcv(
+        symbol,
+        timeframe=timeframe,
+        since=int(since),
+        limit=720,
+        params={"paginate": True}
+    )
+
+    # Kraken/CCXT puede incluir la vela del límite inicial.
+    # Filtramos estrictamente después del último timestamp procesado.
+    unique = {
+        candle[0]: candle
         for candle in candles
-    ]
+        if candle[0] >= int(since)
+    }
+    return _format_candles([unique[key] for key in sorted(unique)])
 
 
 def get_all_market_data():
