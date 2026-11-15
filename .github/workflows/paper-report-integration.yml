@@ -23,4 +23,4 @@ jobs:
         with:
           python-version: "3.11"
       - name: Run end-to-end report integration tests
-        run: python -m unittest -v test_paper_report_integration.py test_paper_report_json_store.py test_paper_report_json_store_security.py
+        run: python -m unittest -v test_paper_report_integration.py test_paper_report_json_store.py test_paper_report_json_store_security.py test_paper_report_json_store_concurrency.py
