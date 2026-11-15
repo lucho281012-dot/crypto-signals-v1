@@ -1,5 +1,8 @@
-"""Chronological out-of-sample validation on untouched trailing data."""
+"""Chronological out-of-sample validation and trade diagnostics."""
 from __future__ import annotations
+
+from collections import Counter
+from statistics import mean, median
 
 from backtest_engine import run_long_backtest
 from historical_segment_backtest import generate_segment_signals
@@ -51,18 +54,29 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
         all_trades.extend(result["trades"])
 
     trade_count = len(all_trades)
-    wins = sum(t["net_pnl"] > 0 for t in all_trades)
-    gross_profit = sum(t["net_pnl"] for t in all_trades if t["net_pnl"] > 0)
-    gross_loss = -sum(t["net_pnl"] for t in all_trades if t["net_pnl"] < 0)
+    winners = [t for t in all_trades if t["net_pnl"] > 0]
+    losers = [t for t in all_trades if t["net_pnl"] < 0]
+    breakeven_count = trade_count - len(winners) - len(losers)
+    wins = len(winners)
+    gross_profit = sum(t["net_pnl"] for t in winners)
+    gross_loss = -sum(t["net_pnl"] for t in losers)
     initial_total = initial_balance * len(rows)
     net_total = sum(row["net_pnl"] for row in rows)
+
+    holding_minutes = [
+        max(0.0, (int(t["closed_at"]) - int(t["opened_at"])) / 60_000)
+        for t in all_trades
+    ]
+    exit_reasons = Counter(t.get("reason", "unknown") for t in all_trades)
+
     return {
         "segment_count": len(rows),
         "segments_with_trades": sum(row["trade_count"] > 0 for row in rows),
         "train_fraction": float(train_fraction),
         "trade_count": trade_count,
         "wins": wins,
-        "losses": trade_count - wins,
+        "losses": len(losers),
+        "breakeven_count": breakeven_count,
         "win_rate_percent": wins / trade_count * 100 if trade_count else 0.0,
         "profit_factor": gross_profit / gross_loss if gross_loss else (
             None if not gross_profit else float("inf")
@@ -76,6 +90,12 @@ def backtest_out_of_sample(segments, initial_balance=100.0, train_fraction=0.70)
         "worst_segment_max_drawdown_percent": max(
             (row["max_drawdown_percent"] for row in rows), default=0.0
         ),
+        "exit_reason_counts": dict(sorted(exit_reasons.items())),
+        "mean_winning_trade_net_pnl": mean(t["net_pnl"] for t in winners) if winners else None,
+        "mean_losing_trade_net_pnl": mean(t["net_pnl"] for t in losers) if losers else None,
+        "mean_trade_net_pnl": mean(t["net_pnl"] for t in all_trades) if all_trades else None,
+        "mean_holding_minutes": mean(holding_minutes) if holding_minutes else None,
+        "median_holding_minutes": median(holding_minutes) if holding_minutes else None,
         "segment_results": rows,
         "portfolio_compounded_across_gaps": False,
         "test_only_trades": True,

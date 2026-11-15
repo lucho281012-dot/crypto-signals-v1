@@ -43,6 +43,22 @@ class OutOfSampleTests(unittest.TestCase):
             result["segment_results"][0]["test_first_5m_timestamp"],
             segments[0]["candles_5m"][630]["timestamp"],
         )
+        self.assertEqual(
+            sum(result["exit_reason_counts"].values()), result["trade_count"]
+        )
+        self.assertEqual(
+            result["wins"] + result["losses"] + result["breakeven_count"],
+            result["trade_count"],
+        )
+        self.assertIsNotNone(result["mean_trade_net_pnl"])
+        self.assertIsNotNone(result["median_holding_minutes"])
+
+    def test_empty_trade_diagnostics_are_explicit(self):
+        result = backtest_out_of_sample([])
+        self.assertEqual(result["trade_count"], 0)
+        self.assertEqual(result["exit_reason_counts"], {})
+        self.assertIsNone(result["mean_trade_net_pnl"])
+        self.assertIsNone(result["median_holding_minutes"])
 
     def test_rejects_invalid_split(self):
         with self.assertRaises(ValueError):
