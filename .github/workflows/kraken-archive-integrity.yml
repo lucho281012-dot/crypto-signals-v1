@@ -1,0 +1,20 @@
+name: Kraken Archive Part Integrity
+on:
+  push:
+    branches: [paper-kraken-archive-integrity]
+  pull_request:
+    branches: [paper-kraken-archive-inspector]
+    paths:
+      - "kraken_archive_parts.py"
+      - "test_kraken_archive_parts.py"
+      - ".github/workflows/kraken-archive-integrity.yml"
+jobs:
+  archive-integrity-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test checksum validation and safe reassembly
+        run: python -m unittest -v test_kraken_archive_parts.py
