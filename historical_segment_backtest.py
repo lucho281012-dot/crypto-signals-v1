@@ -10,7 +10,7 @@ FIVE_MS = 5 * 60 * 1000
 FIFTEEN_MS = 15 * 60 * 1000
 
 
-def generate_segment_signals(candles_5m, candles_15m):
+def generate_segment_signals(candles_5m, candles_15m, start_index=199):
     """Generate causal BUY signals; first eligible point has 200 bars in both TFs."""
     if len(candles_5m) < 200 or len(candles_15m) < 200:
         return []
@@ -24,7 +24,8 @@ def generate_segment_signals(candles_5m, candles_15m):
     signals = []
 
     # Last 5m candle cannot produce a tradable signal: no next open exists.
-    for i in range(199, len(candles_5m) - 1):
+    first_index = max(199, int(start_index))
+    for i in range(first_index, len(candles_5m) - 1):
         candle5 = candles_5m[i]
         close_time = int(candle5["timestamp"]) + FIVE_MS
         selected_15m_timestamp = (

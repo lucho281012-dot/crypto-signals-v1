@@ -19,6 +19,7 @@ from kraken_archive_range_probe import PART_NAMES, probe_part, _request
 from kraken_ohlcvt import load_kraken_ohlcvt_csv
 from kraken_gap_aware_segments import build_aligned_contiguous_segments
 from historical_segment_backtest import backtest_segments
+from historical_oos_validation import backtest_out_of_sample
 from kraken_zip64_range_inspector import (
     ArchiveInspectionError, Part, RangeArchive, inspect_with_reader,
 )
@@ -260,6 +261,7 @@ def run_live_validation() -> dict[str, Any]:
     validated = []
     segment_reports = []
     backtest_reports = []
+    out_of_sample_reports = []
     with tempfile.TemporaryDirectory(prefix="kraken-selective-") as temp_dir:
         root = Path(temp_dir)
         extracted_paths = {}
@@ -318,7 +320,12 @@ def run_live_validation() -> dict[str, Any]:
                    if key not in ("segments", "trades")},
                 "segment_results": backtest["segments"],
             })
-            del backtest, paired, five, fifteen
+            oos = backtest_out_of_sample(paired["segments"], initial_balance=100.0, train_fraction=0.70)
+            out_of_sample_reports.append({
+                "symbol": market,
+                **oos,
+            })
+            del backtest, oos, paired, five, fifteen
     return {        "status": "all_six_csvs_extracted_and_validated",
         "archive_size_bytes": archive.total_size,
         "metadata_bytes_read": metadata_bytes_read,
@@ -332,6 +339,7 @@ def run_live_validation() -> dict[str, Any]:
         "members": validated,
         "gap_aware_segments": segment_reports,
         "historical_backtest": backtest_reports,
+        "out_of_sample_backtest": out_of_sample_reports,
         "gaps_filled": False,
         "note": "CSV payloads were temporary to this CI job; no market data was committed to Git.",
     }
