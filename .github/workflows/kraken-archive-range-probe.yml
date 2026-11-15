@@ -19,7 +19,8 @@ jobs:
       - name: Test range probe without network
         run: python -m unittest -v test_kraken_archive_range_probe.py
   live-metadata-probe:
-    if: github.event_name == 'workflow_dispatch'
+    # Run the bounded metadata-only network check on pushes to this isolated branch.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
