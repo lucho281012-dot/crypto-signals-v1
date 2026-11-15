@@ -10,8 +10,10 @@ FIVE_MS = 5 * 60 * 1000
 FIFTEEN_MS = 15 * 60 * 1000
 
 
-def generate_segment_signals(candles_5m, candles_15m, start_index=199):
-    """Generate causal BUY signals; first eligible point has 200 bars in both TFs."""
+def generate_segment_signals(candles_5m, candles_15m, start_index=199, minimum_conditions=4):
+    """Generate causal BUY signals with a configurable 4/5-condition floor."""
+    if minimum_conditions not in (4, 5):
+        raise ValueError("minimum_conditions debe ser 4 o 5")
     if len(candles_5m) < 200 or len(candles_15m) < 200:
         return []
 
@@ -48,7 +50,7 @@ def generate_segment_signals(candles_5m, candles_15m, start_index=199):
             current["close"] > current["ema20"],
         )
         score = sum(conditions)
-        if score >= 4 and trend["ema20"] > trend["ema200"]:
+        if score >= minimum_conditions and trend["ema20"] > trend["ema200"]:
             atr = float(current["atr"])
             if atr > 0:
                 signals.append({
