@@ -1,0 +1,40 @@
+name: Kraken Historical Segment Backtest
+on:
+  push:
+    branches: [paper-kraken-historical-backtest]
+    paths:
+      - "historical_segment_backtest.py"
+      - "test_historical_segment_backtest.py"
+      - "kraken_selective_csv_extractor.py"
+      - ".github/workflows/kraken-historical-segment-backtest.yml"
+  pull_request:
+    branches: [paper-kraken-live-segment-validation]
+    paths:
+      - "historical_segment_backtest.py"
+      - "test_historical_segment_backtest.py"
+      - "kraken_selective_csv_extractor.py"
+      - ".github/workflows/kraken-historical-segment-backtest.yml"
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pandas>=2.2.0"
+      - run: python -m unittest -v test_historical_segment_backtest.py
+  live-backtest:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pandas>=2.2.0"
+      - name: Extract Kraken data and run isolated chronological segment backtests
+        run: python kraken_selective_csv_extractor.py
