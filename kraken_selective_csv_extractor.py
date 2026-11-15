@@ -18,6 +18,7 @@ from typing import Any
 from kraken_archive_range_probe import PART_NAMES, probe_part, _request
 from kraken_ohlcvt import load_kraken_ohlcvt_csv
 from kraken_gap_aware_segments import build_aligned_contiguous_segments
+from historical_segment_backtest import backtest_segments
 from kraken_zip64_range_inspector import (
     ArchiveInspectionError, Part, RangeArchive, inspect_with_reader,
 )
@@ -258,6 +259,7 @@ def run_live_validation() -> dict[str, Any]:
     central_offset = int(report["zip64"]["central_directory_offset"])
     validated = []
     segment_reports = []
+    backtest_reports = []
     with tempfile.TemporaryDirectory(prefix="kraken-selective-") as temp_dir:
         root = Path(temp_dir)
         extracted_paths = {}
@@ -309,7 +311,14 @@ def run_live_validation() -> dict[str, Any]:
                     "last_5m_utc": datetime.fromtimestamp(meta["last_5m_timestamp"] / 1000, tz=timezone.utc).isoformat(),
                 })
             segment_reports.append({"symbol": market, "metadata": paired["metadata"], "segments": segment_rows})
-            del paired, five, fifteen
+            backtest = backtest_segments(paired["segments"], initial_balance=100.0)
+            backtest_reports.append({
+                "symbol": market,
+                **{key: value for key, value in backtest.items()
+                   if key not in ("segments", "trades")},
+                "segment_results": backtest["segments"],
+            })
+            del backtest, paired, five, fifteen
     return {        "status": "all_six_csvs_extracted_and_validated",
         "archive_size_bytes": archive.total_size,
         "metadata_bytes_read": metadata_bytes_read,
@@ -322,6 +331,7 @@ def run_live_validation() -> dict[str, Any]:
         ),
         "members": validated,
         "gap_aware_segments": segment_reports,
+        "historical_backtest": backtest_reports,
         "gaps_filled": False,
         "note": "CSV payloads were temporary to this CI job; no market data was committed to Git.",
     }
