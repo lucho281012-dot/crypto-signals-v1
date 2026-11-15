@@ -93,7 +93,7 @@ class ReadOnlyPaperReportTests(unittest.TestCase):
                     state=None,
                     market_data={},
                 )
-            self.assertEqual(report["equity_usdt"], "100")
+            self.assertEqual(report["equity_usdt"], "100.0")
             self.assertFalse(missing_state.parent.exists())
 
     def test_state_reader_reads_file_without_changing_it(self):
