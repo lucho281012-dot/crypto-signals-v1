@@ -1,0 +1,20 @@
+name: Kraken Archive Inspection
+on:
+  push:
+    branches: [paper-kraken-archive-inspector]
+  pull_request:
+    branches: [paper-kraken-market-identity-audit]
+    paths:
+      - "kraken_archive_inspector.py"
+      - "test_kraken_archive_inspector.py"
+      - ".github/workflows/kraken-archive-inspection.yml"
+jobs:
+  archive-inspector-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test metadata-only archive inspection
+        run: python -m unittest -v test_kraken_archive_inspector.py
