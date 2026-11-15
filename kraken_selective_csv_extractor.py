@@ -244,6 +244,8 @@ def _connect_archive():
 def run_live_validation() -> dict[str, Any]:
     archive = _connect_archive()
     report = inspect_with_reader(archive.read_at, archive.total_size)
+    metadata_bytes_read = archive.bytes_read
+    metadata_range_requests = archive.requests
     if not report["all_six_unique"]:
         raise SelectiveExtractionError(
             "The six target names are not all unique: " + json.dumps({
@@ -290,8 +292,10 @@ def run_live_validation() -> dict[str, Any]:
     return {
         "status": "all_six_csvs_extracted_and_validated",
         "archive_size_bytes": archive.total_size,
-        "metadata_bytes_read": archive.bytes_read,
-        "range_requests": archive.requests,
+        "metadata_bytes_read": metadata_bytes_read,
+        "metadata_range_requests": metadata_range_requests,
+        "range_bytes_read_total": archive.bytes_read,
+        "range_requests_total": archive.requests,
         "member_payload_bytes_downloaded": sum(
             int(item["compressed_bytes"]) for item in
             [row["extraction"] for row in validated]
