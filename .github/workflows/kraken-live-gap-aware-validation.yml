@@ -1,0 +1,39 @@
+name: Kraken Live Gap-Aware Validation
+on:
+  push:
+    branches: [paper-kraken-live-segment-validation]
+    paths:
+      - "kraken_gap_aware_segments.py"
+      - "kraken_selective_csv_extractor.py"
+      - "test_kraken_gap_aware_segments.py"
+      - ".github/workflows/kraken-live-gap-aware-validation.yml"
+  pull_request:
+    branches: [paper-kraken-gap-aware-segmentation]
+    paths:
+      - "kraken_gap_aware_segments.py"
+      - "kraken_selective_csv_extractor.py"
+      - "test_kraken_gap_aware_segments.py"
+      - ".github/workflows/kraken-live-gap-aware-validation.yml"
+permissions:
+  contents: read
+jobs:
+  segmentation-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test gap-aware paired segmentation
+        run: python -m unittest -v test_kraken_gap_aware_segments.py
+  live-validation:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Extract six Kraken CSVs and report usable continuous segments
+        run: python kraken_selective_csv_extractor.py

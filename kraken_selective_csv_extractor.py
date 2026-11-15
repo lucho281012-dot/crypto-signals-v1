@@ -17,6 +17,7 @@ from typing import Any
 
 from kraken_archive_range_probe import PART_NAMES, probe_part, _request
 from kraken_ohlcvt import load_kraken_ohlcvt_csv
+from kraken_gap_aware_segments import build_aligned_contiguous_segments
 from kraken_zip64_range_inspector import (
     ArchiveInspectionError, Part, RangeArchive, inspect_with_reader,
 )
@@ -256,8 +257,10 @@ def run_live_validation() -> dict[str, Any]:
     report["zip64"]["central_directory_offset"] = int(report["zip64"]["central_directory_offset"])
     central_offset = int(report["zip64"]["central_directory_offset"])
     validated = []
+    segment_reports = []
     with tempfile.TemporaryDirectory(prefix="kraken-selective-") as temp_dir:
         root = Path(temp_dir)
+        extracted_paths = {}
         for filename, (symbol, timeframe) in EXPECTED_MEMBERS.items():
             entries = report["target_matches"][filename]
             if len(entries) != 1:
@@ -271,6 +274,7 @@ def run_live_validation() -> dict[str, Any]:
                 )
             extracted = root / filename
             extraction = extract_member(archive.read_at, member, filename, extracted)
+            extracted_paths[filename] = extracted
             loaded = load_kraken_ohlcvt_csv(
                 extracted, timeframe, require_contiguous=False
             )
@@ -289,8 +293,24 @@ def run_live_validation() -> dict[str, Any]:
                 "status": "ohlcvt_validated",
             })
             del loaded
-    return {
-        "status": "all_six_csvs_extracted_and_validated",
+
+        # Process one market at a time to bound memory; all files stay temporary.
+        from datetime import datetime, timezone
+        for market, base_name in (("BTC/USDT", "XBTUSDT"), ("ETH/USDT", "ETHUSDT"), ("SOL/USDT", "SOLUSDT")):
+            five = load_kraken_ohlcvt_csv(extracted_paths[f"{base_name}_5.csv"], 5, require_contiguous=False)
+            fifteen = load_kraken_ohlcvt_csv(extracted_paths[f"{base_name}_15.csv"], 15, require_contiguous=False)
+            paired = build_aligned_contiguous_segments(five["candles"], fifteen["candles"], min_5m_candles=200, min_15m_candles=200)
+            segment_rows = []
+            for segment in paired["segments"]:
+                meta = segment["metadata"]
+                segment_rows.append({
+                    **meta,
+                    "first_5m_utc": datetime.fromtimestamp(meta["first_5m_timestamp"] / 1000, tz=timezone.utc).isoformat(),
+                    "last_5m_utc": datetime.fromtimestamp(meta["last_5m_timestamp"] / 1000, tz=timezone.utc).isoformat(),
+                })
+            segment_reports.append({"symbol": market, "metadata": paired["metadata"], "segments": segment_rows})
+            del paired, five, fifteen
+    return {        "status": "all_six_csvs_extracted_and_validated",
         "archive_size_bytes": archive.total_size,
         "metadata_bytes_read": metadata_bytes_read,
         "metadata_range_requests": metadata_range_requests,
@@ -301,6 +321,7 @@ def run_live_validation() -> dict[str, Any]:
             [row["extraction"] for row in validated]
         ),
         "members": validated,
+        "gap_aware_segments": segment_reports,
         "gaps_filled": False,
         "note": "CSV payloads were temporary to this CI job; no market data was committed to Git.",
     }
