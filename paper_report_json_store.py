@@ -6,6 +6,7 @@ Writes are append-only, use a same-directory temporary file plus os.replace,
 and preserve the previous valid primary file as a .bak file.
 """
 import os
+from contextlib import contextmanager
 from pathlib import Path
 import tempfile
 
@@ -79,12 +80,46 @@ def _atomic_write(path, payload):
         raise
 
 
+@contextmanager
+def _exclusive_history_lock(target):
+    """Serialize readers/writers across processes using a sidecar OS lock."""
+    lock_path = target.with_name(target.name + ".lock")
+    if lock_path.is_symlink():
+        raise ValueError("history lock must not be a symbolic link")
+    flags = os.O_CREAT | os.O_RDWR
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(str(lock_path), flags, 0o600)
+    try:
+        if os.name == "nt":
+            import msvcrt
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"0")
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            msvcrt.locking(descriptor, msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)
+
+
 def load_report_history(path):
     """Load and validate the primary history file; never auto-recover."""
     target = _history_path(path)
-    if not target.exists():
-        raise FileNotFoundError(target)
-    return _decode_history(_read_bytes(target), str(target))
+    with _exclusive_history_lock(target):
+        if not target.exists():
+            raise FileNotFoundError(target)
+        return _decode_history(_read_bytes(target), str(target))
 
 
 def save_report_history(path, history):
@@ -119,18 +154,19 @@ def recover_report_history(path):
     silently runs during load or save.
     """
     target = _history_path(path)
-    backup = target.with_name(target.name + ".bak")
-    if target.exists():
-        primary_bytes = _read_bytes(target)
-        try:
-            _decode_history(primary_bytes, str(target))
-        except ValueError:
-            pass
-        else:
-            raise ValueError("primary history is valid; refusing rollback")
-    if not backup.exists():
-        raise FileNotFoundError(backup)
-    backup_bytes = _read_bytes(backup)
-    history = _decode_history(backup_bytes, str(backup))
-    _atomic_write(target, backup_bytes)
-    return history
+    with _exclusive_history_lock(target):
+        backup = target.with_name(target.name + ".bak")
+        if target.exists():
+            primary_bytes = _read_bytes(target)
+            try:
+                _decode_history(primary_bytes, str(target))
+            except ValueError:
+                pass
+            else:
+                raise ValueError("primary history is valid; refusing rollback")
+        if not backup.exists():
+            raise FileNotFoundError(backup)
+        backup_bytes = _read_bytes(backup)
+        history = _decode_history(backup_bytes, str(backup))
+        _atomic_write(target, backup_bytes)
+        return history
