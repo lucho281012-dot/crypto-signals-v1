@@ -1,15 +1,21 @@
 name: Kraken OOS Trade Diagnostics
 on:
   push:
-    branches: [paper-kraken-oos-diagnostics]
+    branches:
+      - paper-kraken-oos-diagnostics
+      - paper-kraken-oos-signal-attribution
     paths:
       - "historical_oos_validation.py"
+      - "historical_segment_backtest.py"
       - "test_historical_oos_validation.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
   pull_request:
-    branches: [paper-kraken-out-of-sample-validation]
+    branches:
+      - paper-kraken-out-of-sample-validation
+      - paper-kraken-oos-diagnostics
     paths:
       - "historical_oos_validation.py"
+      - "historical_segment_backtest.py"
       - "test_historical_oos_validation.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
 permissions:
