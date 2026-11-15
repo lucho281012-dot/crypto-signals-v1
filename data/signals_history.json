@@ -1846,5 +1846,26 @@
     "status": "SL",
     "result": "SL",
     "last_checked_ts": 1794723300000
+  },
+  {
+    "id": "ETH-USDT-SHORT-1794730500000",
+    "symbol": "ETH/USDT",
+    "side": "SHORT",
+    "timeframe": "5m",
+    "signal_candle_ts": 1794730500000,
+    "start_tracking_ts": 1794730800000,
+    "sent_at": "2026-11-15T08:24:30.955547+00:00",
+    "entry": 1777.95,
+    "stop": 1785.0063996158692,
+    "tp1": 1770.8936003841309,
+    "tp2": 1763.8372007682617,
+    "score": 4,
+    "rsi": 37.12617117935557,
+    "volume_ratio": 0.9033218224938536,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": null
   }
 ]
