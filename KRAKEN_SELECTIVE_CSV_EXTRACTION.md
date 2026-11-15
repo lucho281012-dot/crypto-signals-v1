@@ -20,7 +20,7 @@ Fetch only the six previously located Kraken OHLCVT CSV members using HTTP byte 
 - Caps each compressed member at 64 MiB and each decompressed member at 50 MiB.
 - Uses raw-DEFLATE streaming with bounded output chunks and checks final uncompressed size, stream EOF, absence of trailing compressed bytes, and CRC32.
 - Passes each temporary CSV to the strict Kraken OHLCVT importer using `require_contiguous=False` so real no-trade intervals are reported, never filled.
-- Reports row counts, UTC coverage, gaps, and CSV SHA-256 hashes.
+- Reports row counts, UTC coverage, gaps, and CSV SHA-256 hashes, with ZIP metadata bytes counted separately from compressed member payload bytes.
 - Extracted CSVs exist only in the ephemeral GitHub Actions runner temp directory; no market-data files are committed to Git.
 
 ## Run
