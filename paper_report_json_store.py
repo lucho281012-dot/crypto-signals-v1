@@ -130,22 +130,23 @@ def save_report_history(path, history):
     """
     target = _history_path(path)
     validate_report_history(history)
+    target.parent.mkdir(parents=True, exist_ok=True)
 
-    previous = []
-    previous_bytes = None
-    if target.exists():
-        previous_bytes = _read_bytes(target)
-        previous = _decode_history(previous_bytes, str(target))
-        if len(history) < len(previous) or history[:len(previous)] != previous:
-            raise ValueError("history update must preserve all existing entries")
+    with _exclusive_history_lock(target):
+        previous = []
+        previous_bytes = None
+        if target.exists():
+            previous_bytes = _read_bytes(target)
+            previous = _decode_history(previous_bytes, str(target))
+            if len(history) < len(previous) or history[:len(previous)] != previous:
+                raise ValueError("history update must preserve all existing entries")
 
-    payload = (serialize_report_history(history) + "\n").encode("utf-8")
-    if previous_bytes is not None:
-        backup = target.with_name(target.name + ".bak")
-        _atomic_write(backup, previous_bytes)
-    _atomic_write(target, payload)
-    return len(history)
-
+        payload = (serialize_report_history(history) + "\\n").encode("utf-8")
+        if previous_bytes is not None:
+            backup = target.with_name(target.name + ".bak")
+            _atomic_write(backup, previous_bytes)
+        _atomic_write(target, payload)
+        return len(history)
 
 def recover_report_history(path):
     """Explicitly restore a valid .bak file when the primary is missing/bad.
