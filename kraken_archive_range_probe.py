@@ -8,7 +8,9 @@ BASE_URL = "https://assets.kraken.com/marketing/institutions/"
 TIMEOUT_SECONDS = 20
 
 def _request(url: str, method: str, headers: dict[str, str] | None = None):
-    request = urllib.request.Request(url, method=method, headers=headers or {})
+    request_headers = {"User-Agent": "Mozilla/5.0 (compatible; KrakenArchiveRangeProbe/1.0)"}
+    request_headers.update(headers or {})
+    request = urllib.request.Request(url, method=method, headers=request_headers)
     return urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS)
 
 def probe_part(part_name: str) -> dict[str, Any]:
