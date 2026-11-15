@@ -7,6 +7,9 @@ on:
     paths:
       - "test_kraken_public_integration.py"
       - "market_data.py"
+      - "test_run_bot_recovery.py"
+      - "test_paper_gap_recovery.py"
+      - "test_market_data_recovery.py"
       - "requirements.txt"
       - ".github/workflows/kraken-public-integration.yml"
   workflow_dispatch:
