@@ -1,0 +1,39 @@
+name: Kraken ZIP64 Range Inspection
+on:
+  push:
+    branches: [paper-kraken-zip64-range-inspector]
+    paths:
+      - "kraken_archive_range_probe.py"
+      - "kraken_zip64_range_inspector.py"
+      - "test_kraken_zip64_range_inspector.py"
+      - ".github/workflows/kraken-zip64-range-inspection.yml"
+  pull_request:
+    branches: [paper-kraken-archive-range-probe]
+    paths:
+      - "kraken_archive_range_probe.py"
+      - "kraken_zip64_range_inspector.py"
+      - "test_kraken_zip64_range_inspector.py"
+      - ".github/workflows/kraken-zip64-range-inspection.yml"
+permissions:
+  contents: read
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test ZIP64 parser and split-range reader
+        run: python -m unittest -v test_kraken_zip64_range_inspector.py
+  live-zip64-inspection:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Inspect official Kraken ZIP64 central directory using byte ranges
+        run: python kraken_zip64_range_inspector.py
