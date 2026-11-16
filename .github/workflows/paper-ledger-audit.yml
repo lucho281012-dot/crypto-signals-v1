@@ -1,0 +1,36 @@
+name: Paper Trading Ledger Audit
+
+on:
+  push:
+    branches:
+      - paper-trading-v1-2
+    paths:
+      - "paper_audit.py"
+      - "test_paper_audit.py"
+      - ".github/workflows/paper-ledger-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ledger-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-v1-2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run accounting unit tests
+        run: |
+          python -m unittest -v test_paper_audit
+
+      - name: Audit current paper ledger
+        run: |
+          python paper_audit.py
