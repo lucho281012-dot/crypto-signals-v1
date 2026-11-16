@@ -1,4 +1,5 @@
 name: Kraken OOS Trade Diagnostics
+# Research-only Kraken historical diagnostics, including disjoint 5/5 walk-forward folds.
 on:
   push:
     branches:
