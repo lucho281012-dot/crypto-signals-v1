@@ -61,6 +61,37 @@ class EntryFilterComparisonTests(unittest.TestCase):
             result["baseline_all_5of5"]["net_pnl_sum_of_independent_folds"] / 2,
         )
 
+    def test_aggregate_reports_fold_consistency_without_counting_empty_folds(self):
+        def row(net, trades, ret, drawdown):
+            return {
+                "candidate_signal_count": trades,
+                "trade_count": trades,
+                "wins": 1 if net > 0 else 0,
+                "losses": 1 if net < 0 else 0,
+                "net_pnl": net,
+                "return_percent": ret,
+                "gross_profit": max(net, 0),
+                "gross_loss": max(-net, 0),
+                "fees_paid": 0.0,
+                "max_drawdown_percent": drawdown,
+            }
+
+        folds = [
+            {name: row(1.0, 1, 1.0, 0.0) for name in FILTERS},
+            {name: row(-2.0, 1, -2.0, 2.0) for name in FILTERS},
+            {name: row(0.0, 0, 0.0, 0.0) for name in FILTERS},
+        ]
+        result = aggregate_entry_filter_folds(folds)["baseline_all_5of5"]
+        self.assertEqual(result["folds_with_trades"], 2)
+        self.assertEqual(result["folds_without_trades"], 1)
+        self.assertEqual(result["profitable_folds"], 1)
+        self.assertEqual(result["losing_folds"], 1)
+        self.assertEqual(result["flat_folds_with_trades"], 0)
+        self.assertEqual(result["profitable_fold_rate_percent"], 50.0)
+        self.assertEqual(result["median_active_fold_return_percent"], -0.5)
+        self.assertEqual(result["worst_active_fold_return_percent"], -2.0)
+        self.assertEqual(result["best_active_fold_return_percent"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
