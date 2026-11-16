@@ -1,28 +1,36 @@
 name: Kraken OOS Trade Diagnostics
 # Research-only Kraken historical diagnostics, including disjoint 5/5 walk-forward folds (syntax-checked fix).
 on:
+  workflow_dispatch:
   push:
     branches:
       - paper-kraken-oos-diagnostics
       - paper-kraken-oos-signal-attribution
       - paper-kraken-oos-5of5-counterfactual
       - paper-kraken-5of5-walk-forward
+      - paper-kraken-5of5-trade-excursions
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
       - "kraken_selective_csv_extractor.py"
       - "test_historical_oos_validation.py"
       - "historical_5of5_walk_forward.py"
+      - "historical_trade_excursions.py"
+      - "test_historical_trade_excursions.py"
       - "test_historical_5of5_walk_forward.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
   pull_request:
     branches:
       - paper-kraken-out-of-sample-validation
       - paper-kraken-oos-diagnostics
+      - paper-kraken-5of5-walk-forward
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
       - "test_historical_oos_validation.py"
+      - "historical_5of5_walk_forward.py"
+      - "historical_trade_excursions.py"
+      - "test_historical_trade_excursions.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
 permissions:
   contents: read
@@ -35,9 +43,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "pandas>=2.2.0"
-      - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py test_historical_5of5_walk_forward.py
+      - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py test_historical_5of5_walk_forward.py test_historical_trade_excursions.py
   live-diagnostics:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:

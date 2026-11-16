@@ -5,6 +5,7 @@ from collections import Counter
 
 from backtest_engine import run_long_backtest
 from historical_segment_backtest import generate_segment_signals
+from historical_trade_excursions import diagnose_trade_excursions
 
 # Four consecutive, non-overlapping 12.5% test windows after a 50% warm-up.
 FOLD_START_FRACTIONS = (0.50, 0.625, 0.75, 0.875)
@@ -88,6 +89,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
                 "exit_reason_counts": dict(sorted(
                     Counter(t.get("reason", "unknown") for t in trades).items()
                 )),
+                "excursion_diagnostics": diagnose_trade_excursions(test_candles, trades),
             })
 
     all_trade_count = sum(f["trade_count"] for f in folds)
