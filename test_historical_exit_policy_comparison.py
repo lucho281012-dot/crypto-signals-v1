@@ -57,7 +57,7 @@ class ExitPolicyComparisonTests(unittest.TestCase):
         bars = candles([
             (100, 100.5, 99.5, 100),
             (100, 101.5, 99.5, 101),
-            (101, 101.2, 100.0, 100.5),
+            (101, 101.2, 100.1, 100.5),
         ])
         signals = [{"timestamp": 0, "side": "BUY", "atr": 1}]
         result = _run_policy(bars, signals, "breakeven_1r")
