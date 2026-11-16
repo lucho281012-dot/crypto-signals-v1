@@ -29,6 +29,13 @@ METRIC_KEYS = (
     "rsi", "volume_ratio", "ema_spread_percent", "atr_percent",
 )
 
+# Fixed stress scenarios relative to the existing 0.10% fee / 0.05% slippage.
+COST_SCENARIOS = {
+    "base_cost": (0.001, 0.0005),
+    "double_cost": (0.002, 0.001),
+    "triple_cost": (0.003, 0.0015),
+}
+
 
 def _passes(signal, rules):
     for key in METRIC_KEYS:
@@ -58,8 +65,28 @@ def compare_entry_filters(candles, signals, initial_balance=100.0):
             candles, selected, initial_balance=initial_balance
         )
         trades = result["trades"]
+        cost_stress = {}
+        for scenario, (fee_rate, slippage_rate) in COST_SCENARIOS.items():
+            stressed = run_long_backtest(
+                candles, selected, initial_balance=initial_balance,
+                fee_rate=fee_rate, slippage_rate=slippage_rate,
+            )
+            stressed_trades = stressed["trades"]
+            cost_stress[scenario] = {
+                "trade_count": stressed["trade_count"],
+                "wins": sum(t["net_pnl"] > 0 for t in stressed_trades),
+                "losses": sum(t["net_pnl"] < 0 for t in stressed_trades),
+                "net_pnl": stressed["net_pnl"],
+                "return_percent": stressed["return_percent"],
+                "profit_factor": stressed["profit_factor"],
+                "max_drawdown_percent": stressed["max_drawdown_percent"],
+                "fees_paid": stressed["fees_paid"],
+                "gross_profit": sum(t["net_pnl"] for t in stressed_trades if t["net_pnl"] > 0),
+                "gross_loss": -sum(t["net_pnl"] for t in stressed_trades if t["net_pnl"] < 0),
+            }
         output[name] = {
             "candidate_signal_count": len(selected),
+            "cost_stress": cost_stress,
             "trade_count": result["trade_count"],
             "wins": sum(t["net_pnl"] > 0 for t in trades),
             "losses": sum(t["net_pnl"] < 0 for t in trades),
@@ -89,7 +116,44 @@ def aggregate_entry_filter_folds(fold_results, initial_balance=100.0):
         active_returns = [row["return_percent"] for row in active_rows]
         profitable_folds = sum(row["net_pnl"] > 0 for row in active_rows)
         losing_folds = sum(row["net_pnl"] < 0 for row in active_rows)
+        cost_stress_aggregate = {}
+        for scenario in COST_SCENARIOS:
+            stress_rows = [
+                row["cost_stress"][scenario] for row in rows
+                if "cost_stress" in row and scenario in row["cost_stress"]
+            ]
+            stress_trades = sum(row["trade_count"] for row in stress_rows)
+            stress_wins = sum(row["wins"] for row in stress_rows)
+            stress_gp = sum(row["gross_profit"] for row in stress_rows)
+            stress_gl = sum(row["gross_loss"] for row in stress_rows)
+            stress_net = sum(row["net_pnl"] for row in stress_rows)
+            active_stress = [row for row in stress_rows if row["trade_count"] > 0]
+            profitable_stress = sum(row["net_pnl"] > 0 for row in active_stress)
+            cost_stress_aggregate[scenario] = {
+                "folds": len(stress_rows),
+                "folds_with_trades": len(active_stress),
+                "profitable_folds": profitable_stress,
+                "losing_folds": sum(row["net_pnl"] < 0 for row in active_stress),
+                "profitable_fold_rate_percent": (
+                    profitable_stress / len(active_stress) * 100
+                    if active_stress else 0.0
+                ),
+                "trade_count": stress_trades,
+                "win_rate_percent": stress_wins / stress_trades * 100 if stress_trades else 0.0,
+                "profit_factor": stress_gp / stress_gl if stress_gl else (None if not stress_gp else float("inf")),
+                "net_pnl_sum_of_independent_folds": stress_net,
+                "equal_allocation_return_percent": (
+                    stress_net / (initial_balance * len(stress_rows)) * 100
+                    if stress_rows else 0.0
+                ),
+                "fees_paid": sum(row["fees_paid"] for row in stress_rows),
+                "worst_fold_max_drawdown_percent": max(
+                    (row["max_drawdown_percent"] for row in stress_rows),
+                    default=0.0,
+                ),
+            }
         output[name] = {
+            "cost_stress": cost_stress_aggregate,
             "folds": len(rows),
             "folds_with_trades": len(active_rows),
             "folds_without_trades": len(rows) - len(active_rows),

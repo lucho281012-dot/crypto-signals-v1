@@ -12,6 +12,7 @@ on:
       - paper-kraken-5of5-exit-policy-lab
       - paper-kraken-5of5-entry-filter-lab
       - paper-kraken-5of5-filter-robustness
+      - paper-kraken-5of5-cost-stress
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
@@ -34,6 +35,7 @@ on:
       - paper-kraken-5of5-trade-excursions
       - paper-kraken-5of5-exit-policy-lab
       - paper-kraken-5of5-entry-filter-lab
+      - paper-kraken-5of5-filter-robustness
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"

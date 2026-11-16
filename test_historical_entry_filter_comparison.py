@@ -47,6 +47,21 @@ class EntryFilterComparisonTests(unittest.TestCase):
         self.assertEqual(result["atr_percent_at_most_1"]["candidate_signal_count"], 4)
         self.assertEqual(result["combined_quality_filter"]["candidate_signal_count"], 1)
 
+    def test_cost_stress_uses_fixed_one_two_and_three_x_costs(self):
+        result = compare_entry_filters(candles(), [signal(0)])
+        base = result["baseline_all_5of5"]
+        stress = base["cost_stress"]
+        self.assertEqual(set(stress), {"base_cost", "double_cost", "triple_cost"})
+        self.assertAlmostEqual(stress["base_cost"]["net_pnl"], base["net_pnl"])
+        self.assertGreater(
+            stress["double_cost"]["fees_paid"],
+            stress["base_cost"]["fees_paid"],
+        )
+        self.assertGreater(
+            stress["triple_cost"]["fees_paid"],
+            stress["double_cost"]["fees_paid"],
+        )
+
     def test_rejects_missing_metrics(self):
         with self.assertRaises(ValueError):
             compare_entry_filters(candles(), [{"timestamp": 0, "side": "BUY", "atr": 1}])
@@ -55,6 +70,9 @@ class EntryFilterComparisonTests(unittest.TestCase):
         fold = compare_entry_filters(candles(), [signal(0)])
         result = aggregate_entry_filter_folds([fold, fold])
         self.assertEqual(result["baseline_all_5of5"]["folds"], 2)
+        self.assertEqual(
+            result["baseline_all_5of5"]["cost_stress"]["base_cost"]["trade_count"], 2
+        )
         self.assertEqual(result["baseline_all_5of5"]["candidate_signal_count"], 2)
         self.assertEqual(
             result["baseline_all_5of5"]["equal_allocation_return_percent"],
