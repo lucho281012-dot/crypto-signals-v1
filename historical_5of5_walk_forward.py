@@ -9,6 +9,9 @@ from historical_trade_excursions import diagnose_trade_excursions
 from historical_exit_policy_comparison import (
     compare_exit_policies, aggregate_exit_policy_folds,
 )
+from historical_entry_filter_comparison import (
+    compare_entry_filters, aggregate_entry_filter_folds,
+)
 
 # Four consecutive, non-overlapping 12.5% test windows after a 50% warm-up.
 FOLD_START_FRACTIONS = (0.50, 0.625, 0.75, 0.875)
@@ -30,6 +33,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
 
     folds = []
     exit_policy_folds = []
+    entry_filter_folds = []
     excluded_short_segments = []
     for segment_index, segment in enumerate(segments):
         five = segment["candles_5m"]
@@ -72,6 +76,10 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
                 test_candles, fold_signals, initial_balance=initial_balance
             )
             exit_policy_folds.append(exit_policy_comparison)
+            entry_filter_comparison = compare_entry_filters(
+                test_candles, fold_signals, initial_balance=initial_balance
+            )
+            entry_filter_folds.append(entry_filter_comparison)
             folds.append({
                 "segment_index": segment_index,
                 "fold_index": fold_index,
@@ -99,6 +107,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
                 )),
                 "excursion_diagnostics": diagnose_trade_excursions(test_candles, trades),
                 "exit_policy_comparison": exit_policy_comparison,
+                "entry_filter_comparison": entry_filter_comparison,
             })
 
     all_trade_count = sum(f["trade_count"] for f in folds)
@@ -134,5 +143,8 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
         "test_only_trades": True,
         "exit_policy_comparison": aggregate_exit_policy_folds(
             exit_policy_folds, initial_balance=initial_balance
+        ),
+        "entry_filter_comparison": aggregate_entry_filter_folds(
+            entry_filter_folds, initial_balance=initial_balance
         ),
     }

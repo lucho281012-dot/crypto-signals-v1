@@ -53,11 +53,20 @@ def generate_segment_signals(candles_5m, candles_15m, start_index=199, minimum_c
         if score >= minimum_conditions and trend["ema20"] > trend["ema200"]:
             atr = float(current["atr"])
             if atr > 0:
+                volume_sma = float(current["volume_sma20"])
+                close = float(current["close"])
+                ema200 = float(current["ema200"])
+                if volume_sma <= 0 or close <= 0 or ema200 <= 0:
+                    continue
                 signals.append({
                     "timestamp": int(candle5["timestamp"]),
                     "side": "BUY",
                     "atr": atr,
                     "conditions_met": int(score),
+                    "rsi": float(current["rsi"]),
+                    "volume_ratio": float(current["volume"]) / volume_sma,
+                    "ema_spread_percent": (float(current["ema20"]) / ema200 - 1.0) * 100.0,
+                    "atr_percent": atr / close * 100.0,
                 })
     return signals
 
