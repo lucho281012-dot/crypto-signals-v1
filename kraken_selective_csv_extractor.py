@@ -20,6 +20,7 @@ from kraken_ohlcvt import load_kraken_ohlcvt_csv
 from kraken_gap_aware_segments import build_aligned_contiguous_segments
 from historical_segment_backtest import backtest_segments
 from historical_oos_validation import backtest_out_of_sample
+from historical_5of5_walk_forward import backtest_5of5_walk_forward
 from kraken_zip64_range_inspector import (
     ArchiveInspectionError, Part, RangeArchive, inspect_with_reader,
 )
@@ -263,6 +264,7 @@ def run_live_validation() -> dict[str, Any]:
     backtest_reports = []
     out_of_sample_reports = []
     out_of_sample_5of5_reports = []
+    walk_forward_5of5_reports = []
     with tempfile.TemporaryDirectory(prefix="kraken-selective-") as temp_dir:
         root = Path(temp_dir)
         extracted_paths = {}
@@ -331,6 +333,13 @@ def run_live_validation() -> dict[str, Any]:
                 "symbol": market,
                 **oos_5of5,
             })
+            walk_forward_5of5 = backtest_5of5_walk_forward(
+                paired["segments"], initial_balance=100.0
+            )
+            walk_forward_5of5_reports.append({
+                "symbol": market,
+                **walk_forward_5of5,
+            })
             del backtest, oos, oos_5of5, paired, five, fifteen
     return {        "status": "all_six_csvs_extracted_and_validated",
         "archive_size_bytes": archive.total_size,
@@ -347,6 +356,7 @@ def run_live_validation() -> dict[str, Any]:
         "historical_backtest": backtest_reports,
         "out_of_sample_backtest": out_of_sample_reports,
         "out_of_sample_5of5_counterfactual": out_of_sample_5of5_reports,
+        "walk_forward_5of5_disjoint_folds": walk_forward_5of5_reports,
         "gaps_filled": False,
         "note": "CSV payloads were temporary to this CI job; no market data was committed to Git.",
     }
