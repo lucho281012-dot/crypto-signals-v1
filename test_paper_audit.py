@@ -7,7 +7,7 @@ class PaperAuditTests(unittest.TestCase):
     def test_reconciles_closed_trades_and_calculates_metrics(self):
         state = {
             "initial_balance": 100.0,
-            "cash_usdt": 100.0 + 2.0 - 1.0 - 0.1 - 0.1,
+            "cash_usdt": 100.0 + 1.8 - 1.2,
             "positions": {},
             "history": [
                 {
