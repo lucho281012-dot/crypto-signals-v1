@@ -9,6 +9,11 @@ on:
       - "test_strategy_research.py"
       - ".github/workflows/strategy-research.yml"
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Kraken Market History Archive"
+    types:
+      - completed
 
 permissions:
   contents: read
