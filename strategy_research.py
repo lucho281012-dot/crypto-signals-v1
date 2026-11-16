@@ -194,6 +194,58 @@ def fetch_history(exchange, symbol, timeframe):
     ]
 
 
+
+def signal_diagnostics(five, fifteen):
+    counts = {
+        "bars_checked_after_warmup": 0,
+        "bars_with_valid_indicators": 0,
+        "bullish_15m_trend_bars": 0,
+        "bars_with_at_least_4_of_5_5m_conditions": 0,
+        "actual_buy_signal_bars": 0,
+        "condition_pass_counts": {
+            "ema20_above_ema200": 0,
+            "rsi_above_50": 0,
+            "macd_above_signal": 0,
+            "volume_above_sma20": 0,
+            "close_above_ema20": 0,
+        },
+    }
+    for index in range(200, len(five)):
+        current = five.iloc[index]
+        counts["bars_checked_after_warmup"] += 1
+        close_time = int(current["timestamp"]) + TIMEFRAME_MS["5m"]
+        eligible = fifteen[
+            fifteen["timestamp"] + TIMEFRAME_MS["15m"] <= close_time
+        ]
+        fields = ["ema20", "ema200", "rsi", "macd", "macd_signal",
+                  "volume_sma20", "atr"]
+        if eligible.empty or current[fields].isna().any():
+            continue
+        trend = eligible.iloc[-1]
+        if trend[["ema20", "ema200"]].isna().any():
+            continue
+        counts["bars_with_valid_indicators"] += 1
+        bullish = trend["ema20"] > trend["ema200"]
+        if bullish:
+            counts["bullish_15m_trend_bars"] += 1
+        conditions = [
+            current["ema20"] > current["ema200"],
+            current["rsi"] > 50,
+            current["macd"] > current["macd_signal"],
+            current["volume"] > current["volume_sma20"],
+            current["close"] > current["ema20"],
+        ]
+        names = list(counts["condition_pass_counts"])
+        for name, passed in zip(names, conditions):
+            if passed:
+                counts["condition_pass_counts"][name] += 1
+        if sum(conditions) >= 4:
+            counts["bars_with_at_least_4_of_5_5m_conditions"] += 1
+        if sum(conditions) >= 4 and bullish and current["atr"] > 0:
+            counts["actual_buy_signal_bars"] += 1
+    return counts
+
+
 def research_symbol(exchange, symbol):
     five = calculate_indicators(fetch_history(exchange, symbol, "5m"))
     fifteen = calculate_indicators(fetch_history(exchange, symbol, "15m"))
@@ -227,6 +279,7 @@ def research_symbol(exchange, symbol):
         "fifteen_minute_closed_candles": len(fifteen),
         "train_bars": split - 200,
         "out_of_sample_bars": len(five) - split,
+        "signal_diagnostics": signal_diagnostics(five, fifteen),
         "baseline_1_2_atr_2r": baseline,
         "selected_on_train_only": selected,
         "all_configurations": configurations,
@@ -257,6 +310,8 @@ def main():
             symbol: {
                 "error": data.get("error"),
                 "bars_5m": data.get("five_minute_closed_candles"),
+                "signal_diagnostics": data.get("signal_diagnostics"),
+                "baseline_train": data.get("baseline_1_2_atr_2r", {}).get("train"),
                 "baseline_test": data.get("baseline_1_2_atr_2r", {}).get("out_of_sample"),
                 "selected_config": (
                     {k: data["selected_on_train_only"][k]
