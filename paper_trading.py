@@ -106,10 +106,12 @@ def open_position(state, symbol, entry_price, stop_price):
     entry_fee = cost * FEE_RATE
     actual_stop_risk = quantity * risk_per_unit_with_fees
 
-    if quantity <= 0 or cost + entry_fee > balance:
+    if quantity <= 0 or cost + entry_fee > balance + 1e-10:
         return False, "Saldo insuficiente"
 
-    state["cash_usdt"] -= cost + entry_fee
+    # Avoid a tiny negative balance caused only by floating-point rounding
+    # when quantity is capped exactly to available cash.
+    state["cash_usdt"] = max(0.0, balance - cost - entry_fee)
 
     state["positions"][symbol] = {
         "entry_price": entry_price,
