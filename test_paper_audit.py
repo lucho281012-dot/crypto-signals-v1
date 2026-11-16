@@ -50,6 +50,35 @@ class PaperAuditTests(unittest.TestCase):
         self.assertEqual(report["closed_trades"], 0)
         self.assertIsNone(report["profit_factor"])
 
+
+    def test_calculates_stop_risk_r_multiple_and_symbol_breakdown(self):
+        state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 99.0,
+            "positions": {},
+            "history": [{
+                "symbol": "BTC/USDT",
+                "quantity": 1.0,
+                "entry_price": 10.0,
+                "stop_price": 9.0,
+                "exit_price": 11.0,
+                "entry_fee": 0.01,
+                "exit_fee": 0.011,
+                "net_pnl": 0.979,
+                "risk_budget": 1.0,
+            }],
+        }
+        report = build_audit(state)
+        risk = report["risk_analysis_per_trade"][0]
+        btc = report["performance_by_symbol"]["BTC/USDT"]
+
+        self.assertAlmostEqual(risk["estimated_loss_at_stop_usdt"], 1.019)
+        self.assertAlmostEqual(risk["risk_percent_of_initial_balance"], 1.019)
+        self.assertAlmostEqual(risk["realized_r_multiple"], 0.979 / 1.019)
+        self.assertEqual(btc["trades"], 1)
+        self.assertEqual(btc["wins"], 1)
+        self.assertAlmostEqual(btc["net_pnl_usdt"], 0.979)
+
     def test_detects_cash_and_trade_pnl_mismatch(self):
         state = {
             "initial_balance": 100.0,
