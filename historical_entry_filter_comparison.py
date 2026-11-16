@@ -6,6 +6,7 @@ change the active signal engine or paper simulator.
 from __future__ import annotations
 
 from math import isfinite
+from statistics import median
 
 from backtest_engine import run_long_backtest
 
@@ -84,8 +85,29 @@ def aggregate_entry_filter_folds(fold_results, initial_balance=100.0):
         gp = sum(row["gross_profit"] for row in rows)
         gl = sum(row["gross_loss"] for row in rows)
         net = sum(row["net_pnl"] for row in rows)
+        active_rows = [row for row in rows if row["trade_count"] > 0]
+        active_returns = [row["return_percent"] for row in active_rows]
+        profitable_folds = sum(row["net_pnl"] > 0 for row in active_rows)
+        losing_folds = sum(row["net_pnl"] < 0 for row in active_rows)
         output[name] = {
             "folds": len(rows),
+            "folds_with_trades": len(active_rows),
+            "folds_without_trades": len(rows) - len(active_rows),
+            "profitable_folds": profitable_folds,
+            "losing_folds": losing_folds,
+            "flat_folds_with_trades": len(active_rows) - profitable_folds - losing_folds,
+            "profitable_fold_rate_percent": (
+                profitable_folds / len(active_rows) * 100 if active_rows else 0.0
+            ),
+            "median_active_fold_return_percent": (
+                median(active_returns) if active_returns else 0.0
+            ),
+            "worst_active_fold_return_percent": (
+                min(active_returns) if active_returns else 0.0
+            ),
+            "best_active_fold_return_percent": (
+                max(active_returns) if active_returns else 0.0
+            ),
             "candidate_signal_count": sum(row["candidate_signal_count"] for row in rows),
             "trade_count": trades,
             "wins": wins,
