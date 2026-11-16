@@ -45,8 +45,9 @@ class StrategyResearchTests(unittest.TestCase):
             {"timestamp": 0, "ema20": 10.0, "ema200": 9.0},
             {"timestamp": 900_000, "ema20": 8.0, "ema200": 9.0},
         ])
-        # A 5m candle starting at 1,200,000 closes at 1,500,000.
-        trend = latest_closed_trend(1_200_000, fifteen)
+        # A 5m candle starting at 1,500,000 closes at 1,800,000,
+        # so the 15m candle starting at 900,000 is fully closed.
+        trend = latest_closed_trend(1_500_000, fifteen)
         self.assertEqual(int(trend["timestamp"]), 900_000)
 
     def test_latest_closed_trend_returns_none_without_completed_candle(self):
