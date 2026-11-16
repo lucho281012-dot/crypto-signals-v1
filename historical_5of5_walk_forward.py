@@ -83,6 +83,8 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
                 "profit_factor": result["profit_factor"],
                 "max_drawdown_percent": result["max_drawdown_percent"],
                 "fees_paid": result["fees_paid"],
+                "gross_profit": sum(t["net_pnl"] for t in trades if t["net_pnl"] > 0),
+                "gross_loss": -sum(t["net_pnl"] for t in trades if t["net_pnl"] < 0),
                 "exit_reason_counts": dict(sorted(
                     Counter(t.get("reason", "unknown") for t in trades).items()
                 )),
@@ -92,16 +94,8 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
     wins = sum(f["wins"] for f in folds)
     losses = sum(f["losses"] for f in folds)
     net_total = sum(f["net_pnl"] for f in folds)
-    gross_profit = sum(
-        max(0.0, f["net_pnl"]) for f in folds
-    )
-    # Aggregate PF is calculated from individual trades, not fold net totals.
-    # Re-run-free accumulation is done from per-fold PF and gross losses only
-    # when exposed by trade-level aggregation below.
-    trade_profit = 0.0
-    trade_loss = 0.0
-    # Fold-level result rows intentionally contain no raw trades; calculate
-    # aggregate PF as null rather than incorrectly combining fold PF ratios.
+    gross_profit = sum(f["gross_profit"] for f in folds)
+    gross_loss = sum(f["gross_loss"] for f in folds)
     return {
         "strategy_filter": "5_of_5_only",
         "fold_count": len(folds),
@@ -113,7 +107,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
         "wins": wins,
         "losses": losses,
         "win_rate_percent": wins / all_trade_count * 100 if all_trade_count else 0.0,
-        "profit_factor": None,
+        "profit_factor": gross_profit / gross_loss if gross_loss else (\n            None if not gross_profit else float("inf")\n        ),
         "net_pnl_sum_of_independent_folds": net_total,
         "initial_balance_sum_of_independent_folds": initial_balance * len(folds),
         "equal_allocation_return_percent": (
