@@ -58,7 +58,7 @@ class EntryFilterComparisonTests(unittest.TestCase):
         self.assertEqual(result["baseline_all_5of5"]["candidate_signal_count"], 2)
         self.assertEqual(
             result["baseline_all_5of5"]["equal_allocation_return_percent"],
-            result["baseline_all_5of5"]["net_pnl_sum_of_independent_folds"],
+            result["baseline_all_5of5"]["net_pnl_sum_of_independent_folds"] / 2,
         )
 
 
