@@ -6,6 +6,9 @@ from collections import Counter
 from backtest_engine import run_long_backtest
 from historical_segment_backtest import generate_segment_signals
 from historical_trade_excursions import diagnose_trade_excursions
+from historical_exit_policy_comparison import (
+    compare_exit_policies, aggregate_exit_policy_folds,
+)
 
 # Four consecutive, non-overlapping 12.5% test windows after a 50% warm-up.
 FOLD_START_FRACTIONS = (0.50, 0.625, 0.75, 0.875)
@@ -26,6 +29,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
         raise ValueError("initial_balance debe ser positivo")
 
     folds = []
+    exit_policy_folds = []
     excluded_short_segments = []
     for segment_index, segment in enumerate(segments):
         five = segment["candles_5m"]
@@ -64,6 +68,10 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
                 test_candles, fold_signals, initial_balance=initial_balance
             )
             trades = result["trades"]
+            exit_policy_comparison = compare_exit_policies(
+                test_candles, fold_signals, initial_balance=initial_balance
+            )
+            exit_policy_folds.append(exit_policy_comparison)
             folds.append({
                 "segment_index": segment_index,
                 "fold_index": fold_index,
@@ -90,6 +98,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
                     Counter(t.get("reason", "unknown") for t in trades).items()
                 )),
                 "excursion_diagnostics": diagnose_trade_excursions(test_candles, trades),
+                "exit_policy_comparison": exit_policy_comparison,
             })
 
     all_trade_count = sum(f["trade_count"] for f in folds)
@@ -123,4 +132,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
         "folds_are_non_overlapping": True,
         "capital_and_positions_carried_between_folds": False,
         "test_only_trades": True,
+        "exit_policy_comparison": aggregate_exit_policy_folds(
+            exit_policy_folds, initial_balance=initial_balance
+        ),
     }
