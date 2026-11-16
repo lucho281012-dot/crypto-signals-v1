@@ -107,7 +107,7 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
         "wins": wins,
         "losses": losses,
         "win_rate_percent": wins / all_trade_count * 100 if all_trade_count else 0.0,
-        "profit_factor": gross_profit / gross_loss if gross_loss else (\n            None if not gross_profit else float("inf")\n        ),
+        "profit_factor": gross_profit / gross_loss if gross_loss else (None if not gross_profit else float("inf")),
         "net_pnl_sum_of_independent_folds": net_total,
         "initial_balance_sum_of_independent_folds": initial_balance * len(folds),
         "equal_allocation_return_percent": (
