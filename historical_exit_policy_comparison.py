@@ -115,11 +115,7 @@ def _run_policy(candles, signals, policy, initial_balance=100.0,
                 reason = "take_profit"
 
             if reason:
-                execute_exit(pos, pos["remaining_quantity"], raw_exit)
-                cash += pos["exit_proceeds_net"] - (
-                    pos["entry_notional"] + pos["entry_fee"]
-                ) + (pos["entry_notional"] + pos["entry_fee"])
-                # The cash ledger already contains entry debit and all exits.
+                cash += execute_exit(pos, pos["remaining_quantity"], raw_exit)
                 net_pnl = pos["exit_proceeds_net"] - pos["entry_notional"] - pos["entry_fee"]
                 trades.append({
                     "opened_at": pos["opened_at"], "closed_at": int(candle["timestamp"]),
