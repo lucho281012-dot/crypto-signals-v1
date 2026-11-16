@@ -1,0 +1,52 @@
+name: Kraken Market History Archive
+
+on:
+  push:
+    branches:
+      - paper-trading-v1-2
+    paths:
+      - "market_history_collector.py"
+      - "test_market_history_collector.py"
+      - ".github/workflows/market-history-archive.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-branch-data-writer
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout paper branch
+        uses: actions/checkout@v4
+        with:
+          ref: paper-trading-v1-2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Test collector
+        run: python -m unittest -v test_market_history_collector
+
+      - name: Collect closed Kraken candles
+        run: python market_history_collector.py
+
+      - name: Commit market history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/market_history/
+          git diff --cached --quiet || git commit -m "Archive closed Kraken market candles"
+          git push origin HEAD:paper-trading-v1-2
