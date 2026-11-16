@@ -24,6 +24,40 @@ class StrategyResearchTests(unittest.TestCase):
     def test_invalid_stop_returns_zero_quantity(self):
         self.assertEqual(calculate_quantity(100.0, 100.0, 100.0), 0.0)
 
+    def test_latest_closed_trend_ignores_unclosed_15m_candle(self):
+        import pandas as pd
+        from strategy_research import latest_closed_trend
+
+        fifteen = pd.DataFrame([
+            {"timestamp": 0, "ema20": 10.0, "ema200": 9.0},
+            {"timestamp": 900_000, "ema20": 8.0, "ema200": 9.0},
+        ])
+        # A 5m candle starting at 600,000 closes at 900,000:
+        # the 15m candle starting at 900,000 is not yet closed.
+        trend = latest_closed_trend(600_000, fifteen)
+        self.assertEqual(int(trend["timestamp"]), 0)
+
+    def test_latest_closed_trend_uses_newly_closed_15m_candle(self):
+        import pandas as pd
+        from strategy_research import latest_closed_trend
+
+        fifteen = pd.DataFrame([
+            {"timestamp": 0, "ema20": 10.0, "ema200": 9.0},
+            {"timestamp": 900_000, "ema20": 8.0, "ema200": 9.0},
+        ])
+        # A 5m candle starting at 1,200,000 closes at 1,500,000.
+        trend = latest_closed_trend(1_200_000, fifteen)
+        self.assertEqual(int(trend["timestamp"]), 900_000)
+
+    def test_latest_closed_trend_returns_none_without_completed_candle(self):
+        import pandas as pd
+        from strategy_research import latest_closed_trend
+
+        fifteen = pd.DataFrame([
+            {"timestamp": 900_000, "ema20": 10.0, "ema200": 9.0},
+        ])
+        self.assertIsNone(latest_closed_trend(0, fifteen))
+
 
 if __name__ == "__main__":
     unittest.main()
