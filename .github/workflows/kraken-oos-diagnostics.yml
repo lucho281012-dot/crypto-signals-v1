@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "pandas>=2.2.0"
-      - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py
+      - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py test_historical_5of5_walk_forward.py
   live-diagnostics:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
