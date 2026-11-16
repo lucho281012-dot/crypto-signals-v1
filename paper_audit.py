@@ -69,12 +69,9 @@ def build_audit(state):
         + float(position.get("entry_fee", 0.0))
         for position in positions.values()
     )
-    closed_proceeds = sum(
-        float(trade["quantity"]) * float(trade["exit_price"])
-        - float(trade.get("exit_fee", 0.0))
-        for trade in history
-    )
-    expected_cash = initial - open_cost + closed_proceeds
+    # Closed-trade net PnL already includes both entry and exit fees.
+    # Only open positions remain tied up in cash as cost plus entry fee.
+    expected_cash = initial + net_pnl - open_cost
     cash_difference = cash - expected_cash
 
     return {
