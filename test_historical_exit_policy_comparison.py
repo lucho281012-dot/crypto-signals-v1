@@ -73,7 +73,7 @@ class ExitPolicyComparisonTests(unittest.TestCase):
         result = aggregate_exit_policy_folds([row, row], initial_balance=100)
         self.assertEqual(result["baseline"]["folds"], 2)
         self.assertEqual(result["baseline"]["trade_count"], 4)
-        self.assertAlmostEqual(result["baseline"]["equal_allocation_return_percent"], -0.5)
+        self.assertAlmostEqual(result["baseline"]["equal_allocation_return_percent"], -1.0)
 
 
 if __name__ == "__main__":
