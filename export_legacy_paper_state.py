@@ -31,7 +31,7 @@ def _decimal(value, field, *, positive=False, non_negative=False):
 
 
 def _base_asset(symbol):
-    """Normalize simulator symbols (BTC/USDT) and compact legacy symbols (BTCUSDT)."""
+    """Normalize BASE/USDT and compact BASEUSDT symbols to BASE."""
     if not isinstance(symbol, str):
         raise ValueError(f"unsupported paper symbol: {symbol!r}")
     match = re.fullmatch(r"([A-Z0-9]+)(?:/)?USDT", symbol)
@@ -40,8 +40,23 @@ def _base_asset(symbol):
     return match.group(1)
 
 
+def _mark_for_asset(marks, base, symbol):
+    keys = (base, symbol, base + "USDT")
+    values = []
+    for key in keys:
+        if key in marks:
+            value = _decimal(marks[key], f"marks.{key}", positive=True)
+            if value not in values:
+                values.append(value)
+    if not values:
+        raise ValueError(f"missing mark price for {base}; accepted keys: {keys}")
+    if len(values) > 1:
+        raise ValueError(f"conflicting mark prices supplied for {base}")
+    return values[0]
+
+
 def build_legacy_state_report(state, marks):
-    """Convert an immutable snapshot of the legacy simulator state to report metrics."""
+    """Convert an immutable legacy state snapshot to canonical dashboard metrics."""
     if not isinstance(state, dict) or not isinstance(marks, dict):
         raise ValueError("state and marks must be JSON objects")
     initial = _decimal(state.get("initial_balance"), "initial_balance", positive=True)
@@ -53,8 +68,8 @@ def build_legacy_state_report(state, marks):
 
     report_positions = {}
     market_value = Decimal("0")
-    fees = Decimal("0")
-    for symbol, position in positions.items():
+    open_entry_fees = Decimal("0")
+    for symbol, position in sorted(positions.items()):
         base = _base_asset(symbol)
         if base in report_positions:
             raise ValueError(f"duplicate position for normalized asset: {base}")
@@ -62,31 +77,47 @@ def build_legacy_state_report(state, marks):
             raise ValueError(f"position {symbol} must be an object")
         quantity = _decimal(position.get("quantity"), f"{symbol}.quantity", positive=True)
         entry = _decimal(position.get("entry_price"), f"{symbol}.entry_price", positive=True)
-        entry_fee = _decimal(position.get("entry_fee", "0"), f"{symbol}.entry_fee", non_negative=True)
-        if base not in marks:
-            raise ValueError(f"missing mark price for {base}")
-        mark = _decimal(marks[base], f"marks.{base}", positive=True)
+        entry_fee = _decimal(position.get("entry_fee"), f"{symbol}.entry_fee", non_negative=True)
+        mark = _mark_for_asset(marks, base, symbol)
         value = quantity * mark
+        cost_basis = quantity * entry + entry_fee
+        unrealized = value - cost_basis
         market_value += value
-        fees += entry_fee
+        open_entry_fees += entry_fee
         report_positions[base] = {
+            "symbol": symbol,
             "quantity": str(quantity),
+            "entry_price": str(entry),
+            "mark_price": str(mark),
             "mark_price_usdt": str(mark),
             "market_value_usdt": str(value),
-            "cost_basis_usdt": str(quantity * entry + entry_fee),
-            "unrealized_pnl_usdt": str(value - quantity * entry - entry_fee),
+            "cost_basis_usdt": str(cost_basis),
+            "unrealized_pnl_usdt": str(unrealized),
+            "portfolio_weight_pct": "0",
         }
 
     realized = Decimal("0")
+    closed_entry_fees = Decimal("0")
+    exit_fees = Decimal("0")
     for index, trade in enumerate(history):
         if not isinstance(trade, dict):
             raise ValueError(f"history[{index}] must be an object")
         realized += _decimal(trade.get("net_pnl"), f"history[{index}].net_pnl")
-        fees += _decimal(trade.get("entry_fee", "0"), f"history[{index}].entry_fee", non_negative=True)
-        fees += _decimal(trade.get("exit_fee", "0"), f"history[{index}].exit_fee", non_negative=True)
+        closed_entry_fees += _decimal(
+            trade.get("entry_fee"), f"history[{index}].entry_fee", non_negative=True
+        )
+        exit_fees += _decimal(
+            trade.get("exit_fee"), f"history[{index}].exit_fee", non_negative=True
+        )
 
     equity = cash + market_value
     pnl = equity - initial
+    for item in report_positions.values():
+        value = Decimal(item["market_value_usdt"])
+        item["portfolio_weight_pct"] = str(
+            value / equity * Decimal("100")
+        ) if equity > 0 else "0"
+
     return {
         "quote_currency": "USDT",
         "initial_cash_usdt": str(initial),
@@ -100,10 +131,10 @@ def build_legacy_state_report(state, marks):
             (Decimal(item["unrealized_pnl_usdt"]) for item in report_positions.values()),
             Decimal("0"),
         )),
-        "fees_paid_usdt": str(fees),
+        "fees_paid_usdt": str(closed_entry_fees + exit_fees + open_entry_fees),
+        "cash_weight_pct": str(cash / equity * Decimal("100")) if equity > 0 else "0",
         "trade_count": len(history),
-        # Each legacy history item is a completed round trip (one buy and one sell).
-        "buy_count": len(history),
+        "buy_count": len(history) + len(report_positions),
         "sell_count": len(history),
         "open_position_count": len(report_positions),
         "positions": report_positions,
@@ -139,7 +170,7 @@ def main(argv=None, stdout=None, stderr=None):
         description="Read-only export of legacy paper_state.json for the dashboard."
     )
     parser.add_argument("--input", required=True, help="Path to data/paper_state.json")
-    parser.add_argument("--marks", help="Optional JSON object of BASE: USDT mark prices")
+    parser.add_argument("--marks", help="JSON object of USDT mark prices keyed by BASE or symbol")
     args = parser.parse_args(argv)
     try:
         payload = export_state_json(args.input, args.marks)
