@@ -4,8 +4,14 @@ on:
   push:
     branches:
       - paper-trading-v1-2
-    paths-ignore:
-     - 'data/**'
+    paths:
+      - "paper_bot.py"
+      - "paper_trading.py"
+      - "market_data.py"
+      - "signal_engine.py"
+      - "risk_manager.py"
+      - "requirements.txt"
+      - ".github/workflows/paper-trading.yml"
   workflow_dispatch:
   schedule:
     - cron: "*/5 * * * *"
