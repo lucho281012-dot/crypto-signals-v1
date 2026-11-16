@@ -104,6 +104,7 @@ def open_position(state, symbol, entry_price, stop_price):
 
     cost = quantity * entry_price
     entry_fee = cost * FEE_RATE
+    actual_stop_risk = quantity * risk_per_unit_with_fees
 
     if quantity <= 0 or cost + entry_fee > balance:
         return False, "Saldo insuficiente"
@@ -115,7 +116,10 @@ def open_position(state, symbol, entry_price, stop_price):
         "stop_price": stop_price,
         "quantity": quantity,
         "entry_fee": entry_fee,
-        "risk_budget": risk_amount,
+        # risk_budget is the estimated loss at the stop, including fees.
+        # Keep the target separately so balance caps cannot overstate risk.
+        "risk_budget": actual_stop_risk,
+        "risk_budget_target": risk_amount,
         "opened_at": datetime.now(timezone.utc).isoformat()
     }
 
@@ -123,7 +127,8 @@ def open_position(state, symbol, entry_price, stop_price):
 
     return True, (
         f"Compra simulada: {symbol} | "
-        f"Riesgo presupuestado: {risk_amount:.4f} USDT"
+        f"Riesgo estimado al stop: {actual_stop_risk:.4f} USDT "
+        f"(objetivo: {risk_amount:.4f} USDT)"
     )
 
 
