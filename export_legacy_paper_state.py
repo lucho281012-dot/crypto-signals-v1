@@ -11,7 +11,12 @@ from pathlib import Path
 import re
 import sys
 
-from paper_report_history import build_report_snapshot, serialize_report_history
+from paper_report_history import (
+    append_report_snapshot,
+    build_report_snapshot,
+    deserialize_report_history,
+    serialize_report_history,
+)
 
 
 def _decimal(value, field, *, positive=False, non_negative=False):
@@ -141,7 +146,9 @@ def build_legacy_state_report(state, marks):
     }
 
 
-def export_state_json(state_path, marks_path=None, captured_at=None, snapshot_id=None):
+def export_state_json(
+    state_path, marks_path=None, captured_at=None, snapshot_id=None, history_path=None
+):
     source = Path(state_path)
     if source.name != "paper_state.json":
         raise ValueError("input must be the dedicated paper_state.json file")
@@ -157,10 +164,17 @@ def export_state_json(state_path, marks_path=None, captured_at=None, snapshot_id
         marks = marks_data
 
     report = build_legacy_state_report(state, marks)
-    timestamp = captured_at or datetime.now(timezone.utc).isoformat()
-    identifier = snapshot_id or "legacy-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    now = datetime.now(timezone.utc)
+    timestamp = captured_at or now.isoformat()
+    identifier = snapshot_id or "legacy-" + now.strftime("%Y%m%dT%H%M%S%fZ")
     snapshot = build_report_snapshot(report, timestamp, identifier)
-    return serialize_report_history([snapshot])
+
+    history = []
+    if history_path is not None:
+        history_payload = Path(history_path).read_text(encoding="utf-8")
+        history = deserialize_report_history(history_payload)
+    updated_history = append_report_snapshot(history, snapshot)
+    return serialize_report_history(updated_history)
 
 
 def main(argv=None, stdout=None, stderr=None):
@@ -171,9 +185,12 @@ def main(argv=None, stdout=None, stderr=None):
     )
     parser.add_argument("--input", required=True, help="Path to data/paper_state.json")
     parser.add_argument("--marks", help="JSON object of USDT mark prices keyed by BASE or symbol")
+    parser.add_argument(
+        "--history", help="Optional existing dashboard history JSON; it is read only"
+    )
     args = parser.parse_args(argv)
     try:
-        payload = export_state_json(args.input, args.marks)
+        payload = export_state_json(args.input, args.marks, history_path=args.history)
     except (OSError, ValueError, TypeError) as exc:
         print(f"Export refused: {exc}", file=stderr)
         return 2
