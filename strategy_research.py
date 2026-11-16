@@ -45,16 +45,21 @@ def calculate_indicators(candles):
     return df
 
 
+def latest_closed_trend(current_5m_timestamp, fifteen):
+    """Return the latest 15m candle fully closed by the 5m candle close."""
+    five_minute_close = int(current_5m_timestamp) + TIMEFRAME_MS["5m"]
+    eligible = fifteen[
+        fifteen["timestamp"] + TIMEFRAME_MS["15m"] <= five_minute_close
+    ]
+    return None if eligible.empty else eligible.iloc[-1]
+
+
 def has_buy_signal(index, five, fifteen):
     current = five.iloc[index]
-    close_time = int(current["timestamp"]) + TIMEFRAME_MS["5m"]
-    eligible = fifteen[
-        fifteen["timestamp"] + TIMEFRAME_MS["15m"] <= close_time
-    ]
-    if eligible.empty or current[["ema20", "ema200", "rsi", "macd",
+    trend = latest_closed_trend(current["timestamp"], fifteen)
+    if trend is None or current[["ema20", "ema200", "rsi", "macd",
                                   "macd_signal", "volume_sma20", "atr"]].isna().any():
         return None
-    trend = eligible.iloc[-1]
     if trend[["ema20", "ema200"]].isna().any():
         return None
     conditions = [
@@ -237,15 +242,11 @@ def signal_diagnostics(five, fifteen):
     for index in range(200, len(five)):
         current = five.iloc[index]
         counts["bars_checked_after_warmup"] += 1
-        close_time = int(current["timestamp"]) + TIMEFRAME_MS["5m"]
-        eligible = fifteen[
-            fifteen["timestamp"] + TIMEFRAME_MS["15m"] <= close_time
-        ]
+        trend = latest_closed_trend(current["timestamp"], fifteen)
         fields = ["ema20", "ema200", "rsi", "macd", "macd_signal",
                   "volume_sma20", "atr"]
-        if eligible.empty or current[fields].isna().any():
+        if trend is None or current[fields].isna().any():
             continue
-        trend = eligible.iloc[-1]
         if trend[["ema20", "ema200"]].isna().any():
             continue
         counts["bars_with_valid_indicators"] += 1
