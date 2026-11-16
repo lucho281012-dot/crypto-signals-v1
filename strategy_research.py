@@ -181,17 +181,41 @@ def simulate(five, fifteen, stop_multiplier, reward_ratio,
 
 
 def fetch_history(exchange, symbol, timeframe):
-    raw = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=CANDLE_LIMIT)
-    now = exchange.milliseconds()
-    interval = TIMEFRAME_MS[timeframe]
-    closed = [row for row in raw if int(row[0]) + interval <= now]
-    if len(closed) < 220:
-        raise RuntimeError(f"Histórico insuficiente para {symbol} {timeframe}: {len(closed)} velas cerradas")
-    return [
-        {"timestamp": int(r[0]), "open": float(r[1]), "high": float(r[2]),
-         "low": float(r[3]), "close": float(r[4]), "volume": float(r[5])}
-        for r in closed
-    ]
+    archive = Path("data/market_history") / (
+        symbol.replace("/", "_").replace(":", "_") + f"_{timeframe}.jsonl"
+    )
+    if archive.exists():
+        candles = {}
+        with archive.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if line.strip():
+                    row = json.loads(line)
+                    candles[int(row["timestamp"])] = {
+                        "timestamp": int(row["timestamp"]),
+                        "open": float(row["open"]),
+                        "high": float(row["high"]),
+                        "low": float(row["low"]),
+                        "close": float(row["close"]),
+                        "volume": float(row["volume"]),
+                    }
+        history = [candles[key] for key in sorted(candles)]
+    else:
+        # Fallback for the first manual research run before the archive exists.
+        raw = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=CANDLE_LIMIT)
+        now = exchange.milliseconds()
+        interval = TIMEFRAME_MS[timeframe]
+        history = [
+            {"timestamp": int(r[0]), "open": float(r[1]), "high": float(r[2]),
+             "low": float(r[3]), "close": float(r[4]), "volume": float(r[5])}
+            for r in raw if int(r[0]) + interval <= now
+        ]
+
+    if len(history) < 220:
+        raise RuntimeError(
+            f"Histórico insuficiente para {symbol} {timeframe}: "
+            f"{len(history)} velas cerradas en {archive if archive.exists() else 'Kraken'}"
+        )
+    return history
 
 
 
