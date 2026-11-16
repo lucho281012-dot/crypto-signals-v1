@@ -30,7 +30,7 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
         }
         self.marks = {"BTC": "52000"}
 
-    def test_report_uses_read_only_state_and_separate_marks(self):
+    def test_report_uses_canonical_metrics_and_does_not_mutate_state(self):
         original = copy.deepcopy(self.state)
         report = build_legacy_state_report(self.state, self.marks)
         self.assertEqual(self.state, original)
@@ -39,11 +39,23 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
         self.assertEqual(report["equity_usdt"], "960.000")
         self.assertEqual(report["total_pnl_usdt"], "-40.000")
         self.assertEqual(report["realized_pnl_usdt"], "4.80")
+        self.assertEqual(report["unrealized_pnl_usdt"], "9.750")
         self.assertEqual(report["fees_paid_usdt"], "0.45")
         self.assertEqual(report["positions"]["BTC"]["quantity"], "0.005")
+        self.assertEqual(report["positions"]["BTC"]["cost_basis_usdt"], "250.250")
         self.assertEqual(report["trade_count"], 1)
-        self.assertEqual(report["buy_count"], 1)
+        self.assertEqual(report["buy_count"], 2)
         self.assertEqual(report["sell_count"], 1)
+
+    def test_accepts_all_mark_key_styles(self):
+        for key in ("BTC", "BTC/USDT", "BTCUSDT"):
+            with self.subTest(mark_key=key):
+                report = build_legacy_state_report(self.state, {key: "52000"})
+                self.assertEqual(report["market_value_usdt"], "260.000")
+
+    def test_rejects_conflicting_mark_aliases(self):
+        with self.assertRaisesRegex(ValueError, "conflicting mark prices"):
+            build_legacy_state_report(self.state, {"BTC": 52000, "BTC/USDT": 52001})
 
     def test_accepts_all_symbols_used_by_paper_simulator(self):
         state = copy.deepcopy(self.state)
@@ -80,6 +92,12 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
     def test_open_position_requires_explicit_mark(self):
         with self.assertRaisesRegex(ValueError, "missing mark price"):
             build_legacy_state_report(self.state, {})
+
+    def test_requires_explicit_fee_fields(self):
+        state = copy.deepcopy(self.state)
+        del state["positions"]["BTC/USDT"]["entry_fee"]
+        with self.assertRaisesRegex(ValueError, "entry_fee"):
+            build_legacy_state_report(state, self.marks)
 
     def test_rejects_non_finite_and_negative_values(self):
         bad = copy.deepcopy(self.state)
@@ -121,10 +139,8 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
             marks_path = root / "marks.json"
             state_path.write_text(json.dumps(self.state), encoding="utf-8")
             marks_path.write_text(json.dumps(self.marks), encoding="utf-8")
-
             payload = export_state_json(
-                state_path,
-                marks_path,
+                state_path, marks_path,
                 captured_at="2026-11-14T10:00:00-06:00",
                 snapshot_id="dashboard-contract-001",
             )
@@ -136,16 +152,12 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
         self.assertTrue(snapshot["captured_at"].endswith("Z"))
         report = snapshot["report"]
         for field in (
-            "equity_usdt",
-            "cash_usdt",
-            "market_value_usdt",
-            "total_pnl_usdt",
-            "total_return_pct",
+            "equity_usdt", "cash_usdt", "market_value_usdt",
+            "total_pnl_usdt", "total_return_pct",
         ):
             with self.subTest(field=field):
                 self.assertIn(field, report)
                 self.assertTrue(str(report[field]))
-
         self.assertIn("positions", report)
         for asset, position in report["positions"].items():
             with self.subTest(asset=asset):
