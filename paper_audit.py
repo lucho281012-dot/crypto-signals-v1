@@ -46,6 +46,9 @@ def build_audit(state):
     )
 
     pnl_mismatches = []
+    risk_analysis = []
+    symbol_stats = {}
+
     for index, trade in enumerate(history):
         quantity = float(trade["quantity"])
         entry = float(trade["entry_price"])
@@ -63,6 +66,55 @@ def build_audit(state):
                 "recomputed_net_pnl": recomputed,
                 "difference": difference,
             })
+
+        stop = float(trade.get("stop_price", 0.0))
+        estimated_stop_loss = None
+        risk_percent = None
+        r_multiple = None
+        if stop > 0 and entry > stop and quantity > 0:
+            estimated_stop_loss = (
+                quantity * (entry - stop)
+                + entry_fee
+                + quantity * stop * (
+                    exit_fee / (quantity * exit_price)
+                    if quantity * exit_price > 0 else 0.0
+                )
+            )
+            risk_percent = estimated_stop_loss / initial * 100 if initial else None
+            r_multiple = recorded / estimated_stop_loss if estimated_stop_loss > 0 else None
+
+        risk_analysis.append({
+            "symbol": trade.get("symbol", "UNKNOWN"),
+            "estimated_loss_at_stop_usdt": round(estimated_stop_loss, 8) if estimated_stop_loss is not None else None,
+            "risk_percent_of_initial_balance": round(risk_percent, 6) if risk_percent is not None else None,
+            "realized_r_multiple": round(r_multiple, 6) if r_multiple is not None else None,
+            "legacy_risk_budget_usdt": round(float(trade.get("risk_budget", 0.0)), 8),
+        })
+
+        symbol = trade.get("symbol", "UNKNOWN")
+        bucket = symbol_stats.setdefault(symbol, {
+            "trades": 0, "wins": 0, "losses": 0,
+            "net_pnl_usdt": 0.0, "gross_profit_usdt": 0.0,
+            "gross_loss_usdt": 0.0, "fees_usdt": 0.0,
+        })
+        bucket["trades"] += 1
+        bucket["net_pnl_usdt"] += recorded
+        bucket["fees_usdt"] += entry_fee + exit_fee
+        if recorded > 0:
+            bucket["wins"] += 1
+            bucket["gross_profit_usdt"] += recorded
+        elif recorded < 0:
+            bucket["losses"] += 1
+            bucket["gross_loss_usdt"] += -recorded
+
+    for bucket in symbol_stats.values():
+        bucket["win_rate_percent"] = round(bucket["wins"] / bucket["trades"] * 100, 4)
+        bucket["profit_factor"] = (
+            round(bucket["gross_profit_usdt"] / bucket["gross_loss_usdt"], 6)
+            if bucket["gross_loss_usdt"] > 0 else None
+        )
+        for key in ("net_pnl_usdt", "gross_profit_usdt", "gross_loss_usdt", "fees_usdt"):
+            bucket[key] = round(bucket[key], 8)
 
     open_cost = sum(
         float(position["quantity"]) * float(position["entry_price"])
@@ -96,6 +148,8 @@ def build_audit(state):
         "cash_reconciliation_difference_usdt": round(cash_difference, 10),
         "cash_reconciles": abs(cash_difference) <= TOLERANCE,
         "pnl_mismatches": pnl_mismatches,
+        "risk_analysis_per_trade": risk_analysis,
+        "performance_by_symbol": symbol_stats,
         "equity_curve": equity_curve,
         "limitations": [
             "Drawdown is calculated from closed trades only; intratrade drawdown is unavailable.",
