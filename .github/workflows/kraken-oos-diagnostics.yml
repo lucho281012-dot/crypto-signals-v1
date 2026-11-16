@@ -35,6 +35,8 @@ on:
       - "historical_5of5_walk_forward.py"
       - "historical_trade_excursions.py"
       - "test_historical_trade_excursions.py"
+      - "historical_exit_policy_comparison.py"
+      - "test_historical_exit_policy_comparison.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
 permissions:
   contents: read
