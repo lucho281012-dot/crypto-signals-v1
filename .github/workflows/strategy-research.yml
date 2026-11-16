@@ -1,6 +1,13 @@
 name: Strategy Historical Research
 
 on:
+  push:
+    branches:
+      - paper-trading-v1-2
+    paths:
+      - "strategy_research.py"
+      - "test_strategy_research.py"
+      - ".github/workflows/strategy-research.yml"
   workflow_dispatch:
 
 permissions:
