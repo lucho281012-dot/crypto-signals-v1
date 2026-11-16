@@ -22,10 +22,14 @@ on:
     branches:
       - paper-kraken-out-of-sample-validation
       - paper-kraken-oos-diagnostics
+      - paper-kraken-5of5-walk-forward
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
       - "test_historical_oos_validation.py"
+      - "historical_5of5_walk_forward.py"
+      - "historical_trade_excursions.py"
+      - "test_historical_trade_excursions.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
 permissions:
   contents: read
