@@ -1,6 +1,7 @@
 name: Kraken OOS Trade Diagnostics
 # Research-only Kraken historical diagnostics, including disjoint 5/5 walk-forward folds (syntax-checked fix).
 on:
+  workflow_dispatch:
   push:
     branches:
       - paper-kraken-oos-diagnostics
@@ -44,7 +45,7 @@ jobs:
       - run: pip install "pandas>=2.2.0"
       - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py test_historical_5of5_walk_forward.py test_historical_trade_excursions.py
   live-diagnostics:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
