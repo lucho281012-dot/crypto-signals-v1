@@ -7,6 +7,8 @@ on:
     paths:
       - "paper_audit.py"
       - "test_paper_audit.py"
+      - "paper_trading.py"
+      - "test_paper_trading_risk.py"
       - ".github/workflows/paper-ledger-audit.yml"
   workflow_dispatch:
 
@@ -29,7 +31,7 @@ jobs:
 
       - name: Run accounting unit tests
         run: |
-          python -m unittest -v test_paper_audit
+          python -m unittest -v test_paper_audit test_paper_trading_risk
 
       - name: Audit current paper ledger
         run: |
