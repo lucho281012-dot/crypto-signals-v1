@@ -10,6 +10,7 @@ on:
       - paper-kraken-5of5-walk-forward
       - paper-kraken-5of5-trade-excursions
       - paper-kraken-5of5-exit-policy-lab
+      - paper-kraken-5of5-entry-filter-lab
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
@@ -30,6 +31,7 @@ on:
       - paper-kraken-oos-diagnostics
       - paper-kraken-5of5-walk-forward
       - paper-kraken-5of5-trade-excursions
+      - paper-kraken-5of5-exit-policy-lab
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
@@ -39,6 +41,8 @@ on:
       - "test_historical_trade_excursions.py"
       - "historical_exit_policy_comparison.py"
       - "test_historical_exit_policy_comparison.py"
+      - "historical_entry_filter_comparison.py"
+      - "test_historical_entry_filter_comparison.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
 permissions:
   contents: read
