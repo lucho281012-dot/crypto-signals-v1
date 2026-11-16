@@ -9,6 +9,7 @@ on:
       - paper-kraken-oos-5of5-counterfactual
       - paper-kraken-5of5-walk-forward
       - paper-kraken-5of5-trade-excursions
+      - paper-kraken-5of5-exit-policy-lab
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
@@ -17,6 +18,8 @@ on:
       - "historical_5of5_walk_forward.py"
       - "historical_trade_excursions.py"
       - "test_historical_trade_excursions.py"
+      - "historical_exit_policy_comparison.py"
+      - "test_historical_exit_policy_comparison.py"
       - "test_historical_5of5_walk_forward.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
   pull_request:
@@ -24,6 +27,7 @@ on:
       - paper-kraken-out-of-sample-validation
       - paper-kraken-oos-diagnostics
       - paper-kraken-5of5-walk-forward
+      - paper-kraken-5of5-trade-excursions
     paths:
       - "historical_oos_validation.py"
       - "historical_segment_backtest.py"
@@ -31,6 +35,8 @@ on:
       - "historical_5of5_walk_forward.py"
       - "historical_trade_excursions.py"
       - "test_historical_trade_excursions.py"
+      - "historical_exit_policy_comparison.py"
+      - "test_historical_exit_policy_comparison.py"
       - ".github/workflows/kraken-oos-diagnostics.yml"
 permissions:
   contents: read
@@ -43,7 +49,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "pandas>=2.2.0"
-      - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py test_historical_5of5_walk_forward.py test_historical_trade_excursions.py
+      - run: python -m unittest -v test_historical_oos_validation.py test_historical_segment_backtest.py test_historical_5of5_walk_forward.py test_historical_trade_excursions.py test_historical_exit_policy_comparison.py
   live-diagnostics:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
