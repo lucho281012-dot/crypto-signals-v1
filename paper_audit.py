@@ -88,7 +88,8 @@ def build_audit(state):
             "estimated_loss_at_stop_usdt": round(estimated_stop_loss, 8) if estimated_stop_loss is not None else None,
             "risk_percent_of_initial_balance": round(risk_percent, 6) if risk_percent is not None else None,
             "realized_r_multiple": round(r_multiple, 6) if r_multiple is not None else None,
-            "legacy_risk_budget_usdt": round(float(trade.get("risk_budget", 0.0)), 8),
+            "recorded_actual_risk_budget_usdt": round(float(trade.get("risk_budget", 0.0)), 8),
+            "risk_budget_target_usdt": round(float(trade.get("risk_budget_target", 0.0)), 8),
         })
 
         symbol = trade.get("symbol", "UNKNOWN")
