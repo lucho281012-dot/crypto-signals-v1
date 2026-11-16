@@ -164,6 +164,79 @@ class LegacyPaperStateBridgeTests(unittest.TestCase):
                 self.assertIn("market_value_usdt", position)
                 self.assertTrue(str(position["market_value_usdt"]))
 
+    def test_appends_snapshot_to_existing_history_without_mutating_inputs(self):
+        from paper_report_history import deserialize_report_history
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "paper_state.json"
+            marks_path = root / "marks.json"
+            history_path = root / "dashboard_history.json"
+            state_path.write_text(json.dumps(self.state), encoding="utf-8")
+            marks_path.write_text(json.dumps(self.marks), encoding="utf-8")
+            first = export_state_json(
+                state_path, marks_path,
+                captured_at="2026-11-14T10:00:00-06:00",
+                snapshot_id="history-001",
+            )
+            history_path.write_text(first, encoding="utf-8")
+            before_state = state_path.read_bytes()
+            before_marks = marks_path.read_bytes()
+            before_history = history_path.read_bytes()
+
+            payload = export_state_json(
+                state_path, marks_path,
+                captured_at="2026-11-14T11:00:00-06:00",
+                snapshot_id="history-002",
+                history_path=history_path,
+            )
+            history = deserialize_report_history(payload)
+
+            self.assertEqual([item["snapshot_id"] for item in history],
+                             ["history-001", "history-002"])
+            self.assertEqual(history_path.read_bytes(), before_history)
+            self.assertEqual(state_path.read_bytes(), before_state)
+            self.assertEqual(marks_path.read_bytes(), before_marks)
+
+    def test_rejects_new_snapshot_not_later_than_existing_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "paper_state.json"
+            marks_path = root / "marks.json"
+            history_path = root / "dashboard_history.json"
+            state_path.write_text(json.dumps(self.state), encoding="utf-8")
+            marks_path.write_text(json.dumps(self.marks), encoding="utf-8")
+            first = export_state_json(
+                state_path, marks_path,
+                captured_at="2026-11-14T10:00:00-06:00",
+                snapshot_id="history-001",
+            )
+            history_path.write_text(first, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "later than the latest"):
+                export_state_json(
+                    state_path, marks_path,
+                    captured_at="2026-11-14T10:00:00-06:00",
+                    snapshot_id="history-002",
+                    history_path=history_path,
+                )
+
+    def test_rejects_invalid_existing_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "paper_state.json"
+            marks_path = root / "marks.json"
+            history_path = root / "dashboard_history.json"
+            state_path.write_text(json.dumps(self.state), encoding="utf-8")
+            marks_path.write_text(json.dumps(self.marks), encoding="utf-8")
+            history_path.write_text("{not valid json", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "valid JSON"):
+                export_state_json(
+                    state_path, marks_path,
+                    captured_at="2026-11-14T11:00:00-06:00",
+                    snapshot_id="history-002",
+                    history_path=history_path,
+                )
+
     def test_refuses_wrong_input_filename(self):
         with tempfile.TemporaryDirectory() as directory:
             wrong = Path(directory) / "other.json"
