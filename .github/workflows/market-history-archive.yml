@@ -7,6 +7,8 @@ on:
     paths:
       - "market_history_collector.py"
       - "test_market_history_collector.py"
+      - "market_history_audit.py"
+      - "test_market_history_audit.py"
       - ".github/workflows/market-history-archive.yml"
   workflow_dispatch:
   schedule:
@@ -42,6 +44,12 @@ jobs:
 
       - name: Collect closed Kraken candles
         run: python market_history_collector.py
+
+      - name: Test market history audit
+        run: python -m unittest -v test_market_history_audit
+
+      - name: Audit archived market history
+        run: python market_history_audit.py
 
       - name: Run fee-aware historical strategy research
         run: python strategy_research.py
