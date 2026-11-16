@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from statistics import mean
 
 from backtest_engine import run_long_backtest
 from historical_segment_backtest import generate_segment_signals
@@ -39,8 +38,15 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
             })
             continue
 
-        # Generate once using full causal history; each fold takes only signals
-        # whose closed candle and next-open execution both lie inside that fold.
+        # Indicators are causal; generate the 5/5 signal stream once per
+        # contiguous segment, then isolate each fold's signal/entry timestamps.
+        first_test_start = int(n * FOLD_START_FRACTIONS[0])
+        signals = generate_segment_signals(
+            five, fifteen, start_index=first_test_start, minimum_conditions=5
+        )
+        index_by_timestamp = {
+            int(candle["timestamp"]): i for i, candle in enumerate(five)
+        }
         for fold_index, (start_fraction, end_fraction) in enumerate(
             zip(FOLD_START_FRACTIONS, FOLD_END_FRACTIONS), start=1
         ):
@@ -48,12 +54,6 @@ def backtest_5of5_walk_forward(segments, initial_balance=100.0):
             end = int(n * end_fraction)
             if end - start < 50:
                 continue
-            signals = generate_segment_signals(
-                five, fifteen, start_index=start, minimum_conditions=5
-            )
-            index_by_timestamp = {
-                int(candle["timestamp"]): i for i, candle in enumerate(five)
-            }
             fold_signals = [
                 signal for signal in signals
                 if start <= index_by_timestamp[int(signal["timestamp"])] < end - 1
