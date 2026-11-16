@@ -1,13 +1,15 @@
 """Read-only reporting adapter for the legacy paper_trading state.
 
 Pure translation only: no file I/O, network access, state mutation, or trades.
-Callers provide current mark prices for every open BASE/USDT position.
+Callers provide current USDT mark prices for every open position. Mark keys
+may be BASE, BASE/USDT, or BASEUSDT; report keys are normalized to BASE.
 """
+import re
 from decimal import Decimal, InvalidOperation
 
 
 def _decimal(value, field):
-    if isinstance(value, bool):
+    if isinstance(value, bool) or value is None:
         raise ValueError(f"{field} must be numeric")
     try:
         number = Decimal(str(value))
@@ -15,6 +17,13 @@ def _decimal(value, field):
         raise ValueError(f"{field} must be numeric")
     if not number.is_finite():
         raise ValueError(f"{field} must be finite")
+    return number
+
+
+def _positive(value, field):
+    number = _decimal(value, field)
+    if number <= 0:
+        raise ValueError(f"{field} must be positive")
     return number
 
 
@@ -26,34 +35,44 @@ def _non_negative(value, field):
 
 
 def _asset_from_symbol(symbol):
-    if not isinstance(symbol, str) or not symbol.endswith("/USDT"):
+    if not isinstance(symbol, str):
         raise ValueError(f"unsupported symbol: {symbol!r}; expected BASE/USDT")
-    asset = symbol[:-5]
-    if not asset or "/" in asset:
-        raise ValueError(f"invalid BASE/USDT symbol: {symbol!r}")
-    return asset
+    match = re.fullmatch(r"([A-Z0-9]+)(?:/)?USDT", symbol)
+    if not match:
+        raise ValueError(f"unsupported symbol: {symbol!r}; expected BASE/USDT")
+    return match.group(1)
+
+
+def _mark_for_asset(marks, asset, symbol):
+    """Resolve common mark-key styles and reject conflicting duplicate values."""
+    keys = (asset, symbol, asset + "USDT")
+    found = []
+    for key in keys:
+        if key in marks:
+            value = _positive(marks[key], f"marks[{key}]")
+            if value not in found:
+                found.append(value)
+    if not found:
+        raise ValueError(f"missing mark price for {asset}; expected one of {keys}")
+    if len(found) > 1:
+        raise ValueError(f"conflicting mark prices supplied for {asset}")
+    return found[0]
 
 
 def build_legacy_paper_report(state, marks):
-    """Translate paper_trading.load_state() data into a dashboard report.
+    """Translate paper_trading state into a canonical dashboard report.
 
-    marks maps full symbols (for example BTC/USDT) to positive prices.
-    Equity is cash plus marked market value. Open-position cost basis includes
-    its entry fee; realized P&L comes from closed trades' net_pnl. Fees are
-    reported for transparency and are not subtracted a second time.
+    Equity is cash plus marked market value. Closed-trade net_pnl is already
+    net of fees and is not adjusted again. The fee total is informational:
+    closed entry/exit fees plus entry fees on currently open positions.
     """
     if not isinstance(state, dict):
         raise ValueError("state must be a dictionary")
     if not isinstance(marks, dict):
         raise ValueError("marks must be a dictionary")
 
-    initial = _decimal(state.get("initial_balance"), "initial_balance")
-    cash = _decimal(state.get("cash_usdt"), "cash_usdt")
-    if initial <= 0:
-        raise ValueError("initial_balance must be positive")
-    if cash < 0:
-        raise ValueError("cash_usdt cannot be negative")
-
+    initial = _positive(state.get("initial_balance"), "initial_balance")
+    cash = _non_negative(state.get("cash_usdt"), "cash_usdt")
     positions = state.get("positions")
     history = state.get("history")
     if not isinstance(positions, dict):
@@ -67,14 +86,17 @@ def build_legacy_paper_report(state, marks):
 
     for symbol, position in sorted(positions.items()):
         asset = _asset_from_symbol(symbol)
+        if asset in report_positions:
+            raise ValueError(f"duplicate position for normalized asset: {asset}")
         if not isinstance(position, dict):
             raise ValueError(f"positions[{symbol}] must be a dictionary")
-        quantity = _non_negative(position.get("quantity"), f"{symbol}.quantity")
-        entry = _decimal(position.get("entry_price"), f"{symbol}.entry_price")
+
+        quantity = _positive(position.get("quantity"), f"{symbol}.quantity")
+        entry = _positive(position.get("entry_price"), f"{symbol}.entry_price")
+        # Fees are required: silently defaulting missing fees to zero can
+        # understate costs and make the financial report misleading.
         entry_fee = _non_negative(position.get("entry_fee"), f"{symbol}.entry_fee")
-        mark = _decimal(marks.get(symbol), f"marks[{symbol}]")
-        if quantity <= 0 or entry <= 0 or mark <= 0:
-            raise ValueError(f"{symbol} quantity and prices must be positive")
+        mark = _mark_for_asset(marks, asset, symbol)
 
         value = quantity * mark
         cost_basis = quantity * entry + entry_fee
@@ -86,6 +108,7 @@ def build_legacy_paper_report(state, marks):
             "quantity": str(quantity),
             "entry_price": str(entry),
             "mark_price": str(mark),
+            "mark_price_usdt": str(mark),
             "cost_basis_usdt": str(cost_basis),
             "market_value_usdt": str(value),
             "unrealized_pnl_usdt": str(unrealized),
@@ -133,6 +156,8 @@ def build_legacy_paper_report(state, marks):
         "fees_paid_usdt": str(fees),
         "cash_weight_pct": str(cash / equity * Decimal("100")) if equity > 0 else "0",
         "trade_count": len(history),
+        # A history item is a completed buy/sell round trip. Each open
+        # position contributes one additional buy and no sell yet.
         "buy_count": len(history) + len(report_positions),
         "sell_count": len(history),
         "open_position_count": len(report_positions),
