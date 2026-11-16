@@ -29,7 +29,7 @@ class LegacyPaperReportAdapterTests(unittest.TestCase):
         }
         self.marks = {"BTC/USDT": 110}
 
-    def test_builds_equity_and_pnl_without_double_counting_fees(self):
+    def test_builds_canonical_equity_and_pnl_without_double_counting_fees(self):
         report = build_legacy_paper_report(self.state, self.marks)
         self.assertEqual(report["initial_cash_usdt"], "1000")
         self.assertEqual(report["cash_usdt"], "809.59")
@@ -44,6 +44,25 @@ class LegacyPaperReportAdapterTests(unittest.TestCase):
         self.assertEqual(report["sell_count"], 1)
         self.assertEqual(report["open_position_count"], 1)
         self.assertEqual(report["positions"]["BTC"]["market_value_usdt"], "220")
+        self.assertEqual(report["positions"]["BTC"]["mark_price_usdt"], "110")
+
+    def test_accepts_base_asset_and_compact_mark_keys(self):
+        for key in ("BTC", "BTCUSDT", "BTC/USDT"):
+            with self.subTest(mark_key=key):
+                report = build_legacy_paper_report(self.state, {key: 110})
+                self.assertEqual(report["market_value_usdt"], "220")
+
+    def test_rejects_conflicting_mark_aliases(self):
+        with self.assertRaisesRegex(ValueError, "conflicting mark prices"):
+            build_legacy_paper_report(
+                self.state, {"BTC": 110, "BTC/USDT": 111}
+            )
+
+    def test_rejects_duplicate_normalized_positions(self):
+        state = copy.deepcopy(self.state)
+        state["positions"]["BTCUSDT"] = state["positions"]["BTC/USDT"]
+        with self.assertRaisesRegex(ValueError, "duplicate position"):
+            build_legacy_paper_report(state, self.marks)
 
     def test_does_not_mutate_state_or_marks(self):
         state_before = copy.deepcopy(self.state)
@@ -53,12 +72,12 @@ class LegacyPaperReportAdapterTests(unittest.TestCase):
         self.assertEqual(self.marks, marks_before)
 
     def test_requires_a_mark_for_each_open_position(self):
-        with self.assertRaisesRegex(ValueError, "marks"):
+        with self.assertRaisesRegex(ValueError, "missing mark"):
             build_legacy_paper_report(self.state, {})
 
     def test_rejects_non_finite_mark(self):
         with self.assertRaisesRegex(ValueError, "finite"):
-            build_legacy_paper_report(self.state, {"BTC/USDT": float("nan")})
+            build_legacy_paper_report(self.state, {"BTC": float("nan")})
 
     def test_rejects_unsupported_quote_currency(self):
         state = copy.deepcopy(self.state)
@@ -70,6 +89,12 @@ class LegacyPaperReportAdapterTests(unittest.TestCase):
         state = copy.deepcopy(self.state)
         state["positions"]["BTC/USDT"]["entry_fee"] = -0.1
         with self.assertRaisesRegex(ValueError, "cannot be negative"):
+            build_legacy_paper_report(state, self.marks)
+
+    def test_requires_explicit_fee_fields(self):
+        state = copy.deepcopy(self.state)
+        del state["positions"]["BTC/USDT"]["entry_fee"]
+        with self.assertRaisesRegex(ValueError, "entry_fee"):
             build_legacy_paper_report(state, self.marks)
 
     def test_empty_account_has_no_market_value(self):
