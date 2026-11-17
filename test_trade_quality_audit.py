@@ -36,6 +36,17 @@ class TradeQualityAuditTests(unittest.TestCase):
         self.assertEqual(report["pnl_mismatches"], [])
         self.assertAlmostEqual(report["trade_details"][0]["holding_minutes"], 60.0)
 
+    def test_r_multiple_prefers_recorded_entry_risk_budget(self):
+        state = {"history": [{
+            "symbol": "BTC/USDT", "reason": "take_profit",
+            "quantity": 1.0, "entry_price": 10.0, "exit_price": 11.0,
+            "entry_fee": 0.0, "exit_fee": 0.0, "net_pnl": 1.0,
+            "stop_price": 9.0, "risk_budget": 0.25,
+        }]}
+        report = build_quality_report(state)
+        self.assertAlmostEqual(report["trade_details"][0]["r_multiple"], 4.0)
+        self.assertAlmostEqual(report["closed_trade_summary"]["average_r_multiple"], 4.0)
+
     def test_reports_inconsistent_net_pnl(self):
         state = {"history": [{
             "symbol": "ETH/USDT", "quantity": 1, "entry_price": 10,
