@@ -30,6 +30,8 @@ jobs:
         run: python paper_bot.py
       - name: Audit closed paper trades
         run: python trade_quality_audit.py
+      - name: Audit paper ledger integrity
+        run: python paper_state_audit.py
       - name: Commit isolated paper ledger
         run: |
           git config user.name "github-actions[bot]"
