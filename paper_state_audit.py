@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from paper_trading import FEE_RATE
+
 STATE_FILE = Path("data/paper_state_entry_context.json")
 TOLERANCE = 1e-8
 
@@ -46,7 +48,7 @@ def audit_state(state):
             issues.append(f"{symbol}: invalid mark price")
             mark = entry
         position_market_value = quantity * mark
-        exit_fee_estimate = position_market_value * 0.001
+        exit_fee_estimate = position_market_value * FEE_RATE
         invested += quantity * entry
         entry_fees_open += fee
         open_risk += risk
