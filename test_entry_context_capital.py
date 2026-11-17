@@ -21,7 +21,7 @@ class EntryContextCapitalTests(unittest.TestCase):
     def test_fresh_ledger_is_separate_and_starts_at_100(self):
         self.assertEqual(self.state["cash_usdt"], 100.0)
         self.assertEqual(self.state["history"], [])
-        self.assertEqual(self.state["positions"], [])
+        self.assertEqual(self.state["positions"], {})
 
     def test_investment_never_exceeds_30_percent(self):
         ok, message = pt.open_position(self.state, "BTC/USDT", 100, 99)
