@@ -126,6 +126,7 @@ def open_signal_position(state, symbol, data, evaluation=None):
     key = (symbol, diagnostic['candle_timestamp'])
     if not any((item.get('symbol'), item.get('candle_timestamp')) == key for item in diagnostics):
         diagnostics.append(diagnostic)
+        del diagnostics[:-10000]
 
     if not signal or signal['side'] != 'BUY':
         save_state(state)
@@ -204,6 +205,7 @@ def run_bot():
                 key = (symbol, diagnostic["candle_timestamp"])
                 if not any((item.get("symbol"), item.get("candle_timestamp")) == key for item in diagnostics):
                     diagnostics.append(diagnostic)
+                    del diagnostics[:-10000]
             else:
                 open_signal_position(state, symbol, data, evaluation)
 
