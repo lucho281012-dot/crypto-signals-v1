@@ -1,0 +1,32 @@
+name: Paper Trade Quality Audit
+
+on:
+  push:
+    branches:
+      - paper-trading-quality-audit-v1
+    paths:
+      - "trade_quality_audit.py"
+      - "test_trade_quality_audit.py"
+      - "data/paper_state.json"
+      - ".github/workflows/trade-quality-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated audit branch
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: paper-trading-quality-audit-v1
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.11"
+      - name: Run unit tests
+        run: python -m unittest -v test_trade_quality_audit.py
+      - name: Run descriptive audit
+        run: python trade_quality_audit.py
