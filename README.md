@@ -1,45 +1,50 @@
-# Crypto Signals V1.1 — GitHub Actions
+# Crypto Signals — Paper Trading Spot
 
-Bot de alertas LONG/SHORT para BTC, ETH y SOL. Solo usa datos públicos de Binance USD-M Futures; no ejecuta órdenes ni necesita claves de Binance.
+Esta rama ejecuta un simulador de trading **Spot** para BTC/USDT, ETH/USDT y SOL/USDT usando datos públicos de Kraken. No envía órdenes reales ni necesita claves privadas de exchange.
 
-## Limitación importante
-GitHub Actions no es un servidor permanente. La programación mínima es cada 5 minutos, pero las ejecuciones pueden retrasarse o perderse en periodos de carga. No es adecuado para scalping que requiera ejecución exacta.
+## Funcionamiento
 
-En repositorios públicos, los runners estándar de GitHub Actions son gratuitos y el código es visible para todos. Los secretos configurados en Settings no se publican. En repositorios privados, el plan Free incluye 2.000 minutos/mes; una tarea cada 5 minutos podría superar la cuota. No habilites pagos adicionales.
+- Datos de mercado: Kraken mediante CCXT.
+- Pares: BTC/USDT, ETH/USDT y SOL/USDT.
+- Señal: BUY únicamente (sin posiciones cortas).
+- Marco de entrada: velas de 5 minutos cerradas.
+- Confirmación de tendencia: velas de 15 minutos cerradas.
+- Indicadores: EMA20, EMA200, RSI14, MACD, ATR14 y volumen SMA20.
+- Entrada simulada: apertura de la vela siguiente a la señal.
+- Stop: 1.2 ATR; objetivo: 2R.
+- Comisión simulada: 0.1% por lado.
+- Saldo inicial de referencia: 100 USDT; riesgo objetivo por operación: 1% del saldo inicial, sujeto a límites de saldo y exposición.
 
-## Preparación de Telegram
-1. En Telegram abre @BotFather, envía /newbot y crea el bot.
-2. Guarda el token en privado.
-3. Abre el nuevo bot y envíale /start.
-4. Obtén el chat ID visitando `https://api.telegram.org/bot<TU_TOKEN>/getUpdates` y leyendo `message.chat.id`.
-5. No publiques el token.
+## Automatización
 
-## Crear repositorio
-1. Regístrate en https://github.com/signup y confirma el correo.
-2. Pulsa New repository y nómbralo `crypto-signals-v1`.
-3. Elige Public si aceptas que el código sea visible y quieres Actions gratis sin consumir minutos. O Private, pero vigila el límite mensual.
-4. Crea el repositorio.
+GitHub Actions intenta ejecutar el simulador cada cinco minutos. Los horarios pueden retrasarse o perderse; no es un motor de ejecución en tiempo real y no es adecuado para scalping que requiera precisión temporal.
 
-## Subir archivos
-Descomprime el ZIP y en GitHub usa Add file → Upload files. Sube `signal_once.py`, `requirements.txt` y la carpeta `.github/workflows/signals.yml`. Puedes subir también README.md. No subas tokens, archivos .env ni credenciales.
+En cada ejecución se ejecutan primero las pruebas unitarias, luego el simulador y el informe por activo. El estado se guarda en `data/paper_state.json`.
 
-## Guardar secretos
-En el repositorio: Settings → Secrets and variables → Actions → New repository secret.
-Crea:
-- `TELEGRAM_BOT_TOKEN`: token de BotFather.
-- `TELEGRAM_CHAT_ID`: tu chat ID numérico.
+## Estadísticas
 
-## Activar
-1. Abre Actions y habilita los workflows si GitHub lo solicita.
-2. Selecciona Crypto Signals V1.1.
-3. Pulsa Run workflow para probar manualmente.
-4. Revisa los pasos de la ejecución. Si no hay señal, no se envía mensaje; eso es normal.
-5. El horario intentará ejecutarlo cada 5 minutos.
+`python paper_report.py` muestra, por separado para cada símbolo:
+- resultados de todo el historial;
+- resultados desde la fecha `baseline_metadata.created_at`.
 
-El archivo `data/state.json` se guarda en el repositorio para evitar procesar repetidamente la misma vela. En un repo público será visible, pero no contiene secretos.
+Las operaciones anteriores a la fecha base no se borran: quedan visibles en el historial completo, pero no contaminan la evaluación posterior al baseline. El informe usa `opened_at` para clasificar cada operación.
 
-## Estrategia
-Vela cerrada de 5m, confirmación de tendencia 15m, EMA20/EMA200, RSI14, MACD, ATR14 y volumen SMA20. Requiere 4/5 filtros y confirmación 15m. Stop = 1.2 ATR; TP1 = 1R; TP2 = 2R.
+## Pruebas locales
 
-## Limitaciones
-No se garantiza 90% de aciertos. Esta versión no monitorea el resultado posterior ni calcula win rate. La entrada es el cierre de la vela y el precio puede cambiar antes de recibir la alerta. No incluye spread, funding, slippage ni comisiones reales. Prueba primero sin operar y evalúa al menos 100 señales.
+Instala dependencias y ejecuta:
+
+```bash
+pip install -r requirements.txt
+python -m unittest discover -v
+python paper_report.py
+```
+
+## Limitaciones y seguridad
+
+- Los resultados son simulados; no equivalen a ejecuciones reales.
+- El modelo no incorpora spread ni slippage variable; la comisión fija no necesariamente representa la tarifa real.
+- La entrada se aproxima usando la apertura de la vela siguiente y puede diferir del precio disponible tras retrasos.
+- Si stop y objetivo aparecen dentro de la misma vela, se aplica la hipótesis conservadora de stop primero.
+- La reconstrucción de huecos depende del histórico público disponible en Kraken.
+- Una muestra pequeña no demuestra rentabilidad. Mantener la prueba en paper trading y reunir al menos 100 operaciones evaluables por activo antes de sacar conclusiones.
+- No se garantiza ningún porcentaje de acierto ni beneficio.
