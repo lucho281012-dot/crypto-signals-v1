@@ -63,7 +63,7 @@ def evaluate_spot(candles_5m, candles_15m):
     eligible = conditions_met >= 4 and bullish_trend and atr > 0
 
     diagnostic = {
-        "candle_timestamp": int(candles_5m[-2]["timestamp"]),
+        "candle_timestamp": int(candles_5m[-2]["timestamp"]) if candles_5m[-2].get("timestamp") is not None else None,
         "evaluated_at_utc": pd.Timestamp.utcnow().isoformat(),
         "side": "BUY" if eligible else "NO_SIGNAL",
         "conditions": conditions,
