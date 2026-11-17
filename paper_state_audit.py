@@ -23,6 +23,10 @@ def audit_state(state):
     invested = 0.0
     open_risk = 0.0
     entry_fees_open = 0.0
+    market_value = 0.0
+    estimated_exit_fees = 0.0
+    unrealized_pnl = 0.0
+    last_prices = state.get("last_processed_close", {})
     for symbol, position in positions.items():
         try:
             quantity = float(position["quantity"])
@@ -37,9 +41,18 @@ def audit_state(state):
             issues.append(f"{symbol}: invalid quantity or price/stop relationship")
         if fee < -TOLERANCE or risk < -TOLERANCE:
             issues.append(f"{symbol}: negative fee or risk budget")
+        mark = float(last_prices.get(symbol, entry))
+        if mark <= 0:
+            issues.append(f"{symbol}: invalid mark price")
+            mark = entry
+        position_market_value = quantity * mark
+        exit_fee_estimate = position_market_value * 0.001
         invested += quantity * entry
         entry_fees_open += fee
         open_risk += risk
+        market_value += position_market_value
+        estimated_exit_fees += exit_fee_estimate
+        unrealized_pnl += position_market_value - quantity * entry - fee - exit_fee_estimate
 
     if initial > 0 and invested > initial * 0.30 + TOLERANCE:
         issues.append("open investment exceeds the 30% portfolio limit")
@@ -81,16 +94,26 @@ def audit_state(state):
     if abs(cash_difference) > TOLERANCE:
         issues.append("cash balance does not reconcile with ledger transactions")
 
+    equity = cash + market_value - estimated_exit_fees
+    total_pnl = equity - initial
+    equity_difference = total_pnl - (realized_pnl + unrealized_pnl)
+    if abs(equity_difference) > TOLERANCE:
+        issues.append("equity does not reconcile with realized and unrealized PnL")
+
     return {
         "valid": not issues,
         "issues": issues,
         "initial_balance_usdt": round(initial, 8),
         "cash_usdt": round(cash, 8),
+        "equity_usdt": round(equity, 8),
+        "realized_pnl_usdt": round(realized_pnl, 8),
+        "unrealized_pnl_usdt": round(unrealized_pnl, 8),
+        "total_pnl_usdt": round(total_pnl, 8),
+        "equity_difference_usdt": round(equity_difference, 8),
         "open_investment_usdt": round(invested, 8),
         "open_risk_usdt": round(open_risk, 8),
         "closed_trades": len(history),
         "open_positions": len(positions),
-        "realized_pnl_usdt": round(realized_pnl, 8),
         "closed_fees_usdt": round(fees_closed, 8),
         "expected_cash_usdt": round(expected_cash, 8),
         "cash_difference_usdt": round(cash_difference, 8),
