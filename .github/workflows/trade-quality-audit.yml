@@ -22,6 +22,8 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           ref: paper-trading-quality-audit-v1
+      - name: Record audited revision
+        run: echo "Auditing commit $GITHUB_SHA"
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
         with:
