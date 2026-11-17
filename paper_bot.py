@@ -194,10 +194,11 @@ def run_bot():
 
         # Las nuevas entradas se evalúan solo en la última vela disponible,
         # nunca retrospectivamente durante la recuperación del hueco.
-        # Diagnostics are recorded even when an existing position blocks a new entry.
-        evaluation = evaluate_spot(data["candles_5m"], data["candles_15m"])
-        if evaluation:
-            if had_position or symbol in state["positions"]:
+        # Keep the established three-argument entry hook; diagnostics are
+        # collected by it when flat and separately when a position exists.
+        if had_position or symbol in state["positions"]:
+            evaluation = evaluate_spot(data["candles_5m"], data["candles_15m"])
+            if evaluation:
                 diagnostic = dict(evaluation["diagnostic"])
                 diagnostic["symbol"] = symbol
                 diagnostic["entry_blocked_reason"] = "existing_position"
@@ -206,8 +207,8 @@ def run_bot():
                 if not any((item.get("symbol"), item.get("candle_timestamp")) == key for item in diagnostics):
                     diagnostics.append(diagnostic)
                     del diagnostics[:-10000]
-            else:
-                open_signal_position(state, symbol, data, evaluation)
+        else:
+            open_signal_position(state, symbol, data)
 
         state["last_processed_candle"][symbol] = latest_id
         state["last_processed_close"][symbol] = float(pending[-1]["close"])
