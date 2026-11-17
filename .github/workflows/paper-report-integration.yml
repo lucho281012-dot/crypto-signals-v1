@@ -1,0 +1,30 @@
+name: Paper Report Integration Validation
+
+on:
+  push:
+    branches:
+      - paper-report-integration-validation
+  pull_request:
+    branches:
+      - paper-report-dashboard-bridge
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run end-to-end report integration tests
+        run: python -m unittest -v test_paper_report_integration.py test_paper_report_json_store.py test_paper_report_json_store_security.py test_paper_report_json_store_concurrency.py
