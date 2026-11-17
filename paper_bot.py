@@ -18,8 +18,7 @@ def process_position_exit(state, symbol, candle):
     stop = position["stop_price"]
     target = position.get("target_price")
 
-    # Si ambos niveles aparecen dentro de la misma vela, conservamos
-    # la regla conservadora existente: stop-loss tiene prioridad.
+    # Si ambos niveles aparecen dentro de la misma vela, stop-loss tiene prioridad.
     if candle["low"] <= stop:
         exit_price = min(candle["open"], stop)
         close_position(state, symbol, exit_price, "stop_loss")
@@ -49,76 +48,56 @@ def get_pending_candles(symbol, last_processed, latest_closed, last_processed_cl
             f"Cursor o vela fuera de alineación de 5 minutos para {symbol}."
         )
 
-    # Incluimos la última vela procesada como semilla para conocer el último
-    # cierre negociado. Kraken omite intervalos en los que no hubo trades.
-    recovered = get_candles_since(
-        symbol,
-        last_timestamp,
-        timeframe="5m"
-    )
-
+    recovered = get_candles_since(symbol, last_timestamp, timeframe="5m")
     unique = {
         int(candle["timestamp"]): candle
         for candle in recovered
         if last_timestamp <= int(candle["timestamp"]) <= latest_timestamp
     }
-
     seed = unique.get(last_timestamp)
     if seed is None and last_processed_close is None:
         raise RuntimeError(
-            f"Recuperación incompleta para {symbol}: "
-            "no se pudo recuperar la vela usada como cursor ni existe "
-            "un cierre persistido para reconstruirla."
+            f"Recuperación incompleta para {symbol}: no se pudo recuperar "
+            "la vela usada como cursor ni existe un cierre persistido."
         )
-
-    # La última vela cerrada conocida por el feed debe existir realmente;
-    # no la sustituimos por una vela sintética si falta en la descarga.
     if latest_timestamp not in unique:
         raise RuntimeError(
-            f"Recuperación incompleta para {symbol}: "
-            "no se recibió la última vela cerrada."
+            f"Recuperación incompleta para {symbol}: no se recibió "
+            "la última vela cerrada."
         )
 
     pending = []
-    previous_close = float(seed["close"] if seed is not None else last_processed_close)
+    previous_close = float(
+        seed["close"] if seed is not None else last_processed_close
+    )
     expected_timestamp = last_timestamp + interval_ms
 
     while expected_timestamp <= latest_timestamp:
         candle = unique.get(expected_timestamp)
-
         if candle is None:
-            # Sin operaciones no hay rango negociado: mantenemos el último
-            # precio conocido y volumen cero para poder evaluar el tiempo
-            # transcurrido sin inventar movimiento de mercado.
             candle = {
                 "timestamp": expected_timestamp,
                 "open": previous_close,
                 "high": previous_close,
                 "low": previous_close,
                 "close": previous_close,
-                "volume": 0.0
+                "volume": 0.0,
             }
         else:
             previous_close = float(candle["close"])
-
         pending.append(candle)
         expected_timestamp += interval_ms
 
     if not pending or int(pending[-1]["timestamp"]) != latest_timestamp:
         raise RuntimeError(
-            f"Recuperación incompleta para {symbol}: "
-            "no se pudo reconstruir hasta la última vela cerrada."
+            f"Recuperación incompleta para {symbol}: no se pudo reconstruir "
+            "hasta la última vela cerrada."
         )
-
     return pending
 
 
 def open_signal_position(state, symbol, data):
-    signal = analyze_spot(
-        data["candles_5m"],
-        data["candles_15m"]
-    )
-
+    signal = analyze_spot(data["candles_5m"], data["candles_15m"])
     if not signal or signal["side"] != "BUY":
         return
 
@@ -127,25 +106,37 @@ def open_signal_position(state, symbol, data):
     stop_price = entry_price - (1.2 * signal["atr"])
     target_price = entry_price + (2 * (entry_price - stop_price))
 
+    diagnostic = dict(signal["signal_diagnostic"])
+    diagnostic["symbol"] = symbol
+    diagnostic["execution"] = {
+        "timeframe": "5m",
+        "entry_candle_timestamp": int(candles[-1]["timestamp"]),
+        "entry_open": entry_price,
+        "simulated_entry_price": entry_price,
+    }
+
     success, message = open_position(
         state,
         symbol,
         entry_price,
-        stop_price
+        stop_price,
+        signal_diagnostic=diagnostic,
     )
-
     if success:
-        position = state["positions"][symbol]
-        position["target_price"] = target_price
-        # Guardamos los indicadores de la vela cerrada que originó la señal
-        # y separamos la apertura de ejecución de la siguiente vela.
-        position["signal_diagnostic"] = dict(signal["signal_diagnostic"])
-        position["signal_diagnostic"]["execution"] = {
-            "timeframe": "5m",
-            "entry_candle_timestamp": int(candles[-1]["timestamp"]),
-            "entry_open": float(candles[-1]["open"]),
-            "simulated_entry_price": entry_price,
-        }
+        state["positions"][symbol]["target_price"] = target_price
+        # A diagnostic is retained even if the risk/capital guard blocks entry.
+        state.setdefault("signal_diagnostics", []).append({
+            **diagnostic,
+            "entry_blocked_reason": None,
+        })
+        del state["signal_diagnostics"][:-10000]
+        save_state(state)
+    else:
+        state.setdefault("signal_diagnostics", []).append({
+            **diagnostic,
+            "entry_blocked_reason": message,
+        })
+        del state["signal_diagnostics"][:-10000]
         save_state(state)
 
     print(message)
@@ -156,19 +147,18 @@ def run_bot():
     state.setdefault("last_processed_candle", {})
     state.setdefault("last_processed_close", {})
     state.setdefault("positions", {})
+    state.setdefault("signal_diagnostics", [])
 
     market_data = get_all_market_data()
 
     for symbol, data in market_data.items():
         candles = data["candles_5m"]
-
         if len(candles) < 3:
             continue
 
         latest_closed = candles[-2]
         latest_id = str(latest_closed["timestamp"])
         last_processed = state["last_processed_candle"].get(symbol)
-
         if last_processed == latest_id:
             continue
 
@@ -177,29 +167,22 @@ def run_bot():
                 symbol,
                 last_processed,
                 latest_closed,
-                state["last_processed_close"].get(symbol)
+                state["last_processed_close"].get(symbol),
             )
         except Exception as error:
-            # No movemos el cursor ante datos incompletos o fallos de API.
             print(f"Recuperación pendiente para {symbol}: {error}")
             continue
 
-        # Durante el hueco solo gestionamos posiciones que ya existían.
-        # No inventamos entradas retrospectivas con señales que el bot
-        # no pudo observar en tiempo real.
         for candle in pending[:-1]:
             process_position_exit(state, symbol, candle)
             state["last_processed_candle"][symbol] = str(candle["timestamp"])
             state["last_processed_close"][symbol] = float(candle["close"])
             save_state(state)
 
-        # La última vela recuperada es la más reciente ya cerrada.
-        # Aplicamos primero la gestión de una posición previa.
         had_position = symbol in state["positions"]
         process_position_exit(state, symbol, pending[-1])
 
-        # Las nuevas entradas se evalúan solo en la última vela disponible,
-        # nunca retrospectivamente durante la recuperación del hueco.
+        # No se abren entradas retrospectivas durante la recuperación del hueco.
         if not had_position and symbol not in state["positions"]:
             open_signal_position(state, symbol, data)
 
