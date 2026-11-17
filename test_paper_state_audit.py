@@ -82,6 +82,46 @@ class PaperStateAuditTests(unittest.TestCase):
         self.assertFalse(report["valid"])
         self.assertIn("closed trade 0: net PnL does not reconcile", report["issues"])
 
+    def test_rejects_nan_and_infinite_ledger_values(self):
+        self.state["cash_usdt"] = float("nan")
+        report = audit_state(self.state)
+        self.assertFalse(report["valid"])
+        self.assertIn("cash_usdt must be a finite number", report["issues"])
+
+        self.state["cash_usdt"] = 100.0
+        self.assertTrue(pt.open_position(self.state, "BTC/USDT", 100, 99)[0])
+        self.state["positions"]["BTC/USDT"]["quantity"] = float("inf")
+        report = audit_state(self.state)
+        self.assertFalse(report["valid"])
+        self.assertTrue(any("non-finite position fields" in x for x in report["issues"]))
+
+    def test_rejects_malformed_ledger_containers_and_records(self):
+        malformed = {"initial_balance": 100, "cash_usdt": 100,
+                      "positions": [], "history": {}, "last_processed_close": []}
+        report = audit_state(malformed)
+        self.assertFalse(report["valid"])
+        self.assertIn("positions must be an object", report["issues"])
+        self.assertIn("history must be a list", report["issues"])
+        self.assertIn("last_processed_close must be an object", report["issues"])
+
+        self.state["history"] = ["not-a-trade"]
+        report = audit_state(self.state)
+        self.assertFalse(report["valid"])
+        self.assertIn("closed trade 0: trade must be an object", report["issues"])
+
+    def test_detects_exact_duplicate_history_record(self):
+        self.assertTrue(pt.open_position(self.state, "BTC/USDT", 100, 99)[0])
+        self.assertTrue(pt.close_position(self.state, "BTC/USDT", 102, "take_profit")[0])
+        self.state["history"].append(copy.deepcopy(self.state["history"][0]))
+        report = audit_state(self.state)
+        self.assertFalse(report["valid"])
+        self.assertIn("closed trade 1: exact duplicate history record", report["issues"])
+
+    def test_audit_rejects_non_object_root(self):
+        report = audit_state([])
+        self.assertFalse(report["valid"])
+        self.assertEqual(report["issues"], ["ledger must be a JSON object"])
+
     def test_detects_risk_and_investment_limit_breaches(self):
         self.assertTrue(pt.open_position(self.state, "BTC/USDT", 100, 99)[0])
         position = self.state["positions"]["BTC/USDT"]
