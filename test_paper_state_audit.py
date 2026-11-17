@@ -66,7 +66,7 @@ class PaperStateAuditTests(unittest.TestCase):
         self.assertTrue(pt.open_position(self.state, "BTC/USDT", 100, 99)[0])
         position = self.state["positions"]["BTC/USDT"]
         position["quantity"] *= 2
-        position["risk_budget"] *= 2
+        position["risk_budget"] = 2.1
         report = audit_state(self.state)
         self.assertFalse(report["valid"])
         self.assertTrue(any("30% portfolio limit" in x for x in report["issues"]))
