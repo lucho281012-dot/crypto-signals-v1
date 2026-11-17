@@ -56,6 +56,13 @@ class TradeQualityAuditTests(unittest.TestCase):
         report = build_quality_report(state)
         self.assertEqual(len(report["pnl_mismatches"]), 1)
 
+    def test_audit_reads_the_entry_context_ledger(self):
+        from trade_quality_audit import STATE_FILE as AUDIT_STATE_FILE
+        from paper_trading import STATE_FILE as PAPER_STATE_FILE
+
+        self.assertEqual(AUDIT_STATE_FILE, PAPER_STATE_FILE)
+        self.assertEqual(str(AUDIT_STATE_FILE), "data/paper_state_entry_context.json")
+
 
 if __name__ == "__main__":
     unittest.main()
