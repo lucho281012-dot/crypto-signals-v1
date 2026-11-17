@@ -5,6 +5,7 @@ on:
     branches:
       - paper-trading-v1-2
       - paper-trading-audit-v1
+      - paper-trading-capital-v2
     paths:
       - "paper_bot.py"
       - "paper_trading.py"
