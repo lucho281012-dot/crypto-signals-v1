@@ -184,9 +184,9 @@
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1794932700000",
-    "ETH/USDT": "1794932700000",
-    "SOL/USDT": "1794932700000"
+    "BTC/USDT": "1794933600000",
+    "ETH/USDT": "1794933600000",
+    "SOL/USDT": "1794933600000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -200,8 +200,100 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 63910.0,
-    "ETH/USDT": 1783.44,
-    "SOL/USDT": 72.56
-  }
+    "BTC/USDT": 63817.7,
+    "ETH/USDT": 1780.09,
+    "SOL/USDT": 72.23
+  },
+  "signal_diagnostics": [
+    {
+      "candle_timestamp": 1794933600000,
+      "evaluated_at_utc": "2026-11-17T16:49:14.234739+00:00",
+      "side": "NO_SIGNAL",
+      "conditions": {
+        "ema20_above_ema200": false,
+        "rsi_above_50": false,
+        "macd_above_signal": false,
+        "volume_above_sma20": false,
+        "close_above_ema20": false
+      },
+      "conditions_met": 0,
+      "trend_15m_bullish": false,
+      "indicators": {
+        "close": 63817.7,
+        "ema20": 64248.95792058368,
+        "ema200": 64704.68054371778,
+        "rsi14": 37.34604953311404,
+        "macd": -247.96865000813705,
+        "macd_signal": -216.56804962302084,
+        "volume": 1.16167238,
+        "volume_sma20": 1.8431215495,
+        "volume_ratio": 0.6302744278124995,
+        "atr14": 347.1857142857147,
+        "ema20_15m": 64544.612979148245,
+        "ema200_15m": 64759.904557286565
+      },
+      "symbol": "BTC/USDT",
+      "entry_blocked_reason": null
+    },
+    {
+      "candle_timestamp": 1794933600000,
+      "evaluated_at_utc": "2026-11-17T16:49:15.431852+00:00",
+      "side": "NO_SIGNAL",
+      "conditions": {
+        "ema20_above_ema200": false,
+        "rsi_above_50": false,
+        "macd_above_signal": true,
+        "volume_above_sma20": true,
+        "close_above_ema20": false
+      },
+      "conditions_met": 2,
+      "trend_15m_bullish": false,
+      "indicators": {
+        "close": 1780.09,
+        "ema20": 1789.8028428346474,
+        "ema200": 1814.3570877314955,
+        "rsi14": 40.926099922461574,
+        "macd": -8.387245830645952,
+        "macd_signal": -8.446311201124292,
+        "volume": 33.64691305,
+        "volume_sma20": 22.605905080000003,
+        "volume_ratio": 1.4884125599451556,
+        "atr14": 11.285000000000034,
+        "ema20_15m": 1803.3536058826667,
+        "ema200_15m": 1816.5684430625388
+      },
+      "symbol": "ETH/USDT",
+      "entry_blocked_reason": null
+    },
+    {
+      "candle_timestamp": 1794933600000,
+      "evaluated_at_utc": "2026-11-17T16:49:16.633410+00:00",
+      "side": "NO_SIGNAL",
+      "conditions": {
+        "ema20_above_ema200": false,
+        "rsi_above_50": false,
+        "macd_above_signal": false,
+        "volume_above_sma20": true,
+        "close_above_ema20": false
+      },
+      "conditions_met": 1,
+      "trend_15m_bullish": true,
+      "indicators": {
+        "close": 72.23,
+        "ema20": 72.68203063192723,
+        "ema200": 72.74473111283542,
+        "rsi14": 40.44767236233834,
+        "macd": -0.3009590999559606,
+        "macd_signal": -0.2930780080796972,
+        "volume": 425.87475594,
+        "volume_sma20": 260.33845899949995,
+        "volume_ratio": 1.6358503371982316,
+        "atr14": 0.42428571428571515,
+        "ema20_15m": 73.05255844701347,
+        "ema200_15m": 72.08511161120954
+      },
+      "symbol": "SOL/USDT",
+      "entry_blocked_reason": null
+    }
+  ]
 }
