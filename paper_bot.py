@@ -1,5 +1,5 @@
 from market_data import get_all_market_data, get_candles_since
-from signal_engine import analyze_spot
+from signal_engine import evaluate_spot
 from paper_trading import (
     load_state,
     save_state,
@@ -113,33 +113,36 @@ def get_pending_candles(symbol, last_processed, latest_closed, last_processed_cl
     return pending
 
 
-def open_signal_position(state, symbol, data):
-    signal = analyze_spot(
-        data["candles_5m"],
-        data["candles_15m"]
-    )
-
-    if not signal or signal["side"] != "BUY":
+def open_signal_position(state, symbol, data, evaluation=None):
+    evaluation = evaluation or evaluate_spot(data['candles_5m'], data['candles_15m'])
+    if not evaluation:
         return
 
-    candles = data["candles_5m"]
-    entry_price = float(candles[-1]["open"])
-    stop_price = entry_price - (1.2 * signal["atr"])
-    target_price = entry_price + (2 * (entry_price - stop_price))
+    signal = evaluation['signal']
+    diagnostic = dict(evaluation['diagnostic'])
+    diagnostic['symbol'] = symbol
+    diagnostic['entry_blocked_reason'] = None
+    diagnostics = state.setdefault('signal_diagnostics', [])
+    key = (symbol, diagnostic['candle_timestamp'])
+    if not any((item.get('symbol'), item.get('candle_timestamp')) == key for item in diagnostics):
+        diagnostics.append(diagnostic)
 
-    success, message = open_position(
-        state,
-        symbol,
-        entry_price,
-        stop_price
-    )
-
-    if success:
-        state["positions"][symbol]["target_price"] = target_price
+    if not signal or signal['side'] != 'BUY':
         save_state(state)
+        return
 
+    candles = data['candles_5m']
+    entry_price = float(candles[-1]['open'])
+    stop_price = entry_price - (1.2 * signal['atr'])
+    target_price = entry_price + (2 * (entry_price - stop_price))
+    success, message = open_position(state, symbol, entry_price, stop_price, signal_diagnostic=diagnostic)
+    if success:
+        state['positions'][symbol]['target_price'] = target_price
+        save_state(state)
+    else:
+        diagnostic['entry_blocked_reason'] = message
+        save_state(state)
     print(message)
-
 
 def run_bot():
     state = load_state()
@@ -190,8 +193,19 @@ def run_bot():
 
         # Las nuevas entradas se evalúan solo en la última vela disponible,
         # nunca retrospectivamente durante la recuperación del hueco.
-        if not had_position and symbol not in state["positions"]:
-            open_signal_position(state, symbol, data)
+        # Diagnostics are recorded even when an existing position blocks a new entry.
+        evaluation = evaluate_spot(data["candles_5m"], data["candles_15m"])
+        if evaluation:
+            if had_position or symbol in state["positions"]:
+                diagnostic = dict(evaluation["diagnostic"])
+                diagnostic["symbol"] = symbol
+                diagnostic["entry_blocked_reason"] = "existing_position"
+                diagnostics = state.setdefault("signal_diagnostics", [])
+                key = (symbol, diagnostic["candle_timestamp"])
+                if not any((item.get("symbol"), item.get("candle_timestamp")) == key for item in diagnostics):
+                    diagnostics.append(diagnostic)
+            else:
+                open_signal_position(state, symbol, data, evaluation)
 
         state["last_processed_candle"][symbol] = latest_id
         state["last_processed_close"][symbol] = float(pending[-1]["close"])
