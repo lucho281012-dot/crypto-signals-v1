@@ -19,7 +19,7 @@ class PaperTradingCapitalTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_position_investment_never_exceeds_30_percent(self):
-        ok, message = pt.open_position(self.state, "BTC/USDT", 100, 90)
+        ok, message = pt.open_position(self.state, "BTC/USDT", 100, 99)
         self.assertTrue(ok, message)
         invested = sum(p["quantity"] * p["entry_price"] for p in self.state["positions"].values())
         self.assertLessEqual(invested, 30.0 + 1e-9)
