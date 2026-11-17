@@ -135,7 +135,17 @@ def open_signal_position(state, symbol, data):
     )
 
     if success:
-        state["positions"][symbol]["target_price"] = target_price
+        position = state["positions"][symbol]
+        position["target_price"] = target_price
+        # Guardamos los indicadores de la vela cerrada que originó la señal
+        # y separamos la apertura de ejecución de la siguiente vela.
+        position["signal_diagnostic"] = dict(signal["signal_diagnostic"])
+        position["signal_diagnostic"]["execution"] = {
+            "timeframe": "5m",
+            "entry_candle_timestamp": int(candles[-1]["timestamp"]),
+            "entry_open": float(candles[-1]["open"]),
+            "simulated_entry_price": entry_price,
+        }
         save_state(state)
 
     print(message)
