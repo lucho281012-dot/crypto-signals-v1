@@ -52,10 +52,16 @@ def build_quality_report(state):
             })
 
         stop = float(trade.get("stop_price", 0.0) or 0.0)
-        risk = quantity * (entry - stop) + entry_fee + (
-            quantity * stop * (exit_fee / (quantity * exit_price))
-            if stop > 0 and exit_price > 0 else 0.0
-        ) if stop > 0 and entry > stop else None
+        # Prefer the risk budget captured by the simulator at entry; it
+        # already includes estimated round-trip fees and any balance cap.
+        risk = float(trade.get("risk_budget", 0.0) or 0.0)
+        if risk <= 0 and stop > 0 and entry > stop:
+            risk = quantity * (entry - stop) + entry_fee + (
+                quantity * stop * (exit_fee / (quantity * exit_price))
+                if exit_price > 0 else 0.0
+            )
+        if risk <= 0:
+            risk = None
         r_multiple = pnl / risk if risk and risk > 0 else None
         duration = _duration_minutes(trade.get("opened_at"), trade.get("closed_at"))
         row = {
