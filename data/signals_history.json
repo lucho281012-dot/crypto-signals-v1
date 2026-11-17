@@ -2534,10 +2534,10 @@
     "score": 4,
     "rsi": 53.018256234898615,
     "volume_ratio": 0.9665391869591914,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1794910800000
   }
 ]
