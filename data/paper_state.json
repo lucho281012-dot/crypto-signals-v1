@@ -1,6 +1,6 @@
 {
   "initial_balance": 100,
-  "cash_usdt": 4.843449380667514,
+  "cash_usdt": 4.937857235905715,
   "positions": {
     "ETH/USDT": {
       "entry_price": 1829.18,
@@ -11,16 +11,6 @@
       "risk_budget_target": 1.0,
       "opened_at": "2026-11-17T07:23:37.014470+00:00",
       "target_price": 1836.5205714285714
-    },
-    "SOL/USDT": {
-      "entry_price": 72.84,
-      "stop_price": 72.60342857142858,
-      "quantity": 0.0013016238964916598,
-      "entry_fee": 9.48102846204525e-05,
-      "risk_budget": 0.0004972396668719838,
-      "risk_budget_target": 1.0,
-      "opened_at": "2026-11-17T07:23:38.216970+00:00",
-      "target_price": 73.31314285714285
     }
   },
   "history": [
@@ -90,12 +80,28 @@
       "net_pnl": 0.4023926810750631,
       "reason": "take_profit",
       "closed_at": "2026-11-17T06:08:52.272959+00:00"
+    },
+    {
+      "entry_price": 72.84,
+      "stop_price": 72.60342857142858,
+      "quantity": 0.0013016238964916598,
+      "entry_fee": 9.48102846204525e-05,
+      "risk_budget": 0.0004972396668719838,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-17T07:23:38.216970+00:00",
+      "target_price": 73.31314285714285,
+      "symbol": "SOL/USDT",
+      "exit_price": 72.60342857142858,
+      "exit_fee": 9.450235759579678e-05,
+      "net_pnl": -0.0004972396668719843,
+      "reason": "stop_loss",
+      "closed_at": "2026-11-17T08:34:40.527752+00:00"
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1794899700000",
-    "ETH/USDT": "1794899700000",
-    "SOL/USDT": "1794899700000"
+    "BTC/USDT": "1794903900000",
+    "ETH/USDT": "1794903900000",
+    "SOL/USDT": "1794903900000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -109,8 +115,8 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 64616.1,
-    "ETH/USDT": 1829.84,
-    "SOL/USDT": 72.84
+    "BTC/USDT": 64510.8,
+    "ETH/USDT": 1827.89,
+    "SOL/USDT": 72.59
   }
 }
