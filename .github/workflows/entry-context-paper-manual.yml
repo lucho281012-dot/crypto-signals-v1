@@ -1,0 +1,39 @@
+name: Entry Context Paper Trading (Manual Only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: entry-context-paper-ledger
+  cancel-in-progress: false
+
+jobs:
+  paper-trading:
+    if: github.ref == 'refs/heads/paper-trading-entry-context-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout isolated entry-context branch
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: paper-trading-entry-context-v1
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run one paper-trading cycle
+        run: python paper_bot.py
+      - name: Audit closed paper trades
+        run: python trade_quality_audit.py
+      - name: Commit isolated paper ledger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/paper_state_entry_context.json
+          git diff --cached --quiet || git commit -m "Update isolated entry-context paper ledger"
+          git push origin HEAD:paper-trading-entry-context-v1
