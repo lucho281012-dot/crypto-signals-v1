@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import paper_trading as pt
+from paper_report import audit_portfolio, build_report
 
 
 class PaperTradingCapitalTests(unittest.TestCase):
@@ -70,6 +71,34 @@ class PaperTradingCapitalTests(unittest.TestCase):
     def test_rejects_invalid_prices(self):
         self.assertFalse(pt.open_position(self.state, "BTC/USDT", 0, -1)[0])
         self.assertFalse(pt.open_position(self.state, "BTC/USDT", 100, 100)[0])
+
+    def test_consecutive_stop_losses_keep_ledger_and_cash_consistent(self):
+        for index in range(5):
+            symbol = f"TEST{index}/USDT"
+            opened, message = pt.open_position(self.state, symbol, 100, 90)
+            self.assertTrue(opened, message)
+            closed, message = pt.close_position(self.state, symbol, 90, "stop_loss")
+            self.assertTrue(closed, message)
+            status = pt.get_status(self.state)
+            self.assertGreaterEqual(status["cash_usdt"], 0)
+            self.assertLessEqual(status["total_pnl"], 0)
+            self.assertAlmostEqual(
+                status["total_pnl"], status["realized_pnl"], places=4
+            )
+        audit = audit_portfolio(self.state)
+        self.assertTrue(audit["passed"], audit)
+        self.assertTrue(audit["checks"]["cash_ledger_reconciles"])
+
+    def test_report_exposes_equity_pnl_and_limit_audit(self):
+        opened, message = pt.open_position(self.state, "BTC/USDT", 100, 90)
+        self.assertTrue(opened, message)
+        self.state["last_processed_close"]["BTC/USDT"] = 105
+        report = build_report(self.state)
+        self.assertIn("equity_usdt", report["portfolio"])
+        self.assertIn("total_pnl", report["portfolio"])
+        self.assertTrue(report["audit"]["passed"], report["audit"])
+        self.assertEqual(report["audit"]["investment_limit_usdt"], 30.0)
+        self.assertEqual(report["audit"]["aggregate_risk_limit_usdt"], 2.0)
 
 
 if __name__ == "__main__":
