@@ -29,6 +29,6 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install "pandas>=2.2.0"
       - name: Run signal diagnostic and ledger tests
         run: python -m unittest -v test_signal_diagnostics.py test_trade_quality_audit.py
