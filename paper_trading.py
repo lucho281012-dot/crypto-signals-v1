@@ -18,6 +18,7 @@ def load_state():
             state = json.load(file)
         state.setdefault("positions", {})
         state.setdefault("history", [])
+        state.setdefault("signal_diagnostics", [])
         state.setdefault("last_processed_candle", {})
         state.setdefault("last_processed_close", {})
         return state
@@ -26,6 +27,7 @@ def load_state():
         "cash_usdt": INITIAL_BALANCE,
         "positions": {},
         "history": [],
+        "signal_diagnostics": [],
         "last_processed_candle": {},
         "last_processed_close": {}
     }
@@ -39,7 +41,7 @@ def save_state(state):
     temp_file.replace(STATE_FILE)
 
 
-def open_position(state, symbol, entry_price, stop_price):
+def open_position(state, symbol, entry_price, stop_price, signal_diagnostic=None):
     entry_price = float(entry_price)
     stop_price = float(stop_price)
     if entry_price <= 0 or stop_price <= 0:
@@ -91,7 +93,8 @@ def open_position(state, symbol, entry_price, stop_price):
         "entry_fee": entry_fee,
         "risk_budget": actual_stop_risk,
         "risk_budget_target": risk_amount,
-        "opened_at": datetime.now(timezone.utc).isoformat()
+        "opened_at": datetime.now(timezone.utc).isoformat(),
+        "signal_diagnostic": signal_diagnostic
     }
     save_state(state)
     return True, (
