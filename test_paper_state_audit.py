@@ -1,3 +1,4 @@
+import copy
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,6 +35,25 @@ class PaperStateAuditTests(unittest.TestCase):
         self.assertTrue(report["valid"], report["issues"])
         self.assertLessEqual(report["open_investment_usdt"], 30.0 + 1e-8)
         self.assertLessEqual(report["open_risk_usdt"], 2.0 + 1e-8)
+        self.assertAlmostEqual(
+            report["total_pnl_usdt"],
+            report["realized_pnl_usdt"] + report["unrealized_pnl_usdt"],
+            places=8,
+        )
+
+    def test_audit_is_read_only_and_uses_last_processed_mark(self):
+        self.assertTrue(pt.open_position(self.state, "SOL/USDT", 75.13, 74.806)[0])
+        self.state["last_processed_close"]["SOL/USDT"] = 76.00
+        before = copy.deepcopy(self.state)
+        report = audit_state(self.state)
+        self.assertTrue(report["valid"], report["issues"])
+        self.assertEqual(self.state, before)
+        self.assertGreater(report["unrealized_pnl_usdt"], 0)
+        self.assertAlmostEqual(
+            report["equity_usdt"],
+            report["initial_balance_usdt"] + report["total_pnl_usdt"],
+            places=8,
+        )
 
     def test_closed_trade_reconciles_cash_and_net_pnl(self):
         ok, message = pt.open_position(self.state, "BTC/USDT", 100, 99)
