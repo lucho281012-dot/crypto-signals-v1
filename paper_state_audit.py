@@ -68,7 +68,7 @@ def audit_state(state):
         realized_pnl += recorded_pnl
         fees_closed += entry_fee + exit_fee
 
-    expected_cash = initial - invested - entry_fees_open + closed_proceeds
+    expected_cash = (\n        initial - invested - entry_fees_open\n        - closed_entry_cost_and_fees + closed_proceeds\n    )
     cash_difference = cash - expected_cash
     if abs(cash_difference) > TOLERANCE:
         issues.append("cash balance does not reconcile with ledger transactions")
