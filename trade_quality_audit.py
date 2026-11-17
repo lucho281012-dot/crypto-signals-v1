@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-STATE_FILE = Path("data/paper_state.json")
+STATE_FILE = Path("data/paper_state_entry_context.json")
 TOLERANCE = 1e-8
 
 
