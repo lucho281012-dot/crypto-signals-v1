@@ -34,4 +34,4 @@ jobs:
       - name: Install dependencies
         run: pip install "pandas>=2.2.0"
       - name: Run strategy, capital, and ledger tests
-        run: python -m unittest -v test_signal_diagnostics.py test_entry_context_capital.py test_trade_quality_audit.py
+        run: python -m unittest -v test_signal_diagnostics.py test_entry_context_capital.py test_trade_quality_audit.py test_paper_state_audit.py
