@@ -12,6 +12,8 @@ on:
       - "test_entry_context_capital.py"
       - "trade_quality_audit.py"
       - "test_trade_quality_audit.py"
+      - "paper_state_audit.py"
+      - "test_paper_state_audit.py"
       - ".github/workflows/entry-context-tests.yml"
       - ".github/workflows/entry-context-paper-manual.yml"
   workflow_dispatch:
