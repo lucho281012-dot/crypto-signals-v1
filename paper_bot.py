@@ -148,6 +148,8 @@ def run_bot():
     state.setdefault("last_processed_close", {})
     state.setdefault("positions", {})
     state.setdefault("signal_diagnostics", [])
+    # Persist the clean, branch-specific ledger even when no signal appears.
+    save_state(state)
 
     market_data = get_all_market_data()
 
