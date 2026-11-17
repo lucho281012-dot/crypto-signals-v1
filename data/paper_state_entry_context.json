@@ -1,0 +1,118 @@
+{
+  "initial_balance": 100.0,
+  "cash_usdt": 70.0,
+  "positions": {
+    "SOL/USDT": {
+      "entry_price": 75.13,
+      "stop_price": 74.806,
+      "quantity": 0.39890895740755994,
+      "entry_fee": 0.02997002997002998,
+      "risk_budget": 0.18905731563790856,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-17T23:20:25.484047+00:00",
+      "signal_diagnostic": {
+        "schema_version": 1,
+        "strategy": "spot_v1",
+        "decision": "BUY",
+        "signal_timeframes": {
+          "entry": "5m",
+          "trend": "15m"
+        },
+        "signal_candle_timestamp_5m": 1794957300000,
+        "trend_candle_timestamp_15m": 1794956400000,
+        "conditions": {
+          "ema20_above_ema200": true,
+          "rsi_above_50": true,
+          "macd_above_signal": true,
+          "volume_above_sma20": false,
+          "close_above_ema20": true
+        },
+        "conditions_met": 4,
+        "required_conditions": 4,
+        "bullish_trend_15m": true,
+        "indicators_5m": {
+          "close": 75.15,
+          "ema20": 74.16298887862168,
+          "ema200": 73.00273324646668,
+          "rsi14": 73.98413649393666,
+          "macd": 0.4616332389386457,
+          "macd_signal": 0.32203664207577953,
+          "volume": 180.65243247,
+          "volume_sma20": 195.65150021749997,
+          "atr14": 0.2699999999999981
+        },
+        "indicators_15m": {
+          "close": 75.38,
+          "ema20": 73.50332391700529,
+          "ema200": 72.42952151101626
+        },
+        "symbol": "SOL/USDT",
+        "execution": {
+          "timeframe": "5m",
+          "entry_candle_timestamp": 1794957600000,
+          "entry_open": 75.13,
+          "simulated_entry_price": 75.13
+        }
+      },
+      "target_price": 75.77799999999999
+    }
+  },
+  "history": [],
+  "signal_diagnostics": [
+    {
+      "schema_version": 1,
+      "strategy": "spot_v1",
+      "decision": "BUY",
+      "signal_timeframes": {
+        "entry": "5m",
+        "trend": "15m"
+      },
+      "signal_candle_timestamp_5m": 1794957300000,
+      "trend_candle_timestamp_15m": 1794956400000,
+      "conditions": {
+        "ema20_above_ema200": true,
+        "rsi_above_50": true,
+        "macd_above_signal": true,
+        "volume_above_sma20": false,
+        "close_above_ema20": true
+      },
+      "conditions_met": 4,
+      "required_conditions": 4,
+      "bullish_trend_15m": true,
+      "indicators_5m": {
+        "close": 75.15,
+        "ema20": 74.16298887862168,
+        "ema200": 73.00273324646668,
+        "rsi14": 73.98413649393666,
+        "macd": 0.4616332389386457,
+        "macd_signal": 0.32203664207577953,
+        "volume": 180.65243247,
+        "volume_sma20": 195.65150021749997,
+        "atr14": 0.2699999999999981
+      },
+      "indicators_15m": {
+        "close": 75.38,
+        "ema20": 73.50332391700529,
+        "ema200": 72.42952151101626
+      },
+      "symbol": "SOL/USDT",
+      "execution": {
+        "timeframe": "5m",
+        "entry_candle_timestamp": 1794957600000,
+        "entry_open": 75.13,
+        "simulated_entry_price": 75.13
+      },
+      "entry_blocked_reason": null
+    }
+  ],
+  "last_processed_candle": {
+    "BTC/USDT": "1794957300000",
+    "ETH/USDT": "1794957300000",
+    "SOL/USDT": "1794957300000"
+  },
+  "last_processed_close": {
+    "BTC/USDT": 65025.8,
+    "ETH/USDT": 1824.2,
+    "SOL/USDT": 75.15
+  }
+}
