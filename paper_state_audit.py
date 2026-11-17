@@ -1,5 +1,9 @@
 """Read-only integrity checks for the isolated paper-trading ledger."""
 
+import json
+from pathlib import Path
+
+STATE_FILE = Path("data/paper_state_entry_context.json")
 TOLERANCE = 1e-8
 
 
@@ -91,3 +95,17 @@ def audit_state(state):
         "expected_cash_usdt": round(expected_cash, 8),
         "cash_difference_usdt": round(cash_difference, 8),
     }
+
+
+
+def main():
+    with STATE_FILE.open("r", encoding="utf-8") as handle:
+        state = json.load(handle)
+    report = audit_state(state)
+    print(json.dumps(report, indent=2))
+    if not report["valid"]:
+        raise SystemExit("Paper ledger integrity audit failed.")
+
+
+if __name__ == "__main__":
+    main()
