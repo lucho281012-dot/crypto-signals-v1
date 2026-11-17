@@ -1,5 +1,4 @@
 """Read-only integrity checks for the isolated paper-trading ledger."""
-from collections import defaultdict
 
 TOLERANCE = 1e-8
 
@@ -43,6 +42,7 @@ def audit_state(state):
     if initial > 0 and open_risk > initial * 0.02 + TOLERANCE:
         issues.append("aggregate open risk exceeds the 2% portfolio limit")
 
+    closed_entry_cost_and_fees = 0.0
     closed_proceeds = 0.0
     realized_pnl = 0.0
     fees_closed = 0.0
@@ -64,11 +64,15 @@ def audit_state(state):
         expected_pnl = quantity * (exit_price - entry) - entry_fee - exit_fee
         if abs(recorded_pnl - expected_pnl) > TOLERANCE:
             issues.append(f"closed trade {index}: net PnL does not reconcile")
+        closed_entry_cost_and_fees += quantity * entry + entry_fee
         closed_proceeds += quantity * exit_price - exit_fee
         realized_pnl += recorded_pnl
         fees_closed += entry_fee + exit_fee
 
-    expected_cash = (\n        initial - invested - entry_fees_open\n        - closed_entry_cost_and_fees + closed_proceeds\n    )
+    expected_cash = (
+        initial - invested - entry_fees_open
+        - closed_entry_cost_and_fees + closed_proceeds
+    )
     cash_difference = cash - expected_cash
     if abs(cash_difference) > TOLERANCE:
         issues.append("cash balance does not reconcile with ledger transactions")
