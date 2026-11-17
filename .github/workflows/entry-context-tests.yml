@@ -1,4 +1,4 @@
-name: Paper Entry Context Tests
+name: Paper Entry Context and Capital Tests
 
 on:
   push:
@@ -7,10 +7,13 @@ on:
     paths:
       - "signal_engine.py"
       - "paper_bot.py"
+      - "paper_trading.py"
       - "test_signal_diagnostics.py"
+      - "test_entry_context_capital.py"
       - "trade_quality_audit.py"
       - "test_trade_quality_audit.py"
       - ".github/workflows/entry-context-tests.yml"
+      - ".github/workflows/entry-context-paper-manual.yml"
   workflow_dispatch:
 
 permissions:
@@ -30,5 +33,5 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: pip install "pandas>=2.2.0"
-      - name: Run signal diagnostic and ledger tests
-        run: python -m unittest -v test_signal_diagnostics.py test_trade_quality_audit.py
+      - name: Run strategy, capital, and ledger tests
+        run: python -m unittest -v test_signal_diagnostics.py test_entry_context_capital.py test_trade_quality_audit.py
