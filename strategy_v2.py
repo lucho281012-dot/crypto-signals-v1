@@ -5,6 +5,8 @@ Input candles are closed OHLCV rows with millisecond UTC timestamps.
 """
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 
 INTERVAL_MS = {"5m": 300_000, "15m": 900_000, "1h": 3_600_000, "4h": 14_400_000}
@@ -72,10 +74,10 @@ def calculate_indicators(candles: pd.DataFrame) -> pd.DataFrame:
     down_move = -low.diff()
     plus_dm = up_move.where((up_move > down_move) & (up_move > 0), 0.0)
     minus_dm = down_move.where((down_move > up_move) & (down_move > 0), 0.0)
-    atr_safe = df["atr"].replace(0, pd.NA)
+    atr_safe = df["atr"].replace(0, float("nan"))
     plus_di = 100 * plus_dm.ewm(alpha=1 / 14, adjust=False, min_periods=14).mean() / atr_safe
     minus_di = 100 * minus_dm.ewm(alpha=1 / 14, adjust=False, min_periods=14).mean() / atr_safe
-    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, pd.NA)
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, float("nan"))
     df["adx"] = dx.ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
     df["atr_percent"] = df["atr"] / close
     return df
@@ -184,7 +186,7 @@ def calculate_position_size(equity: float, cash: float, gross_exposure: float,
                             entry: float, stop: float, open_positions: int = 0) -> dict:
     """Fee-aware sizing with 1% risk, 95% gross exposure and max 3 positions."""
     values = (equity, cash, gross_exposure, entry, stop)
-    if any(not pd.notna(value) for value in values):
+    if any(not math.isfinite(float(value)) for value in values):
         raise ValueError("Sizing inputs must be finite numbers")
     if equity <= 0 or cash <= 0 or entry <= stop or stop <= 0:
         return {"quantity": 0.0, "investment": 0.0, "risk_usdt": 0.0,
