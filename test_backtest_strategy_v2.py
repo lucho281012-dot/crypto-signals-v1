@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from backtest_strategy_v2 import _close_trade, run_backtest
+from backtest_strategy_v2 import _close_trade, run_backtest, signal_at
+from strategy_v2 import evaluate_buy_signal_at
 
 
 def market_frame(count=203, spike_last=False):
@@ -65,6 +66,19 @@ class BacktestV2Tests(unittest.TestCase):
         trade = _close_trade("BTC/USDT", pos, 110.0, 2, "test", 0.002, 0)
         self.assertAlmostEqual(trade["exit_fee"], 0.44)
         self.assertAlmostEqual(trade["net_pnl"], 19.16)
+
+
+    def test_backtester_signal_adapter_uses_shared_strategy_evaluator(self):
+        frames = {"5m": market_frame(203)}
+        for timeframe in ("15m", "1h", "4h"):
+            frames[timeframe] = pd.DataFrame(columns=[
+                "timestamp", "ema20", "ema50", "ema200", "rsi", "macd",
+                "macd_signal", "volume_sma20", "atr", "adx", "atr_percent",
+                "open", "high", "low", "close", "volume",
+            ])
+        expected = evaluate_buy_signal_at(frames, 200)
+        self.assertIsNone(expected)
+        self.assertEqual(signal_at(frames, 200), expected)
 
     def test_invalid_cost_parameters_are_rejected(self):
         with self.assertRaises(ValueError):
