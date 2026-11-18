@@ -70,15 +70,16 @@ class BacktestV2Tests(unittest.TestCase):
 
     def test_backtester_signal_adapter_uses_shared_strategy_evaluator(self):
         frames = {"5m": market_frame(203)}
-        for timeframe in ("15m", "1h", "4h"):
-            frames[timeframe] = pd.DataFrame(columns=[
-                "timestamp", "ema20", "ema50", "ema200", "rsi", "macd",
-                "macd_signal", "volume_sma20", "atr", "adx", "atr_percent",
-                "open", "high", "low", "close", "volume",
-            ])
-        expected = evaluate_buy_signal_at(frames, 200)
-        self.assertIsNone(expected)
-        self.assertEqual(signal_at(frames, 200), expected)
+        shared_result = {
+            "entry_reference": 100.0, "stop": 97.0, "timestamp": 60_000_000,
+        }
+        with patch("backtest_strategy_v2.evaluate_buy_signal_at",
+                   return_value=shared_result) as evaluator:
+            result = signal_at(frames, 200)
+        evaluator.assert_called_once_with(frames, 200)
+        self.assertEqual(result, {
+            "stop_distance": 3.0, "signal_timestamp": 60_000_000,
+        })
 
     def test_invalid_cost_parameters_are_rejected(self):
         with self.assertRaises(ValueError):
