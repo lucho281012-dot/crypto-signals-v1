@@ -2809,9 +2809,9 @@
     "volume_ratio": 0.5674188916139622,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1794996900000
   },
   {
     "id": "SOL-USDT-LONG-1794994500000",
@@ -2828,10 +2828,10 @@
     "score": 4,
     "rsi": 53.55517381860537,
     "volume_ratio": 0.8327464037789986,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1794997500000
   }
 ]
