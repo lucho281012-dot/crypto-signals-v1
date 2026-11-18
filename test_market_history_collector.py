@@ -48,6 +48,25 @@ class MarketHistoryCollectorTests(unittest.TestCase):
             self.assertEqual(result["new_candles"], 1)
             self.assertEqual(exchange.calls[0][1]["since"], 300000)
 
+    def test_invalid_timestamp_alignment_is_rejected(self):
+        with self.assertRaises(ValueError):
+            collector.validate_candle({
+                "timestamp": 1, "open": 10, "high": 11,
+                "low": 9, "close": 10, "volume": 1,
+            }, 300000)
+
+    def test_invalid_ohlc_is_rejected(self):
+        with self.assertRaises(ValueError):
+            collector.validate_candle({
+                "timestamp": 0, "open": 10, "high": 8,
+                "low": 9, "close": 10, "volume": 1,
+            }, 300000)
+
+    def test_gap_detection_reports_missing_bars(self):
+        self.assertEqual(collector.find_gaps([0, 300000, 1200000], 300000), [
+            {"after": 300000, "before": 1200000, "missing_candles": 2}
+        ])
+
     def test_empty_archive_seeds_latest_history(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "ETH_USDT_15m.jsonl"
