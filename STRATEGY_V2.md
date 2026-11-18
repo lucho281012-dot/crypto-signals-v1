@@ -57,3 +57,12 @@ python -m unittest -v test_strategy_v2 test_backtest_strategy_v2
 ```
 
 The report includes trade-level net PnL, fees, win rate, profit factor, expectancy, return and drawdown. Results are only as representative as the archived sample. The currently available history is short and is not sufficient evidence of a durable trading edge.
+
+
+## Auditoría de recopilación histórica
+
+El colector incremental `market_history_collector.py` sigue consultando Kraken y ahora valida alineación temporal y OHLCV, deduplica por timestamp y reporta discontinuidades del archivo. Una discontinuidad no demuestra por sí sola que falten datos: el archivo OHLCVT histórico oficial de Kraken omite intervalos en los que no hubo operaciones. El backtest no debe inventar velas para esos intervalos.
+
+Kraken documenta que su endpoint REST OHLC devuelve como máximo las 720 velas más recientes por intervalo. Para ampliar el histórico sin cambiar de exchange, Kraken ofrece un archivo OHLCVT descargable desde el inicio de cada mercado hasta el 30 de septiembre de 2026, dividido en cinco partes de aproximadamente 2 GB cada una; también publica actualizaciones trimestrales. El archivo contiene intervalos de 5 y 15 minutos, entre otros, sin encabezado CSV y sin velas de intervalos sin operaciones. Fuente oficial: https://support.kraken.com/articles/360047124832-downloadable-historical-ohlcvt-open-high-low-close-volume-trades-data
+
+La importación de ese paquete completo no se ha realizado: su tamaño es de varios GB y requiere descargar, verificar checksums, extraer solo los pares y temporalidades necesarios, normalizar timestamps y conciliar la cola posterior al 30-09-2026 con el colector incremental. No se ha añadido ningún proceso automático que descargue varios GB ni que escriba archivos históricos en la rama de producción.
