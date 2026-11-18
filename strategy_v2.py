@@ -30,6 +30,9 @@ def _validate_candles(candles: pd.DataFrame) -> pd.DataFrame:
         frame[name] = pd.to_numeric(frame[name], errors="raise")
     if frame[list(required)].isna().any().any():
         raise ValueError("OHLCV candles contain null values")
+    numeric_columns = ["open", "high", "low", "close", "volume"]
+    if not all(math.isfinite(float(value)) for value in frame[numeric_columns].to_numpy().ravel()):
+        raise ValueError("OHLCV candles contain non-finite values")
     if (frame[["open", "high", "low", "close"]] <= 0).any().any():
         raise ValueError("OHLC prices must be positive")
     if (frame["volume"] < 0).any():
@@ -188,7 +191,7 @@ def calculate_position_size(equity: float, cash: float, gross_exposure: float,
     values = (equity, cash, gross_exposure, entry, stop)
     if any(not math.isfinite(float(value)) for value in values):
         raise ValueError("Sizing inputs must be finite numbers")
-    if equity <= 0 or cash <= 0 or entry <= stop or stop <= 0:
+    if equity <= 0 or cash <= 0 or gross_exposure < 0 or open_positions < 0 or entry <= stop or stop <= 0:
         return {"quantity": 0.0, "investment": 0.0, "risk_usdt": 0.0,
                 "reason": "invalid_or_insufficient_balance"}
     if open_positions >= MAX_OPEN_POSITIONS:
