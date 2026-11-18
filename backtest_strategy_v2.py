@@ -130,13 +130,10 @@ def run_backtest(data_by_symbol: dict, initial_cash: float = INITIAL_CASH,
     cannot exceed 1% of current marked equity. Signals execute at next 5m open.
     If stop and target are both touched in a candle, stop wins. Gaps fill at open.
     """
-    global SLIPPAGE_BPS
     if not math.isfinite(initial_cash) or initial_cash <= 0:
         raise ValueError("initial_cash must be a positive finite number")
     if not 0 <= fee_rate < 0.1 or not 0 <= slippage_bps < 1000:
         raise ValueError("Invalid fee or slippage")
-    original_slippage = SLIPPAGE_BPS
-    SLIPPAGE_BPS = slippage_bps
     cash = float(initial_cash)
     positions = {}
     latest_prices = {}
@@ -170,10 +167,10 @@ def run_backtest(data_by_symbol: dict, initial_cash: float = INITIAL_CASH,
                 low, high, open_price = float(candle["low"]), float(candle["high"]), float(candle["open"])
                 if low <= pos["stop"]:
                     raw_exit = min(open_price, pos["stop"])
-                    trade = _close_position(symbol, pos, raw_exit, timestamp, "stop_loss")
+                    trade = _close_position(symbol, pos, raw_exit, timestamp, "stop_loss", fee_rate, slippage_bps)
                 elif high >= pos["target"]:
                     raw_exit = max(open_price, pos["target"])
-                    trade = _close_position(symbol, pos, raw_exit, timestamp, "take_profit")
+                    trade = _close_position(symbol, pos, raw_exit, timestamp, "take_profit", fee_rate, slippage_bps)
                 else:
                     continue
                 trades.append(trade)
@@ -185,6 +182,8 @@ def run_backtest(data_by_symbol: dict, initial_cash: float = INITIAL_CASH,
                 data = data_by_symbol[symbol]
                 frame = data["5m"]
                 if index <= 200 or symbol in positions:
+                    continue
+                if int(frame.iloc[index]["timestamp"]) - int(frame.iloc[index - 1]["timestamp"]) != INTERVAL_MS["5m"]:
                     continue
                 previous_signal = signal_at(data, index - 1)
                 if previous_signal is None:
@@ -240,7 +239,7 @@ def run_backtest(data_by_symbol: dict, initial_cash: float = INITIAL_CASH,
             frame = data_by_symbol[symbol]["5m"]
             last = frame.iloc[-1]
             exit_price = float(last["close"]) * (1 - slippage_bps / 10_000)
-            trade = _close_position(symbol, pos, float(last["close"]), int(last["timestamp"]), "end_of_sample")
+            trade = _close_position(symbol, pos, float(last["close"]), int(last["timestamp"]), "end_of_sample", fee_rate, slippage_bps)
             trades.append(trade)
             cash += pos["quantity"] * exit_price - trade["exit_fee"]
             del positions[symbol]
@@ -276,8 +275,6 @@ def run_backtest(data_by_symbol: dict, initial_cash: float = INITIAL_CASH,
                 "no_short_positions": True,
             },
         }
-    finally:
-        SLIPPAGE_BPS = original_slippage
 
 
 def main() -> None:
