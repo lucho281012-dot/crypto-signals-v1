@@ -11,6 +11,8 @@ on:
       - "test_backtest_strategy_v2.py"
       - "market_history_collector.py"
       - "test_market_history_collector.py"
+      - "import_kraken_ohlcvt.py"
+      - "test_import_kraken_ohlcvt.py"
       - ".github/workflows/strategy-v2-tests.yml"
   workflow_dispatch:
 
@@ -33,4 +35,4 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run V2 unit tests
-        run: python -m unittest -v test_strategy_v2 test_backtest_strategy_v2 test_market_history_collector
+        run: python -m unittest -v test_strategy_v2 test_backtest_strategy_v2 test_market_history_collector test_import_kraken_ohlcvt
