@@ -1,3 +1,4 @@
+# Keep research validation isolated from the paper-trading branch.
 name: Crypto Signals V2 Research Tests
 
 on:
