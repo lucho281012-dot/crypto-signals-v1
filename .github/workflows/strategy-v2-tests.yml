@@ -1,0 +1,32 @@
+name: Crypto Signals V2 Research Tests
+
+on:
+  push:
+    branches:
+      - strategy-v2-research
+    paths:
+      - "strategy_v2.py"
+      - "test_strategy_v2.py"
+      - ".github/workflows/strategy-v2-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  strategy-v2-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout isolated V2 research branch
+        uses: actions/checkout@v4
+        with:
+          ref: strategy-v2-research
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run V2 unit tests
+        run: python -m unittest -v test_strategy_v2
