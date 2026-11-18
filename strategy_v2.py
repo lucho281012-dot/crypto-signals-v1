@@ -118,21 +118,19 @@ def latest_completed_row(indicators: pd.DataFrame, signal_candle_timestamp: int,
     return None if completed.empty else completed.iloc[-1]
 
 
-def generate_buy_signal(candles_5m: pd.DataFrame, candles_15m: pd.DataFrame,
-                        candles_1h: pd.DataFrame, candles_4h: pd.DataFrame) -> dict | None:
-    """Return a BUY setup only when closed higher-timeframe trend agrees."""
-    frames = {
-        "5m": calculate_indicators(candles_5m),
-        "15m": calculate_indicators(candles_15m),
-        "1h": calculate_indicators(candles_1h),
-        "4h": calculate_indicators(candles_4h),
-    }
+def evaluate_buy_signal_at(frames: dict, index: int = -1) -> dict | None:
+    """Evaluate one signal from precomputed indicator frames.
+
+    This is the single source of truth shared by live-style analysis and backtests.
+    The caller must provide closed candles and indicator frames for all timeframes.
+    """
     five = frames["5m"]
-    if len(five) < 200:
+    if five.empty:
         return None
-    current = five.iloc[-1]
-    if current[["ema20", "ema50", "ema200", "rsi", "macd", "macd_signal",
-                "volume_sma20", "atr", "adx", "atr_percent"]].isna().any():
+    current = five.iloc[index]
+    fields = ["ema20", "ema50", "ema200", "rsi", "macd", "macd_signal",
+              "volume_sma20", "atr", "adx", "atr_percent"]
+    if current[fields].isna().any():
         return None
 
     higher = {
@@ -149,16 +147,12 @@ def generate_buy_signal(candles_5m: pd.DataFrame, candles_15m: pd.DataFrame,
     if any(higher[tf][fields].isna().any() for tf, fields in required_fields.items()):
         return None
 
-    # H4 uses EMA20/50 to keep its warm-up realistic; H1 uses EMA50/200.
-    # Regime gate: aligned bullish trend on 4h and 1h, plus confirmation on 15m.
     if not (higher["4h"]["ema20"] > higher["4h"]["ema50"]
             and higher["1h"]["ema50"] > higher["1h"]["ema200"]
             and higher["15m"]["ema20"] > higher["15m"]["ema50"]):
         return None
     if min(float(higher[tf]["adx"]) for tf in ("1h", "4h")) < 18:
         return None
-
-    # Avoid extremely quiet or disorderly 5m regimes.
     if not 0.001 <= float(current["atr_percent"]) <= 0.025:
         return None
 
@@ -169,11 +163,13 @@ def generate_buy_signal(candles_5m: pd.DataFrame, candles_15m: pd.DataFrame,
         current["macd"] > current["macd_signal"],
         current["volume"] > current["volume_sma20"],
     ]
-    if sum(bool(value) for value in conditions) < 4 or float(current["atr"]) <= 0:
+    atr = float(current["atr"])
+    passed = sum(bool(value) for value in conditions)
+    if passed < 4 or atr <= 0:
         return None
 
     entry = float(current["close"])
-    stop = entry - STOP_ATR_MULTIPLIER * float(current["atr"])
+    stop = entry - STOP_ATR_MULTIPLIER * atr
     if stop <= 0 or stop >= entry:
         return None
     target = entry + REWARD_RISK * (entry - stop)
@@ -183,12 +179,25 @@ def generate_buy_signal(candles_5m: pd.DataFrame, candles_15m: pd.DataFrame,
         "entry_reference": entry,
         "stop": stop,
         "target": target,
-        "atr": float(current["atr"]),
-        "conditions_passed": sum(bool(value) for value in conditions),
+        "atr": atr,
+        "conditions_passed": passed,
         "regime": "bullish_trending",
         "strategy": "crypto-signals-v2",
     }
 
+
+def generate_buy_signal(candles_5m: pd.DataFrame, candles_15m: pd.DataFrame,
+                        candles_1h: pd.DataFrame, candles_4h: pd.DataFrame) -> dict | None:
+    """Calculate indicators and evaluate the latest closed 5m candle."""
+    frames = {
+        "5m": calculate_indicators(candles_5m),
+        "15m": calculate_indicators(candles_15m),
+        "1h": calculate_indicators(candles_1h),
+        "4h": calculate_indicators(candles_4h),
+    }
+    if len(frames["5m"]) < 200:
+        return None
+    return evaluate_buy_signal_at(frames)
 
 def calculate_position_size(equity: float, cash: float, gross_exposure: float,
                             entry: float, stop: float, open_positions: int = 0) -> dict:
