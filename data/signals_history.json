@@ -2870,11 +2870,11 @@
     "score": 4,
     "rsi": 27.216042636929615,
     "volume_ratio": 5.75502645029347,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1795012500000
   },
   {
     "id": "ETH-USDT-SHORT-1795012200000",
@@ -2891,10 +2891,10 @@
     "score": 4,
     "rsi": 31.80590787606188,
     "volume_ratio": 7.546783781204856,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "tp1_hit": true,
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1795012500000
   }
 ]
