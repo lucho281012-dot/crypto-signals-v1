@@ -43,7 +43,7 @@ class TemporalAuditTests(unittest.TestCase):
             result = audit_file(path, TIMEFRAMES["5m"])
             self.assertFalse(result["valid"])
             self.assertEqual(result["duplicate_rows"], 1)
-            self.assertTrue(any("strictly increasing" in item["error"] for item in result["errors"]))
+            self.assertTrue(any(item["error"] == "timestamps_not_strictly_increasing" for item in result["errors"]))
 
 
 if __name__ == "__main__":
