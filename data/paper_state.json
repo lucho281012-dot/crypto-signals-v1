@@ -1,16 +1,16 @@
 {
   "initial_balance": 100,
-  "cash_usdt": 2.734642808992297,
+  "cash_usdt": 2.3508780594561136,
   "positions": {
     "SOL/USDT": {
-      "entry_price": 75.0,
-      "stop_price": 74.84657142857142,
-      "quantity": 1.2654012654012656,
-      "entry_fee": 0.09490509490509492,
-      "risk_budget": 0.38376474953618556,
+      "entry_price": 75.24,
+      "stop_price": 75.04457142857143,
+      "quantity": 1.2613648977285343,
+      "entry_fee": 0.09490509490509491,
+      "risk_budget": 0.4360704230834016,
       "risk_budget_target": 1.0,
-      "opened_at": "2026-11-18T04:42:55.115641+00:00",
-      "target_price": 75.30685714285715
+      "opened_at": "2026-11-18T05:44:24.061367+00:00",
+      "target_price": 75.63085714285712
     }
   },
   "history": [
@@ -288,12 +288,28 @@
       "net_pnl": -0.4529712786452016,
       "reason": "stop_loss",
       "closed_at": "2026-11-18T04:42:55.105586+00:00"
+    },
+    {
+      "entry_price": 75.0,
+      "stop_price": 74.84657142857142,
+      "quantity": 1.2654012654012656,
+      "entry_fee": 0.09490509490509492,
+      "risk_budget": 0.38376474953618556,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-18T04:42:55.115641+00:00",
+      "target_price": 75.30685714285715,
+      "symbol": "SOL/USDT",
+      "exit_price": 74.84657142857142,
+      "exit_fee": 0.09471094619666048,
+      "net_pnl": -0.38376474953619133,
+      "reason": "stop_loss",
+      "closed_at": "2026-11-18T05:44:24.046746+00:00"
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1794976500000",
-    "ETH/USDT": "1794976500000",
-    "SOL/USDT": "1794976500000"
+    "BTC/USDT": "1794980100000",
+    "ETH/USDT": "1794980100000",
+    "SOL/USDT": "1794980100000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -307,8 +323,8 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 64463.2,
-    "ETH/USDT": 1802.81,
-    "SOL/USDT": 75.03
+    "BTC/USDT": 64750.3,
+    "ETH/USDT": 1815.29,
+    "SOL/USDT": 75.26
   }
 }
