@@ -141,12 +141,17 @@ def generate_buy_signal(candles_5m: pd.DataFrame, candles_15m: pd.DataFrame,
     }
     if any(row is None for row in higher.values()):
         return None
-    fields = ["ema20", "ema50", "ema200", "adx"]
-    if any(row[fields].isna().any() for row in higher.values()):
+    required_fields = {
+        "15m": ["ema20", "ema50", "adx"],
+        "1h": ["ema50", "ema200", "adx"],
+        "4h": ["ema20", "ema50", "adx"],
+    }
+    if any(higher[tf][fields].isna().any() for tf, fields in required_fields.items()):
         return None
 
-    # Regime gate: aligned bullish trend on 4h and 1h, plus trend confirmation on 15m.
-    if not (higher["4h"]["ema50"] > higher["4h"]["ema200"]
+    # H4 uses EMA20/50 to keep its warm-up realistic; H1 uses EMA50/200.
+    # Regime gate: aligned bullish trend on 4h and 1h, plus confirmation on 15m.
+    if not (higher["4h"]["ema20"] > higher["4h"]["ema50"]
             and higher["1h"]["ema50"] > higher["1h"]["ema200"]
             and higher["15m"]["ema20"] > higher["15m"]["ema50"]):
         return None
