@@ -66,3 +66,19 @@ El colector incremental `market_history_collector.py` sigue consultando Kraken y
 Kraken documenta que su endpoint REST OHLC devuelve como máximo las 720 velas más recientes por intervalo. Para ampliar el histórico sin cambiar de exchange, Kraken ofrece un archivo OHLCVT descargable desde el inicio de cada mercado hasta el 30 de septiembre de 2026, dividido en cinco partes de aproximadamente 2 GB cada una; también publica actualizaciones trimestrales. El archivo contiene intervalos de 5 y 15 minutos, entre otros, sin encabezado CSV y sin velas de intervalos sin operaciones. Fuente oficial: https://support.kraken.com/articles/360047124832-downloadable-historical-ohlcvt-open-high-low-close-volume-trades-data
 
 La importación de ese paquete completo no se ha realizado: su tamaño es de varios GB y requiere descargar, verificar checksums, extraer solo los pares y temporalidades necesarios, normalizar timestamps y conciliar la cola posterior al 30-09-2026 con el colector incremental. No se ha añadido ningún proceso automático que descargue varios GB ni que escriba archivos históricos en la rama de producción.
+
+
+## Importador del histórico oficial Kraken
+
+Se añadió `import_kraken_ohlcvt.py`, un importador local (sin red) para los CSV oficiales OHLCVT. Acepta explícitamente seis rutas CSV —BTC, ETH y SOL en 5m y 15m—, convierte epoch seconds a milisegundos, valida OHLCV, combina por timestamp con el archivo JSONL existente y elimina duplicados. No descarga el archivo de varios GB ni modifica la rama de producción.
+
+Después de descargar y extraer el archivo OHLCVT oficial de Kraken, ejecutar indicando las rutas reales de los seis CSV:
+
+```bash
+python import_kraken_ohlcvt.py \
+  --btc-5m /ruta/al/CSV_BTC_5m.csv --btc-15m /ruta/al/CSV_BTC_15m.csv \
+  --eth-5m /ruta/al/CSV_ETH_5m.csv --eth-15m /ruta/al/CSV_ETH_15m.csv \
+  --sol-5m /ruta/al/CSV_SOL_5m.csv --sol-15m /ruta/al/CSV_SOL_15m.csv
+```
+
+Los nombres de archivo dependen de los identificadores de mercado Kraken incluidos en el paquete; por eso se pasan rutas explícitas en vez de asumir nombres. Verificar el resumen de filas y fechas antes de ejecutar el backtester. La fuente oficial documenta CSV sin encabezado con columnas timestamp, open, high, low, close, volume y trades.
