@@ -11,7 +11,7 @@ import pandas as pd
 from strategy_v2 import (
     FEE_RATE, INTERVAL_MS, MAX_GROSS_EXPOSURE, MAX_OPEN_POSITIONS,
     RISK_FRACTION, REWARD_RISK, STOP_ATR_MULTIPLIER,
-    calculate_indicators, latest_completed_row, resample_ohlcv,
+    calculate_indicators, evaluate_buy_signal_at, resample_ohlcv,
 )
 
 SYMBOLS = ("BTC/USDT", "ETH/USDT", "SOL/USDT")
@@ -45,47 +45,14 @@ def prepare_symbol(symbol: str, root: Path = Path("data/market_history")) -> dic
 
 
 def signal_at(data: dict, index: int) -> dict | None:
-    """Same V2 filters as strategy_v2.generate_buy_signal, using precomputed frames."""
-    five = data["5m"]
-    current = five.iloc[index]
-    fields = ["ema20", "ema50", "ema200", "rsi", "macd", "macd_signal",
-              "volume_sma20", "atr", "adx", "atr_percent"]
-    if current[fields].isna().any():
+    """Adapt the shared V2 signal result to the backtest's stop-distance input."""
+    setup = evaluate_buy_signal_at(data, index)
+    if setup is None:
         return None
-    higher = {
-        tf: latest_completed_row(data[tf], int(current["timestamp"]), tf)
-        for tf in ("15m", "1h", "4h")
+    return {
+        "stop_distance": float(setup["entry_reference"]) - float(setup["stop"]),
+        "signal_timestamp": int(setup["timestamp"]),
     }
-    if any(row is None for row in higher.values()):
-        return None
-    required = {
-        "15m": ["ema20", "ema50", "adx"],
-        "1h": ["ema50", "ema200", "adx"],
-        "4h": ["ema20", "ema50", "adx"],
-    }
-    if any(higher[tf][cols].isna().any() for tf, cols in required.items()):
-        return None
-    if not (higher["4h"]["ema20"] > higher["4h"]["ema50"]
-            and higher["1h"]["ema50"] > higher["1h"]["ema200"]
-            and higher["15m"]["ema20"] > higher["15m"]["ema50"]):
-        return None
-    if min(float(higher[tf]["adx"]) for tf in ("1h", "4h")) < 18:
-        return None
-    if not 0.001 <= float(current["atr_percent"]) <= 0.025:
-        return None
-    checks = [
-        current["ema20"] > current["ema50"],
-        current["close"] > current["ema20"],
-        52 <= current["rsi"] <= 70,
-        current["macd"] > current["macd_signal"],
-        current["volume"] > current["volume_sma20"],
-    ]
-    atr = float(current["atr"])
-    if sum(bool(value) for value in checks) < 4 or atr <= 0:
-        return None
-    return {"stop_distance": STOP_ATR_MULTIPLIER * atr,
-            "signal_timestamp": int(current["timestamp"])}
-
 
 def _equity(cash: float, positions: dict, marks: dict) -> float:
     return cash + sum(p["quantity"] * marks.get(s, p["entry"])
