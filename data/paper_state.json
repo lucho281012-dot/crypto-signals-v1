@@ -1,28 +1,7 @@
 {
   "initial_balance": 100,
-  "cash_usdt": 1.8199025414676335,
-  "positions": {
-    "BTC/USDT": {
-      "entry_price": 64851.8,
-      "stop_price": 64738.09142857143,
-      "quantity": 0.0014634149692852767,
-      "entry_fee": 0.09490509490509491,
-      "risk_budget": 0.3560466125492406,
-      "risk_budget_target": 1.0,
-      "opened_at": "2026-11-18T07:59:33.893164+00:00",
-      "target_price": 65079.217142857146
-    },
-    "SOL/USDT": {
-      "entry_price": 75.25,
-      "stop_price": 75.05885714285714,
-      "quantity": 0.001259937337149059,
-      "entry_fee": 9.481028462046669e-05,
-      "risk_budget": 0.00043020776366213325,
-      "risk_budget_target": 1.0,
-      "opened_at": "2026-11-18T07:59:36.295447+00:00",
-      "target_price": 75.63228571428573
-    }
-  },
+  "cash_usdt": 96.55833081605982,
+  "positions": {},
   "history": [
     {
       "entry_price": 80754.4,
@@ -330,12 +309,44 @@
       "net_pnl": -0.4360704230833867,
       "reason": "stop_loss",
       "closed_at": "2026-11-18T06:45:06.216982+00:00"
+    },
+    {
+      "entry_price": 64851.8,
+      "stop_price": 64738.09142857143,
+      "quantity": 0.0014634149692852767,
+      "entry_fee": 0.09490509490509491,
+      "risk_budget": 0.3560466125492406,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-18T07:59:33.893164+00:00",
+      "target_price": 65079.217142857146,
+      "symbol": "BTC/USDT",
+      "exit_price": 64738.09142857143,
+      "exit_fee": 0.0947386920795303,
+      "net_pnl": -0.3560466125492432,
+      "reason": "stop_loss",
+      "closed_at": "2026-11-18T08:58:15.386982+00:00"
+    },
+    {
+      "entry_price": 75.25,
+      "stop_price": 75.05885714285714,
+      "quantity": 0.001259937337149059,
+      "entry_fee": 9.481028462046669e-05,
+      "risk_budget": 0.00043020776366213325,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-18T07:59:36.295447+00:00",
+      "target_price": 75.63228571428573,
+      "symbol": "SOL/USDT",
+      "exit_price": 75.05885714285714,
+      "exit_fee": 9.456945659802304e-05,
+      "net_pnl": -0.0004302077636621353,
+      "reason": "stop_loss",
+      "closed_at": "2026-11-18T08:58:17.780653+00:00"
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1794988200000",
-    "ETH/USDT": "1794988200000",
-    "SOL/USDT": "1794988200000"
+    "BTC/USDT": "1794991800000",
+    "ETH/USDT": "1794991800000",
+    "SOL/USDT": "1794991800000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -349,8 +360,8 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 64864.0,
-    "ETH/USDT": 1819.0,
-    "SOL/USDT": 75.19
+    "BTC/USDT": 64655.4,
+    "ETH/USDT": 1816.84,
+    "SOL/USDT": 74.71
   }
 }
