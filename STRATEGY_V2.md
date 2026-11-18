@@ -35,3 +35,25 @@ El histórico actualmente archivado en la rama base cubre aproximadamente 4 día
 6. Añadir un simulador B con estado independiente solo después de aprobar el backtest y sus pruebas.
 
 No se configura ningún workflow programado de trading en esta rama.
+
+
+## Backtester V2
+
+`backtest_strategy_v2.py` consumes the archived BTC/ETH/SOL 5m and 15m JSONL files, derives closed 1h/4h candles from complete 15m buckets, and evaluates the V2 multi-timeframe filters. It is a portfolio simulation with one shared cash balance.
+
+- Signals are evaluated only on closed 5m candles and enter at the next contiguous 5m candle open.
+- The portfolio-wide aggregate stop-risk budget is capped at 1% of marked equity, including estimated entry/exit fees.
+- Gross exposure is capped at 95% of marked equity; maximum three simultaneous positions.
+- Default costs: 0.10% fee per side and 5 bps slippage per side; both are configurable.
+- If stop and target are both touched in the same candle, stop is assumed first. Gaps fill at the candle open.
+- Remaining positions are liquidated at the final close with costs.
+- Output is written to `strategy_v2_backtest_report.json`; no paper state or trading workflow is touched.
+
+Run locally with:
+
+```bash
+python backtest_strategy_v2.py --data-dir data/market_history
+python -m unittest -v test_strategy_v2 test_backtest_strategy_v2
+```
+
+The report includes trade-level net PnL, fees, win rate, profit factor, expectancy, return and drawdown. Results are only as representative as the archived sample. The currently available history is short and is not sufficient evidence of a durable trading edge.
