@@ -3064,5 +3064,26 @@
     "status": "SL_AFTER_TP1",
     "result": "SL_AFTER_TP1",
     "last_checked_ts": 1795058700000
+  },
+  {
+    "id": "ETH-USDT-LONG-1795080900000",
+    "symbol": "ETH/USDT",
+    "side": "LONG",
+    "timeframe": "5m",
+    "signal_candle_ts": 1795080900000,
+    "start_tracking_ts": 1795081200000,
+    "sent_at": "2026-11-19T09:44:40.041525+00:00",
+    "entry": 1805.18,
+    "stop": 1800.8502917321648,
+    "tp1": 1809.5097082678353,
+    "tp2": 1813.8394165356706,
+    "score": 5,
+    "rsi": 54.62862100130356,
+    "volume_ratio": 1.1274509450668104,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": null
   }
 ]
