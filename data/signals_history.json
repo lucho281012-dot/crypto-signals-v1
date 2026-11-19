@@ -3080,10 +3080,10 @@
     "score": 5,
     "rsi": 54.62862100130356,
     "volume_ratio": 1.1274509450668104,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": null
+    "last_checked_ts": 1795084200000
   }
 ]
