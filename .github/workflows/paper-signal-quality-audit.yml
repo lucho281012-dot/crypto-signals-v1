@@ -1,0 +1,27 @@
+name: Paper Signal Quality Audit
+
+on:
+  push:
+    branches:
+      - paper-signal-quality-audit
+  pull_request:
+    branches:
+      - paper-trading-v1-2
+      - paper-signal-quality-audit
+
+permissions:
+  contents: read
+
+jobs:
+  signal-quality-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install signal-engine dependencies
+        run: pip install pandas
+      - name: Test closed-candle signal behavior
+        run: python -m unittest -v test_signal_engine.py
