@@ -2998,9 +2998,9 @@
     "volume_ratio": 1.3311949561390088,
     "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795058700000
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795059000000
   },
   {
     "id": "BTC-USDT-SHORT-1795055400000",
