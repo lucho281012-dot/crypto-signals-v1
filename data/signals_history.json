@@ -3316,5 +3316,26 @@
     "status": "SL_AFTER_TP1",
     "result": "SL_AFTER_TP1",
     "last_checked_ts": 1795143300000
+  },
+  {
+    "id": "SOL-USDT-SHORT-1795162200000",
+    "symbol": "SOL/USDT",
+    "side": "SHORT",
+    "timeframe": "5m",
+    "signal_candle_ts": 1795162200000,
+    "start_tracking_ts": 1795162500000,
+    "sent_at": "2026-11-20T08:15:16.210636+00:00",
+    "entry": 72.53,
+    "stop": 72.77432694492026,
+    "tp1": 72.28567305507974,
+    "tp2": 72.04134611015947,
+    "score": 5,
+    "rsi": 49.32996561647102,
+    "volume_ratio": 1.0345952802309373,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": null
   }
 ]
