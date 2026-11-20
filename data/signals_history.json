@@ -3731,11 +3731,11 @@
     "score": 4,
     "rsi": 28.08052958015884,
     "volume_ratio": 2.8541251186054692,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795203300000
   },
   {
     "id": "SOL-USDT-SHORT-1795201800000",
@@ -3752,10 +3752,10 @@
     "score": 5,
     "rsi": 33.93641190516355,
     "volume_ratio": 1.8435892800338647,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795203600000
   }
 ]
