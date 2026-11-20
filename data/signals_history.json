@@ -3311,10 +3311,10 @@
     "score": 4,
     "rsi": 37.051037370127794,
     "volume_ratio": 1.1359006170717563,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795143300000
   }
 ]
