@@ -4071,7 +4071,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795290300000
+    "last_checked_ts": 1795292400000
   },
   {
     "id": "BTC-USDT-LONG-1795290300000",
@@ -4090,9 +4090,9 @@
     "volume_ratio": 0.9085448613893936,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795290900000
   },
   {
     "id": "ETH-USDT-LONG-1795290300000",
@@ -4111,8 +4111,8 @@
     "volume_ratio": 1.224686956601236,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795290900000
   }
 ]
