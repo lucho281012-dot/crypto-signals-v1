@@ -4071,7 +4071,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795295100000
+    "last_checked_ts": 1795297500000
   },
   {
     "id": "BTC-USDT-LONG-1795290300000",
@@ -4130,6 +4130,27 @@
     "score": 4,
     "rsi": 51.03615877592088,
     "volume_ratio": 0.44539499087320483,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795296600000
+  },
+  {
+    "id": "ETH-USDT-LONG-1795297500000",
+    "symbol": "ETH/USDT",
+    "side": "LONG",
+    "timeframe": "5m",
+    "signal_candle_ts": 1795297500000,
+    "start_tracking_ts": 1795297800000,
+    "sent_at": "2026-11-21T21:52:30.778254+00:00",
+    "entry": 1686.76,
+    "stop": 1683.9642681102791,
+    "tp1": 1689.5557318897208,
+    "tp2": 1692.3514637794417,
+    "score": 4,
+    "rsi": 53.09867789680242,
+    "volume_ratio": 1.5641583876136587,
     "tp1_hit": false,
     "tp2_hit": false,
     "status": "ACTIVE",
