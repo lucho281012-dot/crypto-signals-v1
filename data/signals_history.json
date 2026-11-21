@@ -4027,9 +4027,9 @@
     "volume_ratio": 0.6288254380512601,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795260000000
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795260600000
   },
   {
     "id": "BTC-USDT-SHORT-1795260000000",
@@ -4048,8 +4048,8 @@
     "volume_ratio": 0.45765211933663036,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795260600000
   }
 ]
