@@ -4071,7 +4071,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795297500000
+    "last_checked_ts": 1795299600000
   },
   {
     "id": "BTC-USDT-LONG-1795290300000",
@@ -4153,8 +4153,8 @@
     "volume_ratio": 1.5641583876136587,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795298700000
   }
 ]
