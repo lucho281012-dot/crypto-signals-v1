@@ -4174,9 +4174,9 @@
     "volume_ratio": 0.3680941275520212,
     "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795310700000
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795313700000
   },
   {
     "id": "SOL-USDT-LONG-1795304100000",
@@ -4195,9 +4195,9 @@
     "volume_ratio": 0.5848501331937735,
     "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795310700000
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795313700000
   },
   {
     "id": "BTC-USDT-LONG-1795306200000",
@@ -4237,8 +4237,8 @@
     "volume_ratio": 1.2741889965931166,
     "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795310700000
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795313700000
   }
 ]
