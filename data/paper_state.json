@@ -3,24 +3,24 @@
   "cash_usdt": 0.0,
   "positions": {
     "BTC/USDT": {
-      "entry_price": 60936.6,
-      "stop_price": 60814.95428571429,
-      "quantity": 1.100590941984615e-06,
-      "entry_fee": 6.706626999533968e-05,
-      "risk_budget": 0.000267880829093507,
+      "entry_price": 60940.9,
+      "stop_price": 60796.12,
+      "quantity": 1.0961219276292614e-06,
+      "entry_fee": 6.679865677946207e-05,
+      "risk_budget": 0.0002921351497084052,
       "risk_budget_target": 1.0,
-      "opened_at": "2026-11-22T15:10:27.693963+00:00",
-      "target_price": 61179.89142857142
+      "opened_at": "2026-11-22T15:52:50.586383+00:00",
+      "target_price": 61230.46
     },
     "ETH/USDT": {
-      "entry_price": 1712.07,
-      "stop_price": 1708.356,
-      "quantity": 0.055200435657029825,
-      "entry_fee": 0.09450700987533105,
-      "risk_budget": 0.39382342336283743,
+      "entry_price": 1719.06,
+      "stop_price": 1714.6971428571428,
+      "quantity": 0.055104181516876474,
+      "entry_fee": 0.09472739427840168,
+      "risk_budget": 0.42962604881707195,
       "risk_budget_target": 1.0,
-      "opened_at": "2026-11-22T15:10:28.892059+00:00",
-      "target_price": 1719.4979999999998
+      "opened_at": "2026-11-22T15:52:51.769260+00:00",
+      "target_price": 1727.7857142857142
     }
   },
   "history": [
@@ -698,12 +698,44 @@
       "net_pnl": -0.3984831147936425,
       "reason": "stop_loss",
       "closed_at": "2026-11-22T15:10:28.879494+00:00"
+    },
+    {
+      "entry_price": 60936.6,
+      "stop_price": 60814.95428571429,
+      "quantity": 1.100590941984615e-06,
+      "entry_fee": 6.706626999533968e-05,
+      "risk_budget": 0.000267880829093507,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-22T15:10:27.693963+00:00",
+      "target_price": 61179.89142857142,
+      "symbol": "BTC/USDT",
+      "exit_price": 60814.95428571429,
+      "exit_fee": 6.693238782406559e-05,
+      "net_pnl": -0.00026788082909350383,
+      "reason": "stop_loss",
+      "closed_at": "2026-11-22T15:52:50.578455+00:00"
+    },
+    {
+      "entry_price": 1712.07,
+      "stop_price": 1708.356,
+      "quantity": 0.055200435657029825,
+      "entry_fee": 0.09450700987533105,
+      "risk_budget": 0.39382342336283743,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-22T15:10:28.892059+00:00",
+      "target_price": 1719.4979999999998,
+      "symbol": "ETH/USDT",
+      "exit_price": 1719.4979999999998,
+      "exit_fee": 0.09491703871139145,
+      "net_pnl": 0.22060478747368767,
+      "reason": "take_profit",
+      "closed_at": "2026-11-22T15:52:51.759521+00:00"
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1795359900000",
-    "ETH/USDT": "1795359900000",
-    "SOL/USDT": "1795359900000"
+    "BTC/USDT": "1795362300000",
+    "ETH/USDT": "1795362300000",
+    "SOL/USDT": "1795362300000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -717,8 +749,8 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 60928.0,
-    "ETH/USDT": 1711.77,
-    "SOL/USDT": 70.22
+    "BTC/USDT": 60929.6,
+    "ETH/USDT": 1722.03,
+    "SOL/USDT": 70.39
   }
 }
