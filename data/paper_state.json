@@ -3,14 +3,14 @@
   "cash_usdt": 0.0,
   "positions": {
     "SOL/USDT": {
-      "entry_price": 70.39,
-      "stop_price": 70.21685714285715,
-      "quantity": 1.33538632812941,
-      "entry_fee": 0.09399784363702918,
-      "risk_budget": 0.4189770789116413,
+      "entry_price": 70.75,
+      "stop_price": 70.582,
+      "quantity": 1.332459887485904,
+      "entry_fee": 0.0942715370396277,
+      "risk_budget": 0.41217248191579814,
       "risk_budget_target": 1.0,
-      "opened_at": "2026-11-22T23:19:06.111445+00:00",
-      "target_price": 70.7362857142857
+      "opened_at": "2026-11-22T23:59:54.360404+00:00",
+      "target_price": 71.08600000000001
     }
   },
   "history": [
@@ -800,12 +800,28 @@
       "net_pnl": -0.350501106690257,
       "reason": "stop_loss",
       "closed_at": "2026-11-22T22:32:28.870469+00:00"
+    },
+    {
+      "entry_price": 70.39,
+      "stop_price": 70.21685714285715,
+      "quantity": 1.33538632812941,
+      "entry_fee": 0.09399784363702918,
+      "risk_budget": 0.4189770789116413,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-22T23:19:06.111445+00:00",
+      "target_price": 70.7362857142857,
+      "symbol": "SOL/USDT",
+      "exit_price": 70.7362857142857,
+      "exit_fee": 0.09446026884551283,
+      "net_pnl": 0.27396709600111296,
+      "reason": "take_profit",
+      "closed_at": "2026-11-22T23:59:54.350896+00:00"
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1795389000000",
-    "ETH/USDT": "1795389000000",
-    "SOL/USDT": "1795389000000"
+    "BTC/USDT": "1795391400000",
+    "ETH/USDT": "1795391400000",
+    "SOL/USDT": "1795391400000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -819,8 +835,8 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 60929.0,
-    "ETH/USDT": 1717.22,
-    "SOL/USDT": 70.38
+    "BTC/USDT": 61295.4,
+    "ETH/USDT": 1723.78,
+    "SOL/USDT": 70.68
   }
 }
