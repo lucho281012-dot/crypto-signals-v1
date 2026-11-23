@@ -1,7 +1,18 @@
 {
   "initial_balance": 100,
-  "cash_usdt": 93.95363609475153,
-  "positions": {},
+  "cash_usdt": 0.0,
+  "positions": {
+    "BTC/USDT": {
+      "entry_price": 60947.7,
+      "stop_price": 60788.33142857143,
+      "quantity": 0.0015400052228128891,
+      "entry_fee": 0.09385977631843312,
+      "risk_budget": 0.432902556556737,
+      "risk_budget_target": 1.0,
+      "opened_at": "2026-11-23T03:14:07.372998+00:00",
+      "target_price": 61266.43714285713
+    }
+  },
   "history": [
     {
       "entry_price": 80754.4,
@@ -824,9 +835,9 @@
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1795399800000",
-    "ETH/USDT": "1795399800000",
-    "SOL/USDT": "1795399800000"
+    "BTC/USDT": "1795403100000",
+    "ETH/USDT": "1795403100000",
+    "SOL/USDT": "1795403100000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -840,8 +851,8 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 60831.7,
-    "ETH/USDT": 1708.34,
-    "SOL/USDT": 70.41
+    "BTC/USDT": 60926.9,
+    "ETH/USDT": 1715.21,
+    "SOL/USDT": 70.68
   }
 }
