@@ -936,9 +936,9 @@
     }
   ],
   "last_processed_candle": {
-    "BTC/USDT": "1795459500000",
-    "ETH/USDT": "1795459500000",
-    "SOL/USDT": "1795459500000"
+    "BTC/USDT": "1795463100000",
+    "ETH/USDT": "1795463100000",
+    "SOL/USDT": "1795463100000"
   },
   "baseline_metadata": {
     "created_at": "2026-11-13T16:22:38.764613+00:00",
@@ -952,8 +952,8 @@
     "note": "Historical gap intentionally skipped; no trades were simulated for skipped candles."
   },
   "last_processed_close": {
-    "BTC/USDT": 61431.2,
-    "ETH/USDT": 1739.21,
-    "SOL/USDT": 73.34
+    "BTC/USDT": 61064.1,
+    "ETH/USDT": 1725.15,
+    "SOL/USDT": 72.7
   }
 }
