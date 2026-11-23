@@ -1,0 +1,25 @@
+name: Historical Backtest Foundation
+
+on:
+  push:
+    branches:
+      - paper-historical-backtest-foundation
+  pull_request:
+    branches:
+      - paper-trading-v1-2
+      - paper-historical-backtest-foundation
+
+permissions:
+  contents: read
+
+jobs:
+  backtest-core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test deterministic backtest execution core
+        run: python -m unittest -v test_backtest_engine.py
