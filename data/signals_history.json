@@ -4489,9 +4489,9 @@
     "volume_ratio": 1.6621850207542654,
     "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795416600000
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795420800000
   },
   {
     "id": "ETH-USDT-LONG-1795412700000",
