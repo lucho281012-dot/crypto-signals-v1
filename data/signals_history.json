@@ -4487,11 +4487,11 @@
     "score": 4,
     "rsi": 62.113023847033574,
     "volume_ratio": 1.6621850207542654,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": null
+    "last_checked_ts": 1795416600000
   },
   {
     "id": "ETH-USDT-LONG-1795412700000",
@@ -4510,9 +4510,9 @@
     "volume_ratio": 1.1071833713966355,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795414800000
   },
   {
     "id": "SOL-USDT-LONG-1795412700000",
@@ -4531,8 +4531,8 @@
     "volume_ratio": 3.3758523985404976,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795414800000
   }
 ]
