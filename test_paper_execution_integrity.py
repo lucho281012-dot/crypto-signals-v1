@@ -19,9 +19,9 @@ class EntryExecutionIntegrityTests(unittest.TestCase):
                 {"timestamp": 1_300_000, "open": 103, "high": 106, "low": 102, "close": 105, "volume": 3},
             ],
             "candles_15m": [
-                {"timestamp": 100_000, "open": 90, "high": 91, "low": 89, "close": 90, "volume": 1},
-                {"timestamp": 1_000_000, "open": 100, "high": 103, "low": 99, "close": 102, "volume": 2},
-                {"timestamp": 1_900_000, "open": 103, "high": 106, "low": 102, "close": 105, "volume": 3},
+                {"timestamp": -900_000, "open": 90, "high": 91, "low": 89, "close": 90, "volume": 1},
+                {"timestamp": 0, "open": 100, "high": 103, "low": 99, "close": 102, "volume": 2},
+                {"timestamp": 900_000, "open": 103, "high": 106, "low": 102, "close": 105, "volume": 3},
             ],
         }
         self.signal = {
