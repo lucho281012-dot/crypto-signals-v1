@@ -154,5 +154,23 @@ class EntryExecutionIntegrityTests(unittest.TestCase):
         self.assertEqual(result["BTC/USDT"]["price_timestamp"], 1_700_000_000_000)
 
 
+    def test_stale_signal_candle_is_rejected_even_with_fresh_quote(self):
+        with patch("paper_bot.analyze_spot", return_value=self.signal):
+            candidate = build_entry_candidate(
+                {"positions": {}}, "BTC/USDT", self.data,
+                now_ms=self.signal_close_ms + 300_001
+            )
+        self.assertIsNone(candidate)
+
+    def test_stale_trend_candle_is_rejected(self):
+        with patch("paper_bot.analyze_spot", return_value=self.signal):
+            candidate = build_entry_candidate(
+                {"positions": {}}, "BTC/USDT", self.data,
+                now_ms=self.signal_close_ms + 800_000,
+                max_signal_age_ms=1_000_000
+            )
+        self.assertIsNone(candidate)
+
+
 if __name__ == "__main__":
     unittest.main()
