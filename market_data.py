@@ -28,14 +28,20 @@ def _format_candles(raw_candles):
     ]
 
 
-def get_market_price(symbol):
+def get_market_quote(symbol):
+    """Return the latest traded price and exchange timestamp in milliseconds."""
     exchange.load_markets()
 
     if symbol not in exchange.markets:
         raise ValueError(f"Par no disponible en Kraken: {symbol}")
 
     ticker = exchange.fetch_ticker(symbol)
-    return ticker["last"]
+    return ticker.get("last"), ticker.get("timestamp")
+
+
+def get_market_price(symbol):
+    price, _ = get_market_quote(symbol)
+    return price
 
 
 def get_candles(symbol, timeframe="5m", limit=250):
@@ -121,10 +127,15 @@ def get_all_market_data():
                 print(f"Par no disponible: {symbol}")
                 continue
 
+            candles_5m = get_candles(symbol, "5m")
+            candles_15m = get_candles(symbol, "15m")
+            # Fetch the quote only after both candle sets are available.
+            price, price_timestamp = get_market_quote(symbol)
             results[symbol] = {
-                "price": get_market_price(symbol),
-                "candles_5m": get_candles(symbol, "5m"),
-                "candles_15m": get_candles(symbol, "15m")
+                "price": price,
+                "price_timestamp": price_timestamp,
+                "candles_5m": candles_5m,
+                "candles_15m": candles_15m
             }
 
             print(f"Datos recibidos correctamente: {symbol}")
