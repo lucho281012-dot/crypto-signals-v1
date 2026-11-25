@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: paper-trading-controlled-rebaseline
+  group: paper-branch-data-writer
   cancel-in-progress: false
 
 jobs:
