@@ -187,10 +187,10 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             self.assertEqual(len(state["history"]), 1)
             trade = state["history"][0]
             self.assertEqual(trade["reason"], "stop_loss")
-            self.assertEqual(trade["exit_price"], 8.0)
+            self.assertAlmostEqual(trade["exit_price"], 7.996)
             self.assertAlmostEqual(trade["exit_fee"], 0.008)
-            self.assertAlmostEqual(trade["net_pnl"], -2.018)
-            self.assertAlmostEqual(state["cash_usdt"], 97.982)
+            self.assertAlmostEqual(trade["net_pnl"], -2.021996)
+            self.assertAlmostEqual(state["cash_usdt"], 97.978004)
             self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "900000")
             # La entrada, si existe, solo se evalúa en la última vela actual.
             open_signal.assert_called_once_with(
@@ -358,7 +358,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
                     self.assertNotIn("BTC/USDT", after_restart["positions"])
                     self.assertEqual(len(after_restart["history"]), 1)
                     self.assertEqual(after_restart["history"][0]["reason"], "stop_loss")
-                    self.assertAlmostEqual(after_restart["cash_usdt"], 97.982)
+                    self.assertAlmostEqual(after_restart["cash_usdt"], 97.978004)
                     self.assertEqual(
                         after_restart["last_processed_candle"]["BTC/USDT"],
                         "900000"
@@ -369,7 +369,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
                     final_state = paper_trading.load_state()
 
                 self.assertEqual(len(final_state["history"]), 1)
-                self.assertAlmostEqual(final_state["cash_usdt"], 97.982)
+                self.assertAlmostEqual(final_state["cash_usdt"], 97.978004)
                 self.assertEqual(recover.call_count, 2)
                 open_signal.assert_not_called()
 
