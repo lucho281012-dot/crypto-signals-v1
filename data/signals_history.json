@@ -5098,9 +5098,9 @@
     "volume_ratio": 0.7995620331451772,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795573500000
   },
   {
     "id": "SOL-USDT-SHORT-1795572900000",
@@ -5119,8 +5119,8 @@
     "volume_ratio": 2.0797723521103006,
     "tp1_hit": false,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": null
+    "status": "SL",
+    "result": "SL",
+    "last_checked_ts": 1795573800000
   }
 ]
