@@ -124,7 +124,11 @@ def _iso_from_ms(timestamp_ms):
     ).isoformat()
 
 
-def build_entry_candidate(state, symbol, data, now_ms=None, max_quote_age_ms=60000):
+def build_entry_candidate(
+    state, symbol, data, now_ms=None,
+    max_quote_age_ms=60000, max_signal_age_ms=300000,
+    max_trend_age_ms=900000
+):
     """Build a paper entry only from a timestamped quote observed after signal close.
 
     The strategy signal is calculated from completed candles. The fill reference
@@ -154,7 +158,15 @@ def build_entry_candidate(state, symbol, data, now_ms=None, max_quote_age_ms=600
 
     signal_candle_timestamp = int(candles_5m[-2]["timestamp"])
     signal_close_ms = signal_candle_timestamp + 300000
+    trend_candle_timestamp = int(candles_15m[-2]["timestamp"])
+    trend_close_ms = trend_candle_timestamp + 900000
     decision_ms = int(now_ms if now_ms is not None else datetime.now(timezone.utc).timestamp() * 1000)
+
+    # Reject stale candles even if the ticker itself is fresh.
+    if decision_ms - signal_close_ms > int(max_signal_age_ms):
+        return None
+    if decision_ms - trend_close_ms > int(max_trend_age_ms):
+        return None
 
     # A quote before the signal candle closed cannot be used as its execution price.
     if quote_timestamp < signal_close_ms:
