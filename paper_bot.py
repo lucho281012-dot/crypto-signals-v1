@@ -255,12 +255,17 @@ def run_bot():
 
         state["last_processed_candle"][symbol] = latest_id
         state["last_processed_close"][symbol] = float(pending[-1]["close"])
-        save_state(state)
 
     if entry_candidates:
         results = open_positions_batch(state, entry_candidates)
         for symbol, (success, message) in results.items():
             print(message)
+        # A successful batch already persisted positions and all updated
+        # cursors together. If every candidate was rejected, persist cursors.
+        if not any(success for success, _ in results.values()):
+            save_state(state)
+    else:
+        save_state(state)
 
     print("Estado del simulador:")
     print(get_status(state))
