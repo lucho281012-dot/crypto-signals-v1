@@ -40,11 +40,18 @@ def save_state(state):
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = STATE_FILE.with_suffix(".tmp")
 
-    with temp_file.open("w", encoding="utf-8") as file:
-        json.dump(state, file, indent=2)
-        file.flush()
-
-    temp_file.replace(STATE_FILE)
+    try:
+        with temp_file.open("w", encoding="utf-8") as file:
+            json.dump(state, file, indent=2, allow_nan=False)
+            file.flush()
+        temp_file.replace(STATE_FILE)
+    except BaseException:
+        # Keep the previous state file intact and remove an incomplete temp file.
+        try:
+            temp_file.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
 
 
 def risk_per_unit(entry_price, stop_price, fee_rate=FEE_RATE,
@@ -72,8 +79,8 @@ def calculate_open_risk(state):
             quantity = float(position["quantity"])
             entry = float(position["entry_price"])
             stop = float(position["stop_price"])
-            if quantity <= 0:
-                raise ValueError("non-positive quantity")
+            if not math.isfinite(quantity) or quantity <= 0:
+                raise ValueError("non-finite or non-positive quantity")
             total += quantity * risk_per_unit(entry, stop)
         except (KeyError, TypeError, ValueError) as error:
             raise RuntimeError(
@@ -126,10 +133,22 @@ def open_positions_batch(state, candidates, min_notional=MIN_NOTIONAL_USDT):
             for _, symbol, *_ in normalized
         }
 
-    current_exposure = sum(
-        float(p["quantity"]) * float(p["entry_price"])
-        for p in positions.values()
-    )
+    try:
+        current_exposure = 0.0
+        for symbol, position in positions.items():
+            quantity = float(position["quantity"])
+            entry = float(position["entry_price"])
+            if (
+                not math.isfinite(quantity) or quantity <= 0
+                or not math.isfinite(entry) or entry <= 0
+            ):
+                raise ValueError("non-finite or non-positive quantity/entry")
+            current_exposure += quantity * entry
+    except (KeyError, TypeError, ValueError) as error:
+        return {
+            symbol: (False, f"Exposición de posiciones existentes no verificable: {error}")
+            for _, symbol, *_ in normalized
+        }
     risk_remaining = max(0.0, initial * RISK_PERCENT - current_risk)
     exposure_remaining = max(
         0.0, initial * MAX_POSITION_PERCENT - current_exposure
@@ -215,10 +234,20 @@ def open_positions_batch(state, candidates, min_notional=MIN_NOTIONAL_USDT):
                     position[key] = item[key]
             new_positions[symbol] = position
 
-        # Mutate the in-memory state only after all candidates validate.
+        # Roll back in-memory changes if persistence fails. The on-disk state
+        # remains the previous committed snapshot because save_state replaces
+        # the target only after the temporary file is complete.
+        previous_positions = dict(positions)
+        previous_cash = state["cash_usdt"]
         positions.update(new_positions)
         state["cash_usdt"] = max(0.0, cash - total_cost)
-        save_state(state)
+        try:
+            save_state(state)
+        except BaseException:
+            positions.clear()
+            positions.update(previous_positions)
+            state["cash_usdt"] = previous_cash
+            raise
         for symbol, position in new_positions.items():
             results[symbol] = (
                 True,
