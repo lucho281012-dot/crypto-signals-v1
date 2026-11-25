@@ -210,6 +210,15 @@ def build_entry_candidate(
             "rsi": signal.get("rsi"),
             "conditions_met": signal.get("conditions_met"),
             "signal_close": signal.get("entry"),
+            "ema20": signal.get("ema20"),
+            "ema200": signal.get("ema200"),
+            "macd": signal.get("macd"),
+            "macd_signal": signal.get("macd_signal"),
+            "volume": signal.get("volume"),
+            "volume_sma20": signal.get("volume_sma20"),
+            "bullish_trend": signal.get("bullish_trend"),
+            "trend_ema20": signal.get("trend_ema20"),
+            "trend_ema200": signal.get("trend_ema200"),
         },
     }
 
