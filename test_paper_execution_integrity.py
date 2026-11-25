@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+import paper_bot
 from paper_bot import build_entry_candidate
 
 
@@ -82,6 +83,50 @@ class EntryExecutionIntegrityTests(unittest.TestCase):
                 now_ms=self.signal_close_ms + 20_000
             )
         self.assertIsNone(candidate)
+
+
+    def test_run_bot_batches_all_symbols_before_allocating_risk(self):
+        candles_5m = [
+            {"timestamp": 300000, "open": 10, "high": 11, "low": 9, "close": 10, "volume": 1},
+            {"timestamp": 600000, "open": 10, "high": 11, "low": 9, "close": 10, "volume": 1},
+            {"timestamp": 900000, "open": 10, "high": 11, "low": 9, "close": 10, "volume": 1},
+        ]
+        candles_15m = [
+            {"timestamp": 0, "open": 10, "high": 11, "low": 9, "close": 10, "volume": 1},
+            {"timestamp": 900000, "open": 10, "high": 11, "low": 9, "close": 10, "volume": 1},
+            {"timestamp": 1800000, "open": 10, "high": 11, "low": 9, "close": 10, "volume": 1},
+        ]
+        market_data = {
+            symbol: {
+                "price": 10.0, "price_timestamp": 1_000_000,
+                "candles_5m": candles_5m, "candles_15m": candles_15m,
+            }
+            for symbol in ("BTC/USDT", "ETH/USDT")
+        }
+        state = {
+            "initial_balance": 100.0, "cash_usdt": 100.0,
+            "positions": {}, "history": [],
+            "last_processed_candle": {}, "last_processed_close": {},
+        }
+        candidates = [
+            {"symbol": "BTC/USDT", "entry_price": 10.0, "stop_price": 9.8},
+            {"symbol": "ETH/USDT", "entry_price": 10.0, "stop_price": 9.8},
+        ]
+
+        with (
+            patch("paper_bot.load_state", return_value=state),
+            patch("paper_bot.get_all_market_data", return_value=market_data),
+            patch("paper_bot.get_pending_candles", side_effect=lambda s, last, latest, close=None: [latest]),
+            patch("paper_bot.open_signal_position", side_effect=candidates) as candidate_builder,
+            patch("paper_bot.open_positions_batch") as batch,
+            patch("paper_bot.save_state"),
+            patch("paper_bot.get_status", return_value={"ok": True}),
+            patch("builtins.print"),
+        ):
+            paper_bot.run_bot()
+
+        self.assertEqual(candidate_builder.call_count, 2)
+        batch.assert_called_once_with(state, candidates)
 
 
 if __name__ == "__main__":
