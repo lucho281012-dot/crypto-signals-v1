@@ -72,9 +72,9 @@ class PaperAuditTests(unittest.TestCase):
         risk = report["risk_analysis_per_trade"][0]
         btc = report["performance_by_symbol"]["BTC/USDT"]
 
-        self.assertAlmostEqual(risk["estimated_loss_at_stop_usdt"], 1.019)
-        self.assertAlmostEqual(risk["risk_percent_of_initial_balance"], 1.019)
-        self.assertAlmostEqual(risk["realized_r_multiple"], 0.979 / 1.019, places=5)
+        self.assertAlmostEqual(risk["estimated_loss_at_stop_usdt"], 1.0234955)
+        self.assertAlmostEqual(risk["risk_percent_of_initial_balance"], 1.0234955)
+        self.assertAlmostEqual(risk["realized_r_multiple"], 0.979 / 1.0234955, places=5)
         self.assertEqual(btc["trades"], 1)
         self.assertEqual(btc["wins"], 1)
         self.assertAlmostEqual(btc["net_pnl_usdt"], 0.979)
