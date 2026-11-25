@@ -107,5 +107,31 @@ class PaperTradingRiskTests(unittest.TestCase):
         save.assert_not_called()
 
 
+    def test_entry_execution_metadata_is_persisted_with_position(self):
+        state = self.state()
+        candidate = {
+            "symbol": "BTC/USDT",
+            "entry_price": 10.01,
+            "stop_price": 9.8,
+            "quote_price": 10.0,
+            "quote_side": "ask",
+            "quote_timestamp": "2026-11-25T17:00:00+00:00",
+            "signal_candle_timestamp": 1_000_000,
+            "signal_confirmed_at": "2026-11-25T16:50:00+00:00",
+            "entry_decision_at": "2026-11-25T16:50:10+00:00",
+            "entry_candle_timestamp": 1_200_000,
+            "entry_delay_seconds": 10.0,
+            "strategy_version": "crypto-signals-v1-2",
+            "signal_snapshot": {"side": "BUY", "atr": 0.2},
+        }
+        with patch("paper_trading.save_state"):
+            result = open_positions_batch(state, [candidate])
+        self.assertTrue(result["BTC/USDT"][0])
+        position = state["positions"]["BTC/USDT"]
+        self.assertEqual(position["quote_side"], "ask")
+        self.assertEqual(position["quote_price"], 10.0)
+        self.assertEqual(position["signal_snapshot"]["side"], "BUY")
+
+
 if __name__ == "__main__":
     unittest.main()
