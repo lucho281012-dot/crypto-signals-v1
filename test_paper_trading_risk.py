@@ -24,7 +24,7 @@ class PaperTradingRiskTests(unittest.TestCase):
         self.assertAlmostEqual(risk_per_unit(10.0, 9.0), expected)
 
     def test_cash_cap_records_actual_risk_not_full_target(self):
-        state = self.state(cash=5.0)
+        state = self.state(cash=6.0)
         with patch("paper_trading.save_state"):
             success, message = open_position(state, "BTC/USDT", 10.0, 9.0)
 
