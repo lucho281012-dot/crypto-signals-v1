@@ -204,7 +204,7 @@ def open_positions_batch(state, candidates, min_notional=MIN_NOTIONAL_USDT):
             for key in (
                 "signal_candle_timestamp", "signal_confirmed_at",
                 "entry_decision_at", "entry_candle_timestamp",
-                "quote_timestamp", "quote_price",
+                "quote_timestamp", "quote_price", "quote_side",
                 "entry_delay_seconds", "strategy_version", "signal_snapshot"
             ):
                 if key in item:
