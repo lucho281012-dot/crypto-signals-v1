@@ -96,5 +96,53 @@ class PaperAuditTests(unittest.TestCase):
         self.assertEqual(len(report["pnl_mismatches"]), 1)
 
 
+    def test_reports_aggregate_open_risk_exposure_and_dust(self):
+        state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 89.99,
+            "positions": {
+                "BTC/USDT": {
+                    "quantity": 1.0,
+                    "entry_price": 10.0,
+                    "stop_price": 9.0,
+                    "entry_fee": 0.01,
+                    "opened_at": "2026-01-01T00:00:00+00:00",
+                }
+            },
+            "history": [],
+        }
+        report = build_audit(state)
+        limits = report["portfolio_limits"]
+        sizes = report["position_size_audit"]
+
+        self.assertGreater(limits["open_risk_usdt"], 1.0)
+        self.assertFalse(limits["open_risk_within_limit"])
+        self.assertAlmostEqual(limits["open_exposure_usdt"], 10.0)
+        self.assertTrue(limits["open_exposure_within_limit"])
+        self.assertEqual(sizes["below_minimum_notional_count"], 0)
+        self.assertFalse(limits["historical_reconstruction_complete"])
+
+    def test_reports_missing_execution_metadata_for_legacy_trades(self):
+        state = {
+            "initial_balance": 100.0,
+            "cash_usdt": 100.0,
+            "positions": {},
+            "history": [{
+                "symbol": "BTC/USDT", "quantity": 1.0,
+                "entry_price": 10.0, "stop_price": 9.0,
+                "exit_price": 10.0, "entry_fee": 0.01,
+                "exit_fee": 0.01, "net_pnl": -0.02,
+                "opened_at": "2026-01-01T00:00:00+00:00",
+                "closed_at": "2026-01-01T00:05:00+00:00",
+            }],
+        }
+        report = build_audit(state)
+        trace = report["execution_traceability"]
+        self.assertEqual(trace["records_with_complete_entry_metadata"], 0)
+        self.assertEqual(trace["coverage_percent"], 0.0)
+        self.assertTrue(report["portfolio_limits"]["historical_reconstruction_complete"])
+        self.assertEqual(report["position_size_audit"]["below_minimum_notional_count"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
