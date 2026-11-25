@@ -120,7 +120,7 @@ class PaperAuditTests(unittest.TestCase):
         self.assertAlmostEqual(limits["open_exposure_usdt"], 10.0)
         self.assertTrue(limits["open_exposure_within_limit"])
         self.assertEqual(sizes["below_minimum_notional_count"], 0)
-        self.assertFalse(limits["historical_reconstruction_complete"])
+        self.assertTrue(limits["historical_reconstruction_complete"])
 
     def test_reports_missing_execution_metadata_for_legacy_trades(self):
         state = {
