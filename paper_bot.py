@@ -196,6 +196,11 @@ def build_entry_candidate(state, symbol, data, now_ms=None, max_quote_age_ms=600
         },
     }
 
+def open_signal_position(state, symbol, data):
+    """Compatibility wrapper returning a candidate, not opening it immediately."""
+    return build_entry_candidate(state, symbol, data)
+
+
 def run_bot():
     state = load_state()
     state.setdefault("last_processed_candle", {})
@@ -244,8 +249,8 @@ def run_bot():
         # Collect all new signals first. They are sized together after every
         # symbol has been processed, so simultaneous signals share one budget.
         if not had_position and symbol not in state["positions"]:
-            candidate = build_entry_candidate(state, symbol, data)
-            if candidate is not None:
+            candidate = open_signal_position(state, symbol, data)
+            if isinstance(candidate, dict):
                 entry_candidates.append(candidate)
 
         state["last_processed_candle"][symbol] = latest_id
