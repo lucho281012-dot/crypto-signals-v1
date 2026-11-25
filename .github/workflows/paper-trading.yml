@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: paper-trading
+  group: paper-branch-data-writer
   cancel-in-progress: false
 
 jobs:
