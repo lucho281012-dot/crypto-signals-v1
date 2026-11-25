@@ -51,13 +51,17 @@ def risk_per_unit(entry_price, stop_price, fee_rate=FEE_RATE,
                   slippage_bps=SLIPPAGE_BPS):
     entry = float(entry_price)
     stop = float(stop_price)
-    exit_fill = stop * (1.0 - float(slippage_bps) / 10000.0)
-    if entry <= 0 or stop <= 0 or stop >= entry or exit_fill <= 0:
+    fee = float(fee_rate)
+    slippage = float(slippage_bps)
+    if not all(math.isfinite(value) for value in (entry, stop, fee, slippage)):
+        raise ValueError("Non-finite prices or execution costs")
+    exit_fill = stop * (1.0 - slippage / 10000.0)
+    if entry <= 0 or stop <= 0 or stop >= entry or exit_fill <= 0 or fee < 0 or slippage < 0:
         raise ValueError("Invalid entry/stop prices for risk calculation")
     return (
         entry - exit_fill
-        + entry * float(fee_rate)
-        + exit_fill * float(fee_rate)
+        + entry * fee
+        + exit_fill * fee
     )
 
 
@@ -110,7 +114,7 @@ def open_positions_batch(state, candidates, min_notional=MIN_NOTIONAL_USDT):
 
     initial = float(state["initial_balance"])
     cash = float(state["cash_usdt"])
-    if initial <= 0 or cash <= 0:
+    if not math.isfinite(initial) or not math.isfinite(cash) or initial <= 0 or cash <= 0:
         return {symbol: (False, "Saldo insuficiente") for _, symbol, *_ in normalized}
 
     try:
