@@ -161,7 +161,7 @@ def build_audit(state):
     trace_required = (
         "signal_candle_timestamp", "signal_confirmed_at",
         "entry_decision_at", "entry_candle_timestamp",
-        "quote_timestamp", "quote_price", "entry_delay_seconds",
+        "quote_timestamp", "quote_price", "quote_side", "entry_delay_seconds",
         "strategy_version", "signal_snapshot",
     )
     traceable_records = 0
