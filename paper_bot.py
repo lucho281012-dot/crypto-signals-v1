@@ -209,6 +209,7 @@ def run_bot():
 
     market_data = get_all_market_data()
     entry_candidates = []
+    processed_any = False
 
     for symbol, data in market_data.items():
         candles = data["candles_5m"]
@@ -255,6 +256,7 @@ def run_bot():
 
         state["last_processed_candle"][symbol] = latest_id
         state["last_processed_close"][symbol] = float(pending[-1]["close"])
+        processed_any = True
 
     if entry_candidates:
         results = open_positions_batch(state, entry_candidates)
@@ -262,9 +264,9 @@ def run_bot():
             print(message)
         # A successful batch already persisted positions and all updated
         # cursors together. If every candidate was rejected, persist cursors.
-        if not any(success for success, _ in results.values()):
+        if processed_any and not any(success for success, _ in results.values()):
             save_state(state)
-    else:
+    elif processed_any:
         save_state(state)
 
     print("Estado del simulador:")
