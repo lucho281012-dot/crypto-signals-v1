@@ -37,11 +37,12 @@ class EntryExecutionIntegrityTests(unittest.TestCase):
             )
 
         self.assertIsNotNone(candidate)
-        self.assertEqual(candidate["entry_price"], 105.5)
+        self.assertAlmostEqual(candidate["entry_price"], 105.55275)
         self.assertNotEqual(candidate["entry_price"], self.data["candles_5m"][-1]["open"])
         self.assertEqual(candidate["signal_candle_timestamp"], self.signal_candle_ts)
         self.assertEqual(candidate["entry_delay_seconds"], 15.0)
         self.assertEqual(candidate["quote_price"], 105.5)
+        self.assertEqual(candidate["quote_side"], "ask")
         self.assertEqual(candidate["strategy_version"], "crypto-signals-v1-2")
 
     def test_quote_before_signal_close_is_rejected(self):
