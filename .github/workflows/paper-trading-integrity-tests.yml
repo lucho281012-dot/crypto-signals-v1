@@ -37,3 +37,6 @@ jobs:
 
       - name: Run complete unit test suite
         run: python -m unittest discover -v
+
+      - name: Audit existing paper ledger without modifying it
+        run: python paper_audit.py
