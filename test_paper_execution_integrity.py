@@ -113,20 +113,26 @@ class EntryExecutionIntegrityTests(unittest.TestCase):
             {"symbol": "ETH/USDT", "entry_price": 10.0, "stop_price": 9.8},
         ]
 
+        import paper_trading
+        persistence_events = []
         with (
             patch("paper_bot.load_state", return_value=state),
             patch("paper_bot.get_all_market_data", return_value=market_data),
             patch("paper_bot.get_pending_candles", side_effect=lambda s, last, latest, close=None: [latest]),
             patch("paper_bot.open_signal_position", side_effect=candidates) as candidate_builder,
-            patch("paper_bot.open_positions_batch") as batch,
-            patch("paper_bot.save_state"),
+            patch("paper_trading.save_state", side_effect=lambda value: persistence_events.append("batch_persist")),
+            patch("paper_bot.save_state", side_effect=lambda value: persistence_events.append("cursor_persist")),
             patch("paper_bot.get_status", return_value={"ok": True}),
             patch("builtins.print"),
         ):
             paper_bot.run_bot()
 
         self.assertEqual(candidate_builder.call_count, 2)
-        batch.assert_called_once_with(state, candidates)
+        self.assertEqual(set(state["positions"]), {"BTC/USDT", "ETH/USDT"})
+        self.assertEqual(persistence_events, ["batch_persist"])
+        self.assertLessEqual(paper_trading.calculate_open_risk(state), 1.0 + 1e-9)
+        self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "600000")
+        self.assertEqual(state["last_processed_candle"]["ETH/USDT"], "600000")
 
 
 if __name__ == "__main__":
