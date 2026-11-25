@@ -165,6 +165,8 @@ def build_entry_candidate(
     # Reject stale candles even if the ticker itself is fresh.
     if decision_ms - signal_close_ms > int(max_signal_age_ms):
         return None
+    if trend_close_ms > decision_ms + 5000:
+        return None
     if decision_ms - trend_close_ms > int(max_trend_age_ms):
         return None
 
