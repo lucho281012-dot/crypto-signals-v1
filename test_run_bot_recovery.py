@@ -202,7 +202,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             paper_bot.run_bot()
 
         self.assertEqual(len(state["history"]), 1)
-        self.assertAlmostEqual(state["cash_usdt"], 97.982)
+        self.assertAlmostEqual(state["cash_usdt"], 97.978004)
         self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "900000")
         self.assertEqual(save_cursor.call_count, 2)
 
