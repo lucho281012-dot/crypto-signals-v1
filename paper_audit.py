@@ -81,14 +81,7 @@ def build_audit(state):
         risk_percent = None
         r_multiple = None
         if stop > 0 and entry > stop and quantity > 0:
-            estimated_stop_loss = (
-                quantity * (entry - stop)
-                + entry_fee
-                + quantity * stop * (
-                    exit_fee / (quantity * exit_price)
-                    if quantity * exit_price > 0 else 0.0
-                )
-            )
+            estimated_stop_loss = quantity * risk_per_unit(entry, stop)
             risk_percent = estimated_stop_loss / initial * 100 if initial else None
             r_multiple = recorded / estimated_stop_loss if estimated_stop_loss > 0 else None
 
