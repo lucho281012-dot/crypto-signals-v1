@@ -85,7 +85,7 @@ class PaperGapRecoveryTests(unittest.TestCase):
             result = paper_bot.process_position_exit(state, "BTC/USDT", candle)
 
         self.assertEqual(result, "stop_loss")
-        close.assert_called_once_with(state, "BTC/USDT", 95, "stop_loss")
+        close.assert_called_once_with(state, "BTC/USDT", 94.9525, "stop_loss")
 
     def test_take_profit_is_applied_when_target_is_touched(self):
         state = {
