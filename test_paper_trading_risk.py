@@ -63,6 +63,8 @@ class PaperTradingRiskTests(unittest.TestCase):
             state["positions"]["BTC/USDT"]["risk_budget"],
             state["positions"]["ETH/USDT"]["risk_budget"],
         )
+        self.assertAlmostEqual(state["positions"]["BTC/USDT"]["risk_budget_target"], 0.5)
+        self.assertAlmostEqual(state["positions"]["ETH/USDT"]["risk_budget_target"], 0.5)
 
     def test_existing_position_risk_is_recomputed_not_trusted_from_stored_budget(self):
         existing = {
