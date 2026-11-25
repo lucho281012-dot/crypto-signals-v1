@@ -195,7 +195,7 @@ def open_positions_batch(state, candidates, min_notional=MIN_NOTIONAL_USDT):
                 "quantity": quantity,
                 "entry_fee": entry_fee,
                 "risk_budget": actual_risk,
-                "risk_budget_target": initial * RISK_PERCENT,
+                "risk_budget_target": initial * RISK_PERCENT / len(base),
                 "opened_at": now,
                 "entry_model": "post_signal_reference_quote",
             }
