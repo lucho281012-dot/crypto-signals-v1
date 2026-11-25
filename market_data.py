@@ -29,14 +29,14 @@ def _format_candles(raw_candles):
 
 
 def get_market_quote(symbol):
-    """Return the latest traded price and exchange timestamp in milliseconds."""
+    """Return the best ask and exchange timestamp for a conservative BUY reference."""
     exchange.load_markets()
 
     if symbol not in exchange.markets:
         raise ValueError(f"Par no disponible en Kraken: {symbol}")
 
     ticker = exchange.fetch_ticker(symbol)
-    return ticker.get("last"), ticker.get("timestamp")
+    return ticker.get("ask"), ticker.get("timestamp")
 
 
 def get_market_price(symbol):
