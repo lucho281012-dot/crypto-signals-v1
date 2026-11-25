@@ -1,11 +1,14 @@
+from datetime import datetime, timezone
+
 from market_data import get_all_market_data, get_candles_since
 from signal_engine import analyze_spot
 from paper_trading import (
     load_state,
     save_state,
-    open_position,
+    open_positions_batch,
     close_position,
-    get_status
+    get_status,
+    SLIPPAGE_BPS,
 )
 
 
@@ -21,7 +24,9 @@ def process_position_exit(state, symbol, candle):
     # Si ambos niveles aparecen dentro de la misma vela, conservamos
     # la regla conservadora existente: stop-loss tiene prioridad.
     if candle["low"] <= stop:
-        exit_price = min(candle["open"], stop)
+        # A stop-market exit pays adverse slippage, including on gap opens.
+        raw_exit = min(float(candle["open"]), float(stop))
+        exit_price = raw_exit * (1.0 - SLIPPAGE_BPS / 10000.0)
         close_position(state, symbol, exit_price, "stop_loss")
         print(symbol, "STOP LOSS")
         return "stop_loss"
@@ -113,33 +118,83 @@ def get_pending_candles(symbol, last_processed, latest_closed, last_processed_cl
     return pending
 
 
-def open_signal_position(state, symbol, data):
-    signal = analyze_spot(
-        data["candles_5m"],
-        data["candles_15m"]
-    )
+def _iso_from_ms(timestamp_ms):
+    return datetime.fromtimestamp(
+        int(timestamp_ms) / 1000.0, tz=timezone.utc
+    ).isoformat()
 
-    if not signal or signal["side"] != "BUY":
-        return
 
-    candles = data["candles_5m"]
-    entry_price = float(candles[-1]["open"])
-    stop_price = entry_price - (1.2 * signal["atr"])
-    target_price = entry_price + (2 * (entry_price - stop_price))
+def build_entry_candidate(state, symbol, data, now_ms=None, max_quote_age_ms=60000):
+    """Build a paper entry only from a timestamped quote observed after signal close.
 
-    success, message = open_position(
-        state,
-        symbol,
-        entry_price,
-        stop_price
-    )
+    The strategy signal is calculated from completed candles. The fill reference
+    is the later ticker price, never the open of the already-running candle.
+    """
+    if symbol in state.get("positions", {}):
+        return None
 
-    if success:
-        state["positions"][symbol]["target_price"] = target_price
-        save_state(state)
+    candles_5m = data.get("candles_5m", [])
+    candles_15m = data.get("candles_15m", [])
+    if len(candles_5m) < 3 or len(candles_15m) < 3:
+        return None
 
-    print(message)
+    signal = analyze_spot(candles_5m, candles_15m)
+    if not signal or signal.get("side") != "BUY":
+        return None
 
+    quote_price = data.get("price")
+    quote_timestamp = data.get("price_timestamp")
+    if quote_price is None or quote_timestamp is None:
+        return None
+
+    entry_price = float(quote_price)
+    quote_timestamp = int(quote_timestamp)
+    if entry_price <= 0:
+        return None
+
+    signal_candle_timestamp = int(candles_5m[-2]["timestamp"])
+    signal_close_ms = signal_candle_timestamp + 300000
+    decision_ms = int(now_ms if now_ms is not None else datetime.now(timezone.utc).timestamp() * 1000)
+
+    # A quote before the signal candle closed cannot be used as its execution price.
+    if quote_timestamp < signal_close_ms:
+        return None
+    # Reject stale or implausibly future-dated quotes.
+    if quote_timestamp > decision_ms + 5000:
+        return None
+    if decision_ms - quote_timestamp > int(max_quote_age_ms):
+        return None
+
+    atr = float(signal["atr"])
+    if atr <= 0:
+        return None
+
+    stop_price = entry_price - 1.2 * atr
+    if stop_price <= 0 or stop_price >= entry_price:
+        return None
+    target_price = entry_price + 2.0 * (entry_price - stop_price)
+
+    return {
+        "symbol": symbol,
+        "entry_price": entry_price,
+        "stop_price": stop_price,
+        "target_price": target_price,
+        "signal_candle_timestamp": signal_candle_timestamp,
+        "signal_confirmed_at": _iso_from_ms(signal_close_ms),
+        "entry_decision_at": _iso_from_ms(decision_ms),
+        "entry_candle_timestamp": (quote_timestamp // 300000) * 300000,
+        "quote_timestamp": _iso_from_ms(quote_timestamp),
+        "quote_price": entry_price,
+        "entry_delay_seconds": round((quote_timestamp - signal_close_ms) / 1000.0, 3),
+        "strategy_version": "crypto-signals-v1-2",
+        "signal_snapshot": {
+            "side": signal["side"],
+            "atr": atr,
+            "rsi": signal.get("rsi"),
+            "conditions_met": signal.get("conditions_met"),
+            "signal_close": signal.get("entry"),
+        },
+    }
 
 def run_bot():
     state = load_state()
@@ -148,6 +203,7 @@ def run_bot():
     state.setdefault("positions", {})
 
     market_data = get_all_market_data()
+    entry_candidates = []
 
     for symbol, data in market_data.items():
         candles = data["candles_5m"]
@@ -170,32 +226,36 @@ def run_bot():
                 state["last_processed_close"].get(symbol)
             )
         except Exception as error:
-            # No movemos el cursor ante datos incompletos o fallos de API.
+            # No cursor movement if recovery is incomplete or the API fails.
             print(f"Recuperación pendiente para {symbol}: {error}")
             continue
 
-        # Durante el hueco solo gestionamos posiciones que ya existían.
-        # No inventamos entradas retrospectivas con señales que el bot
-        # no pudo observar en tiempo real.
+        # Manage old positions over each recovered candle; never open
+        # retrospectively during a gap.
         for candle in pending[:-1]:
             process_position_exit(state, symbol, candle)
             state["last_processed_candle"][symbol] = str(candle["timestamp"])
             state["last_processed_close"][symbol] = float(candle["close"])
             save_state(state)
 
-        # La última vela recuperada es la más reciente ya cerrada.
-        # Aplicamos primero la gestión de una posición previa.
         had_position = symbol in state["positions"]
         process_position_exit(state, symbol, pending[-1])
 
-        # Las nuevas entradas se evalúan solo en la última vela disponible,
-        # nunca retrospectivamente durante la recuperación del hueco.
+        # Collect all new signals first. They are sized together after every
+        # symbol has been processed, so simultaneous signals share one budget.
         if not had_position and symbol not in state["positions"]:
-            open_signal_position(state, symbol, data)
+            candidate = build_entry_candidate(state, symbol, data)
+            if candidate is not None:
+                entry_candidates.append(candidate)
 
         state["last_processed_candle"][symbol] = latest_id
         state["last_processed_close"][symbol] = float(pending[-1]["close"])
         save_state(state)
+
+    if entry_candidates:
+        results = open_positions_batch(state, entry_candidates)
+        for symbol, (success, message) in results.items():
+            print(message)
 
     print("Estado del simulador:")
     print(get_status(state))
