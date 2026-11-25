@@ -1,26 +1,13 @@
 name: Crypto Signals Paper Trading
 
 on:
-  push:
-    branches:
-      - paper-trading-v1-2
-    paths:
-      - "paper_bot.py"
-      - "paper_trading.py"
-      - "market_data.py"
-      - "signal_engine.py"
-      - "risk_manager.py"
-      - "requirements.txt"
-      - ".github/workflows/paper-trading.yml"
   workflow_dispatch:
-  schedule:
-    - cron: "*/5 * * * *"
 
 permissions:
   contents: write
 
 concurrency:
-  group: paper-branch-data-writer
+  group: paper-trading
   cancel-in-progress: false
 
 jobs:
@@ -40,14 +27,11 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Ejecutar simulador
-        run: |
-          python paper_bot.py
+        run: python paper_bot.py
 
-  
       - name: Guardar estado del simulador
         run: |
           python -c "from paper_trading import load_state, save_state; save_state(load_state())"
@@ -56,4 +40,3 @@ jobs:
           git add data/paper_state.json
           git diff --cached --quiet || git commit -m "Update paper trading state"
           git push origin HEAD:paper-trading-v1-2
-        
