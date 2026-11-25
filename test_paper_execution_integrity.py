@@ -167,7 +167,7 @@ class EntryExecutionIntegrityTests(unittest.TestCase):
             candidate = build_entry_candidate(
                 {"positions": {}}, "BTC/USDT", self.data,
                 now_ms=self.signal_close_ms + 800_000,
-                max_signal_age_ms=1_000_000
+                max_signal_age_ms=1_000_000, max_quote_age_ms=2_000_000
             )
         self.assertIsNone(candidate)
 
