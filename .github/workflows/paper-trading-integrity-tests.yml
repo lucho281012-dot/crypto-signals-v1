@@ -1,0 +1,39 @@
+name: Paper Trading Integrity Tests
+
+on:
+  push:
+    branches:
+      - fix/paper-trading-integrity
+    paths:
+      - "*.py"
+      - "requirements.txt"
+      - ".github/workflows/paper-trading-integrity-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-integrity-tests
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout isolated correction branch
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: fix/paper-trading-integrity
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run complete unit test suite
+        run: python -m unittest discover -v
