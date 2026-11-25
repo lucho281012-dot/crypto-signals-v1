@@ -188,7 +188,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             trade = state["history"][0]
             self.assertEqual(trade["reason"], "stop_loss")
             self.assertAlmostEqual(trade["exit_price"], 7.996)
-            self.assertAlmostEqual(trade["exit_fee"], 0.008)
+            self.assertAlmostEqual(trade["exit_fee"], 0.007996)
             self.assertAlmostEqual(trade["net_pnl"], -2.021996)
             self.assertAlmostEqual(state["cash_usdt"], 97.978004)
             self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "900000")
