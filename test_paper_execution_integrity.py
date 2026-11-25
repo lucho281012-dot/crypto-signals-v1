@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import paper_bot
+import market_data
 from paper_bot import build_entry_candidate
 
 
@@ -134,6 +135,23 @@ class EntryExecutionIntegrityTests(unittest.TestCase):
         self.assertLessEqual(paper_trading.calculate_open_risk(state), 1.0 + 1e-9)
         self.assertEqual(state["last_processed_candle"]["BTC/USDT"], "600000")
         self.assertEqual(state["last_processed_candle"]["ETH/USDT"], "600000")
+
+
+    def test_market_data_fetches_timestamped_ask_after_both_candle_sets(self):
+        events = []
+        with (
+            patch.object(market_data.exchange, "load_markets"),
+            patch.object(market_data.exchange, "markets", {"BTC/USDT": {}}),
+            patch.object(market_data, "SYMBOLS", ["BTC/USDT"]),
+            patch.object(market_data, "get_candles", side_effect=lambda symbol, timeframe: events.append(timeframe) or [{"timestamp": 1}]),
+            patch.object(market_data, "get_market_quote", side_effect=lambda symbol: events.append("ask") or (100.25, 1_700_000_000_000)),
+            patch("builtins.print"),
+        ):
+            result = market_data.get_all_market_data()
+
+        self.assertEqual(events, ["5m", "15m", "ask"])
+        self.assertEqual(result["BTC/USDT"]["price"], 100.25)
+        self.assertEqual(result["BTC/USDT"]["price_timestamp"], 1_700_000_000_000)
 
 
 if __name__ == "__main__":
