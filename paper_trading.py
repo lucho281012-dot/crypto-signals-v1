@@ -203,7 +203,8 @@ def open_positions_batch(state, candidates, min_notional=MIN_NOTIONAL_USDT):
                 position["target_price"] = float(item["target_price"])
             for key in (
                 "signal_candle_timestamp", "signal_confirmed_at",
-                "entry_decision_at", "quote_timestamp", "quote_price",
+                "entry_decision_at", "entry_candle_timestamp",
+                "quote_timestamp", "quote_price",
                 "entry_delay_seconds", "strategy_version", "signal_snapshot"
             ):
                 if key in item:
