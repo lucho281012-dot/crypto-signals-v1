@@ -147,9 +147,9 @@ def build_entry_candidate(state, symbol, data, now_ms=None, max_quote_age_ms=600
     if quote_price is None or quote_timestamp is None:
         return None
 
-    entry_price = float(quote_price)
+    quote_price = float(quote_price)
     quote_timestamp = int(quote_timestamp)
-    if entry_price <= 0:
+    if quote_price <= 0:
         return None
 
     signal_candle_timestamp = int(candles_5m[-2]["timestamp"])
@@ -165,6 +165,8 @@ def build_entry_candidate(state, symbol, data, now_ms=None, max_quote_age_ms=600
     if decision_ms - quote_timestamp > int(max_quote_age_ms):
         return None
 
+    # Apply adverse entry slippage to the ask reference before sizing.
+    entry_price = quote_price * (1.0 + SLIPPAGE_BPS / 10000.0)
     atr = float(signal["atr"])
     if atr <= 0:
         return None
@@ -184,7 +186,8 @@ def build_entry_candidate(state, symbol, data, now_ms=None, max_quote_age_ms=600
         "entry_decision_at": _iso_from_ms(decision_ms),
         "entry_candle_timestamp": (quote_timestamp // 300000) * 300000,
         "quote_timestamp": _iso_from_ms(quote_timestamp),
-        "quote_price": entry_price,
+        "quote_price": quote_price,
+        "quote_side": "ask",
         "entry_delay_seconds": round((quote_timestamp - signal_close_ms) / 1000.0, 3),
         "strategy_version": "crypto-signals-v1-2",
         "signal_snapshot": {
