@@ -1,5 +1,14 @@
 import json
 from pathlib import Path
+from datetime import datetime
+
+from paper_trading import (
+    calculate_open_risk,
+    risk_per_unit,
+    RISK_PERCENT,
+    MAX_POSITION_PERCENT,
+    MIN_NOTIONAL_USDT,
+)
 
 
 STATE_FILE = Path("data/paper_state.json")
@@ -127,6 +136,82 @@ def build_audit(state):
     expected_cash = initial + net_pnl - open_cost
     cash_difference = cash - expected_cash
 
+    # Recompute current portfolio risk from quantity/entry/stop. Never trust
+    # the historical risk_budget field as the source of truth.
+    open_risk_error = None
+    try:
+        open_risk = calculate_open_risk(state)
+    except RuntimeError as error:
+        open_risk = None
+        open_risk_error = str(error)
+
+    open_exposure = sum(
+        float(position.get("quantity", 0.0))
+        * float(position.get("entry_price", 0.0))
+        for position in positions.values()
+    )
+    risk_limit = initial * RISK_PERCENT
+    exposure_limit = initial * MAX_POSITION_PERCENT
+
+    records = list(history) + [
+        {**position, "symbol": symbol, "_is_open": True}
+        for symbol, position in positions.items()
+    ]
+    notionals = []
+    trace_required = (
+        "signal_candle_timestamp", "signal_confirmed_at",
+        "entry_decision_at", "entry_candle_timestamp",
+        "quote_timestamp", "quote_price", "entry_delay_seconds",
+        "strategy_version", "signal_snapshot",
+    )
+    traceable_records = 0
+    for record in records:
+        try:
+            notional = float(record["quantity"]) * float(record["entry_price"])
+            notionals.append(notional)
+            if all(record.get(key) is not None for key in trace_required):
+                traceable_records += 1
+        except (KeyError, TypeError, ValueError):
+            continue
+
+    # Reconstruct peak historical risk/exposure from entry and exit timestamps.
+    # Close events sort before opens at the same timestamp.
+    events = []
+    historical_complete = True
+    for record in records:
+        try:
+            quantity = float(record["quantity"])
+            entry = float(record["entry_price"])
+            stop = float(record["stop_price"])
+            opened = datetime.fromisoformat(str(record["opened_at"])).timestamp()
+            position_risk = quantity * risk_per_unit(entry, stop)
+            notional = quantity * entry
+            events.append((opened, 1, position_risk, notional))
+            if not record.get("_is_open"):
+                closed = datetime.fromisoformat(str(record["closed_at"])).timestamp()
+                events.append((closed, 0, -position_risk, -notional))
+        except (KeyError, TypeError, ValueError):
+            historical_complete = False
+
+    peak_risk = 0.0
+    peak_exposure = 0.0
+    running_risk = 0.0
+    running_exposure = 0.0
+    if historical_complete:
+        for _, _, risk_delta, exposure_delta in sorted(events):
+            running_risk += risk_delta
+            running_exposure += exposure_delta
+            peak_risk = max(peak_risk, running_risk)
+            peak_exposure = max(peak_exposure, running_exposure)
+    else:
+        peak_risk = None
+        peak_exposure = None
+
+    dust_count = sum(1 for value in notionals if value < MIN_NOTIONAL_USDT)
+    below_one_count = sum(1 for value in notionals if value < 1.0)
+    below_ten_count = sum(1 for value in notionals if value < 10.0)
+    trace_total = len(records)
+
     return {
         "initial_balance": round(initial, 8),
         "cash_usdt": round(cash, 8),
@@ -148,6 +233,32 @@ def build_audit(state):
         "expected_cash_usdt": round(expected_cash, 8),
         "cash_reconciliation_difference_usdt": round(cash_difference, 10),
         "cash_reconciles": abs(cash_difference) <= TOLERANCE,
+        "portfolio_limits": {
+            "open_risk_usdt": round(open_risk, 8) if open_risk is not None else None,
+            "open_risk_limit_usdt": round(risk_limit, 8),
+            "open_risk_within_limit": (
+                open_risk is not None and open_risk <= risk_limit + TOLERANCE
+            ),
+            "open_risk_error": open_risk_error,
+            "open_exposure_usdt": round(open_exposure, 8),
+            "open_exposure_limit_usdt": round(exposure_limit, 8),
+            "open_exposure_within_limit": open_exposure <= exposure_limit + TOLERANCE,
+            "historical_peak_risk_usdt": round(peak_risk, 8) if peak_risk is not None else None,
+            "historical_peak_exposure_usdt": round(peak_exposure, 8) if peak_exposure is not None else None,
+            "historical_reconstruction_complete": historical_complete,
+        },
+        "position_size_audit": {
+            "records_checked": trace_total,
+            "below_minimum_notional_count": dust_count,
+            "below_one_usdt_count": below_one_count,
+            "below_ten_usdt_count": below_ten_count,
+            "minimum_notional_usdt": MIN_NOTIONAL_USDT,
+        },
+        "execution_traceability": {
+            "records_with_complete_entry_metadata": traceable_records,
+            "records_checked": trace_total,
+            "coverage_percent": round(traceable_records / trace_total * 100, 4) if trace_total else None,
+        },
         "pnl_mismatches": pnl_mismatches,
         "risk_analysis_per_trade": risk_analysis,
         "performance_by_symbol": symbol_stats,
@@ -156,6 +267,8 @@ def build_audit(state):
             "Drawdown is calculated from closed trades only; intratrade drawdown is unavailable.",
             "Open positions are not marked to market; cash is not total account equity.",
             "A small trade sample is not evidence of a durable trading edge.",
+            "Legacy entries without quote timestamps and signal snapshots cannot be fully execution-audited.",
+            "Historical peak portfolio risk is unknown when any trade lacks valid entry/exit timestamps or stop data.",
         ],
     }
 
