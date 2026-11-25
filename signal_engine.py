@@ -94,7 +94,16 @@ def analyze_spot(candles_5m, candles_15m):
             "target": target,
             "rsi": float(current["rsi"]),
             "atr": atr,
-            "conditions_met": sum(conditions)
+            "conditions_met": sum(conditions),
+            "ema20": float(current["ema20"]),
+            "ema200": float(current["ema200"]),
+            "macd": float(current["macd"]),
+            "macd_signal": float(current["macd_signal"]),
+            "volume": float(current["volume"]),
+            "volume_sma20": float(current["volume_sma20"]),
+            "bullish_trend": bool(bullish_trend),
+            "trend_ema20": float(trend["ema20"]),
+            "trend_ema200": float(trend["ema200"]),
         }
 
     return None
