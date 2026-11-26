@@ -269,7 +269,8 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             open_signal.assert_called_once_with(
                 state, "BTC/USDT", self.market_data["BTC/USDT"]
             )
-            save_trade.assert_called_once()
+            # La salida y el cursor se guardan juntos al final del ciclo.
+            save_trade.assert_not_called()
 
             # Repetir el ciclo con el cursor actualizado no duplica el cierre.
             paper_bot.run_bot()
