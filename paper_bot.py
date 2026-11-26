@@ -19,7 +19,10 @@ def process_position_exit(state, symbol, candle, persist=True):
     if candle["low"] <= stop:
         exit_price = min(candle["open"], stop)
         if persist:
+            if persist:
             close_position(state, symbol, exit_price, "stop_loss")
+        else:
+            close_position(state, symbol, exit_price, "stop_loss", persist=False)
         else:
             close_position(state, symbol, exit_price, "stop_loss", persist=False)
         print(symbol, "STOP LOSS")
@@ -27,7 +30,10 @@ def process_position_exit(state, symbol, candle, persist=True):
     if target and candle["high"] >= target:
         exit_price = max(candle["open"], target)
         if persist:
+            if persist:
             close_position(state, symbol, exit_price, "take_profit")
+        else:
+            close_position(state, symbol, exit_price, "take_profit", persist=False)
         else:
             close_position(state, symbol, exit_price, "take_profit", persist=False)
         print(symbol, "TAKE PROFIT")
@@ -117,7 +123,7 @@ def run_bot():
             print(f"Recuperación pendiente para {symbol}: {error}")
             continue
         for candle in pending[:-1]:
-            process_position_exit(state, symbol, candle)
+            process_position_exit(state, symbol, candle, persist=False)
             state["last_processed_candle"][symbol] = str(candle["timestamp"])
             state["last_processed_close"][symbol] = float(candle["close"])
             save_state(state)
@@ -131,7 +137,7 @@ def run_bot():
 
     if entry_requests:
         try:
-            results = open_positions(state, entry_requests)
+            results = open_positions(state, entry_requests, persist=False)
         except (ValueError, KeyError, TypeError, AssertionError) as error:
             print(f"Lote de entradas rechazado; se reintentará la vela: {error}")
             return
