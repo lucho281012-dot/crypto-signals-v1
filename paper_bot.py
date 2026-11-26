@@ -75,6 +75,11 @@ def build_signal_position_request(symbol, data):
             "target_price": target}
 
 
+def open_signal_position(state, symbol, data):
+    """Compatibilidad con pruebas anteriores; prepara una solicitud para el lote."""
+    return build_signal_position_request(symbol, data)
+
+
 def run_bot():
     state = load_state()
     state.setdefault("last_processed_candle", {})
@@ -110,8 +115,8 @@ def run_bot():
         had_position = symbol in state["positions"]
         process_position_exit(state, symbol, pending[-1])
         if not had_position and symbol not in state["positions"]:
-            request = build_signal_position_request(symbol, data)
-            if request:
+            request = open_signal_position(state, symbol, data)
+            if isinstance(request, dict):
                 entry_requests.append(request)
         # Persistir los cursores más recientes después de validar el lote permite reintentar.
         latest_cursor_updates.append((symbol, latest_id, float(pending[-1]["close"])))
