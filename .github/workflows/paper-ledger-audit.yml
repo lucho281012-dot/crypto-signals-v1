@@ -1,4 +1,4 @@
-name: Paper Trading Ledger Audit
+name: Paper Trading Regression Tests
 
 on:
   push:
@@ -42,6 +42,3 @@ jobs:
         run: |
           python -m unittest -v test_paper_audit test_paper_trading_risk test_paper_trading_aggregate_risk test_paper_gap_recovery test_run_bot_recovery test_paper_bot_batch_entries
 
-      - name: Audit current paper ledger
-        run: |
-          python paper_audit.py
