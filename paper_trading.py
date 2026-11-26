@@ -89,9 +89,14 @@ def open_positions(state, requests):
         demand = float(req.get("risk_demand_usdt", initial * RISK_PERCENT))
         if not math.isfinite(demand) or demand <= 0:
             raise ValueError("Demanda de riesgo inválida")
+        target = req.get("target_price")
+        if target is not None:
+            target = _positive(target, "Objetivo")
+            if target <= entry:
+                raise ValueError("Objetivo inválido")
         normalized.append({"symbol": symbol, "entry": entry, "stop": stop,
                            "demand": demand, "per_unit": _risk_per_unit(entry, stop),
-                           "target": req.get("target_price")})
+                           "target": target})
 
     existing_risk = sum(_position_risk(p) for p in state["positions"].values())
     risk_cap = initial * RISK_PERCENT
@@ -134,7 +139,7 @@ def open_positions(state, requests):
                     "risk_budget_target": allocation,
                     "opened_at": datetime.now(timezone.utc).isoformat()}
         if req["target"] is not None:
-            position["target_price"] = _positive(req["target"], "Objetivo")
+            position["target_price"] = req["target"]
         state["positions"][req["symbol"]] = position
         results.append((True, f"Compra simulada: {req['symbol']} | Riesgo: {position['risk_budget']:.4f} USDT (asignado: {allocation:.4f})"))
 
