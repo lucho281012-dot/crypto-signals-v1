@@ -5898,7 +5898,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795724700000
+    "last_checked_ts": 1795727700000
   },
   {
     "id": "SOL-USDT-LONG-1795711500000",
@@ -5961,7 +5961,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795724700000
+    "last_checked_ts": 1795727700000
   },
   {
     "id": "SOL-USDT-LONG-1795717500000",
@@ -5982,7 +5982,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795724700000
+    "last_checked_ts": 1795727700000
   },
   {
     "id": "BTC-USDT-LONG-1795721400000",
@@ -6000,10 +6000,10 @@
     "rsi": 55.92464628683374,
     "volume_ratio": 0.4377358104213769,
     "tp1_hit": true,
-    "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795724700000
+    "tp2_hit": true,
+    "status": "TP2",
+    "result": "TP2",
+    "last_checked_ts": 1795727700000
   },
   {
     "id": "ETH-USDT-LONG-1795721400000",
@@ -6024,7 +6024,7 @@
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795724700000
+    "last_checked_ts": 1795727700000
   },
   {
     "id": "SOL-USDT-LONG-1795721400000",
@@ -6046,5 +6046,68 @@
     "status": "SL",
     "result": "SL",
     "last_checked_ts": 1795722900000
+  },
+  {
+    "id": "BTC-USDT-LONG-1795727700000",
+    "symbol": "BTC/USDT",
+    "side": "LONG",
+    "timeframe": "5m",
+    "signal_candle_ts": 1795727700000,
+    "start_tracking_ts": 1795728000000,
+    "sent_at": "2026-11-26T21:23:20.663564+00:00",
+    "entry": 60836.6,
+    "stop": 60752.89533405822,
+    "tp1": 60920.304665941774,
+    "tp2": 61004.00933188355,
+    "score": 4,
+    "rsi": 68.09377710873667,
+    "volume_ratio": 2.5631262533070616,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": null
+  },
+  {
+    "id": "ETH-USDT-LONG-1795727700000",
+    "symbol": "ETH/USDT",
+    "side": "LONG",
+    "timeframe": "5m",
+    "signal_candle_ts": 1795727700000,
+    "start_tracking_ts": 1795728000000,
+    "sent_at": "2026-11-26T21:23:21.772989+00:00",
+    "entry": 1705.45,
+    "stop": 1702.6105234568151,
+    "tp1": 1708.289476543185,
+    "tp2": 1711.12895308637,
+    "score": 4,
+    "rsi": 61.05749597922686,
+    "volume_ratio": 3.8197575150626286,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": null
+  },
+  {
+    "id": "SOL-USDT-LONG-1795727700000",
+    "symbol": "SOL/USDT",
+    "side": "LONG",
+    "timeframe": "5m",
+    "signal_candle_ts": 1795727700000,
+    "start_tracking_ts": 1795728000000,
+    "sent_at": "2026-11-26T21:23:22.883879+00:00",
+    "entry": 71.54,
+    "stop": 71.394778913094,
+    "tp1": 71.68522108690601,
+    "tp2": 71.830442173812,
+    "score": 5,
+    "rsi": 65.05141824955706,
+    "volume_ratio": 3.740778456887617,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": null
   }
 ]
