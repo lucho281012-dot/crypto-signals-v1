@@ -43,9 +43,12 @@ def get_pending_candles(symbol, last_processed, latest_closed, last_processed_cl
               if last_timestamp <= int(c["timestamp"]) <= latest_timestamp}
     seed = unique.get(last_timestamp)
     if seed is None and last_processed_close is None:
-        raise RuntimeError(f"Recuperación incompleta para {symbol}: falta semilla y cierre persistido.")
+        raise RuntimeError(
+            f"Recuperación incompleta para {symbol}: no se pudo recuperar la vela "
+            "usada como cursor ni existe un cierre persistido para reconstruirla."
+        )
     if latest_timestamp not in unique:
-        raise RuntimeError(f"Recuperación incompleta para {symbol}: falta última vela cerrada.")
+        raise RuntimeError(f"Recuperación incompleta para {symbol}: no se recibió la última vela cerrada.")
     pending = []
     previous_close = float(seed["close"] if seed is not None else last_processed_close)
     expected = last_timestamp + interval_ms
@@ -59,7 +62,7 @@ def get_pending_candles(symbol, last_processed, latest_closed, last_processed_cl
         pending.append(candle)
         expected += interval_ms
     if not pending or int(pending[-1]["timestamp"]) != latest_timestamp:
-        raise RuntimeError(f"Recuperación incompleta para {symbol}: no se alcanzó última vela.")
+        raise RuntimeError(f"Recuperación incompleta para {symbol}: no se pudo reconstruir hasta la última vela.")
     return pending
 
 
@@ -118,7 +121,6 @@ def run_bot():
             request = open_signal_position(state, symbol, data)
             if isinstance(request, dict):
                 entry_requests.append(request)
-        # Persistir los cursores más recientes después de validar el lote permite reintentar.
         latest_cursor_updates.append((symbol, latest_id, float(pending[-1]["close"])))
 
     if entry_requests:
