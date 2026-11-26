@@ -19,10 +19,7 @@ def process_position_exit(state, symbol, candle, persist=True):
     if candle["low"] <= stop:
         exit_price = min(candle["open"], stop)
         if persist:
-            if persist:
             close_position(state, symbol, exit_price, "stop_loss")
-        else:
-            close_position(state, symbol, exit_price, "stop_loss", persist=False)
         else:
             close_position(state, symbol, exit_price, "stop_loss", persist=False)
         print(symbol, "STOP LOSS")
@@ -30,16 +27,12 @@ def process_position_exit(state, symbol, candle, persist=True):
     if target and candle["high"] >= target:
         exit_price = max(candle["open"], target)
         if persist:
-            if persist:
             close_position(state, symbol, exit_price, "take_profit")
-        else:
-            close_position(state, symbol, exit_price, "take_profit", persist=False)
         else:
             close_position(state, symbol, exit_price, "take_profit", persist=False)
         print(symbol, "TAKE PROFIT")
         return "take_profit"
     return None
-
 
 def get_pending_candles(symbol, last_processed, latest_closed, last_processed_close=None):
     """Recupera velas cerradas y reconstruye intervalos sin operaciones."""
