@@ -234,5 +234,17 @@ class AggregateRiskExposureTests(unittest.TestCase):
         self.assertLessEqual(exposure, 95 + 1e-8)
 
 
+    def test_close_can_defer_persistence_for_atomic_bot_cycle(self):
+        s = fresh()
+        s["positions"]["BTC"] = {
+            "entry_price": 10, "stop_price": 9, "quantity": 0.1, "entry_fee": 0.001
+        }
+        with patch("paper_trading.save_state") as save:
+            ok, _ = close_position(s, "BTC", 9.5, persist=False)
+        self.assertTrue(ok)
+        self.assertNotIn("BTC", s["positions"])
+        self.assertEqual(len(s["history"]), 1)
+        save.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
