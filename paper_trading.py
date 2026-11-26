@@ -60,7 +60,7 @@ def _position_risk(position):
     return qty * (entry - stop) + fee + qty * stop * FEE_RATE
 
 
-def open_positions(state, requests):
+def open_positions(state, requests, persist=True):
     """Abre un lote y reparte el riesgo agregado restante proporcionalmente."""
     if not isinstance(state, dict) or not isinstance(state.get("positions"), dict):
         raise ValueError("Estado de posiciones inválido")
@@ -154,7 +154,7 @@ def open_positions(state, requests):
     if (final_risk > max(risk_cap, existing_risk) + 1e-8
             or final_exposure > max(exposure_cap, committed) + 1e-8):
         raise AssertionError("Se excedió el límite agregado de riesgo o exposición")
-    if any(ok for ok, _ in results):
+    if persist and any(ok for ok, _ in results):
         save_state(state)
     return results
 
