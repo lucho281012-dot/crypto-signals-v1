@@ -210,6 +210,15 @@ class AggregateRiskExposureTests(unittest.TestCase):
                     for pt in s["positions"].values())
         self.assertLessEqual(total, 1 + 1e-8)
 
+    def test_invalid_target_rejects_entire_batch_without_mutation(self):
+        s = fresh()
+        before = repr(s)
+        with patch("paper_trading.save_state"), self.assertRaises(ValueError):
+            open_positions(s, [
+                {"symbol": "BTC", "entry_price": 10, "stop_price": 9, "target_price": 12},
+                {"symbol": "ETH", "entry_price": 10, "stop_price": 9, "target_price": 8}])
+        self.assertEqual(repr(s), before)
+
 
 if __name__ == "__main__":
     unittest.main()
