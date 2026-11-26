@@ -219,6 +219,20 @@ class AggregateRiskExposureTests(unittest.TestCase):
                 {"symbol": "ETH", "entry_price": 10, "stop_price": 9, "target_price": 8}])
         self.assertEqual(repr(s), before)
 
+    def test_exposure_cap_scales_all_simultaneous_risk_proportionally(self):
+        s = fresh()
+        with patch("paper_trading.save_state"):
+            out = open_positions(s, [
+                {"symbol": "BTC", "entry_price": 10, "stop_price": 9},
+                {"symbol": "ETH", "entry_price": 20, "stop_price": 19}])
+        self.assertTrue(all(ok for ok, _ in out))
+        p1, p2 = s["positions"]["BTC"], s["positions"]["ETH"]
+        self.assertAlmostEqual(p1["risk_budget"] / p1["risk_budget_target"],
+                               p2["risk_budget"] / p2["risk_budget_target"])
+        exposure = sum(p["quantity"] * p["entry_price"] + p["entry_fee"]
+                       for p in s["positions"].values())
+        self.assertLessEqual(exposure, 95 + 1e-8)
+
 
 if __name__ == "__main__":
     unittest.main()
