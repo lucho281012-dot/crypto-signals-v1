@@ -9,6 +9,7 @@ on:
       - "test_paper_audit.py"
       - "paper_trading.py"
       - "test_paper_trading_risk.py"
+      - "test_paper_trading_aggregate_risk.py"
       - ".github/workflows/paper-ledger-audit.yml"
   workflow_dispatch:
 
@@ -29,9 +30,9 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run accounting unit tests
+      - name: Run accounting and risk unit tests
         run: |
-          python -m unittest -v test_paper_audit test_paper_trading_risk
+          python -m unittest -v test_paper_audit test_paper_trading_risk test_paper_trading_aggregate_risk
 
       - name: Audit current paper ledger
         run: |
