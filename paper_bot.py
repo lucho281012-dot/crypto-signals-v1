@@ -9,7 +9,7 @@ from paper_trading import (
 )
 
 
-def process_position_exit(state, symbol, candle):
+def process_position_exit(state, symbol, candle, persist=True):
     """Aplica stop/objetivo a una posición usando una vela cerrada."""
     position = state["positions"].get(symbol)
     if not position:
@@ -18,12 +18,12 @@ def process_position_exit(state, symbol, candle):
     target = position.get("target_price")
     if candle["low"] <= stop:
         exit_price = min(candle["open"], stop)
-        close_position(state, symbol, exit_price, "stop_loss")
+        close_position(state, symbol, exit_price, "stop_loss", persist=persist)
         print(symbol, "STOP LOSS")
         return "stop_loss"
     if target and candle["high"] >= target:
         exit_price = max(candle["open"], target)
-        close_position(state, symbol, exit_price, "take_profit")
+        close_position(state, symbol, exit_price, "take_profit", persist=persist)
         print(symbol, "TAKE PROFIT")
         return "take_profit"
     return None
@@ -116,7 +116,7 @@ def run_bot():
             state["last_processed_close"][symbol] = float(candle["close"])
             save_state(state)
         had_position = symbol in state["positions"]
-        process_position_exit(state, symbol, pending[-1])
+        process_position_exit(state, symbol, pending[-1], persist=False)
         if not had_position and symbol not in state["positions"]:
             request = open_signal_position(state, symbol, data)
             if isinstance(request, dict):
