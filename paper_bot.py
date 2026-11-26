@@ -18,12 +18,18 @@ def process_position_exit(state, symbol, candle, persist=True):
     target = position.get("target_price")
     if candle["low"] <= stop:
         exit_price = min(candle["open"], stop)
-        close_position(state, symbol, exit_price, "stop_loss", persist=persist)
+        if persist:
+            close_position(state, symbol, exit_price, "stop_loss")
+        else:
+            close_position(state, symbol, exit_price, "stop_loss", persist=False)
         print(symbol, "STOP LOSS")
         return "stop_loss"
     if target and candle["high"] >= target:
         exit_price = max(candle["open"], target)
-        close_position(state, symbol, exit_price, "take_profit", persist=persist)
+        if persist:
+            close_position(state, symbol, exit_price, "take_profit")
+        else:
+            close_position(state, symbol, exit_price, "take_profit", persist=False)
         print(symbol, "TAKE PROFIT")
         return "take_profit"
     return None
