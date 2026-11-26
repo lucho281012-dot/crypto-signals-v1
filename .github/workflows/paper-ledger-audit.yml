@@ -15,6 +15,7 @@ on:
       - "test_paper_trading_aggregate_risk.py"
       - "test_paper_gap_recovery.py"
       - "test_run_bot_recovery.py"
+      - "test_paper_bot_batch_entries.py"
       - ".github/workflows/paper-ledger-audit.yml"
   workflow_dispatch:
 
@@ -39,7 +40,7 @@ jobs:
 
       - name: Run accounting, risk, and recovery regression tests
         run: |
-          python -m unittest -v test_paper_audit test_paper_trading_risk test_paper_trading_aggregate_risk test_paper_gap_recovery test_run_bot_recovery
+          python -m unittest -v test_paper_audit test_paper_trading_risk test_paper_trading_aggregate_risk test_paper_gap_recovery test_run_bot_recovery test_paper_bot_batch_entries
 
       - name: Audit current paper ledger
         run: |
