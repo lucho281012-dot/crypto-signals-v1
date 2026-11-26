@@ -167,7 +167,7 @@ def open_position(state, symbol, entry_price, stop_price):
         return False, str(error)
 
 
-def close_position(state, symbol, exit_price, reason="manual"):
+def close_position(state, symbol, exit_price, reason="manual", persist=True):
     position = state["positions"].get(symbol)
     if not position:
         return False, "No existe posición abierta"
@@ -185,7 +185,8 @@ def close_position(state, symbol, exit_price, reason="manual"):
              "closed_at": datetime.now(timezone.utc).isoformat()}
     state["history"].append(trade)
     del state["positions"][symbol]
-    save_state(state)
+    if persist:
+        save_state(state)
     return True, f"Resultado neto: {pnl:.4f} USDT"
 
 
