@@ -31,7 +31,7 @@ class PaperBotBatchEntryTests(unittest.TestCase):
             "ETH/USDT": market_data(900000)
         }
 
-    def _run(self, open_positions_side_effect=None):
+    def _run(self, batch_return=None, batch_error=None):
         with (
             patch("paper_bot.load_state", return_value=self.state),
             patch("paper_bot.get_all_market_data", return_value=self.data),
@@ -42,7 +42,7 @@ class PaperBotBatchEntryTests(unittest.TestCase):
                 {"symbol": "BTC/USDT", "entry_price": 10, "stop_price": 9, "target_price": 12},
                 {"symbol": "ETH/USDT", "entry_price": 20, "stop_price": 19, "target_price": 22}
             ]),
-            patch("paper_bot.open_positions", side_effect=open_positions_side_effect) as batch,
+            patch("paper_bot.open_positions", return_value=batch_return, side_effect=batch_error) as batch,
             patch("paper_bot.save_state"),
             patch("paper_bot.get_status", return_value={}),
             patch("builtins.print")
@@ -51,7 +51,7 @@ class PaperBotBatchEntryTests(unittest.TestCase):
         return batch
 
     def test_all_same_cycle_signals_are_submitted_as_one_batch(self):
-        batch = self._run(return_value=[(True, "BTC"), (True, "ETH")])
+        batch = self._run(batch_return=[(True, "BTC"), (True, "ETH")])
         batch.assert_called_once()
         state_arg, requests_arg = batch.call_args.args
         self.assertIs(state_arg, self.state)
@@ -61,7 +61,7 @@ class PaperBotBatchEntryTests(unittest.TestCase):
         })
 
     def test_rejected_batch_does_not_advance_latest_cursors(self):
-        batch = self._run(side_effect=ValueError("batch inválido"))
+        batch = self._run(batch_error=ValueError("batch inválido"))
         batch.assert_called_once()
         self.assertEqual(self.state["last_processed_candle"], {})
         self.assertEqual(self.state["last_processed_close"], {})
