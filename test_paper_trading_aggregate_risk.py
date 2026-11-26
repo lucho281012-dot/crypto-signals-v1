@@ -223,8 +223,8 @@ class AggregateRiskExposureTests(unittest.TestCase):
         s = fresh()
         with patch("paper_trading.save_state"):
             out = open_positions(s, [
-                {"symbol": "BTC", "entry_price": 10, "stop_price": 9},
-                {"symbol": "ETH", "entry_price": 20, "stop_price": 19}])
+                {"symbol": "BTC", "entry_price": 1000, "stop_price": 999},
+                {"symbol": "ETH", "entry_price": 2000, "stop_price": 1999}])
         self.assertTrue(all(ok for ok, _ in out))
         p1, p2 = s["positions"]["BTC"], s["positions"]["ETH"]
         self.assertAlmostEqual(p1["risk_budget"] / p1["risk_budget_target"],
