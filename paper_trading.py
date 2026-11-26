@@ -113,19 +113,23 @@ def open_positions(state, requests):
     if exposure_available < 1e-8:
         exposure_available = 0.0
 
-    planned, cash_available = [], cash
-    for req in normalized:
-        allocation = risk_available * req["demand"] / demand_total
-        entry = req["entry"]
-        quantity = min(
-            allocation / req["per_unit"],
-            cash_available / (entry * (1 + FEE_RATE)) if cash_available > 0 else 0.0,
-            exposure_available / (entry * (1 + FEE_RATE)) if exposure_available > 0 else 0.0
-        )
-        cost, fee = quantity * entry, quantity * entry * FEE_RATE
+    # Un factor común conserva el reparto proporcional si efectivo o exposición limitan el lote.
+    allocations = [risk_available * req["demand"] / demand_total for req in normalized]
+    desired_quantities = [allocation / req["per_unit"]
+                          for allocation, req in zip(allocations, normalized)]
+    desired_commitment = sum(qty * req["entry"] * (1 + FEE_RATE)
+                             for qty, req in zip(desired_quantities, normalized))
+    scale = 1.0
+    if desired_commitment > 0:
+        scale = min(1.0, cash / desired_commitment,
+                    exposure_available / desired_commitment)
+
+    planned = []
+    for req, allocation, desired_qty in zip(normalized, allocations, desired_quantities):
+        quantity = desired_qty * scale
+        cost = quantity * req["entry"]
+        fee = cost * FEE_RATE
         planned.append((req, allocation, quantity, cost, fee))
-        cash_available -= cost + fee
-        exposure_available -= cost + fee
 
     results = []
     for req, allocation, quantity, cost, fee in planned:
