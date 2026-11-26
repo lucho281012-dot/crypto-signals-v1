@@ -8,8 +8,13 @@ on:
       - "paper_audit.py"
       - "test_paper_audit.py"
       - "paper_trading.py"
+      - "paper_bot.py"
+      - "market_data.py"
+      - "signal_engine.py"
       - "test_paper_trading_risk.py"
       - "test_paper_trading_aggregate_risk.py"
+      - "test_paper_gap_recovery.py"
+      - "test_run_bot_recovery.py"
       - ".github/workflows/paper-ledger-audit.yml"
   workflow_dispatch:
 
@@ -20,19 +25,21 @@ jobs:
   ledger-audit:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout selected ref
         uses: actions/checkout@v4
-        with:
-          ref: paper-trading-v1-2
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Run accounting and risk unit tests
+      - name: Install dependencies
         run: |
-          python -m unittest -v test_paper_audit test_paper_trading_risk test_paper_trading_aggregate_risk
+          python -m pip install -r requirements.txt
+
+      - name: Run accounting, risk, and recovery regression tests
+        run: |
+          python -m unittest -v test_paper_audit test_paper_trading_risk test_paper_trading_aggregate_risk test_paper_gap_recovery test_run_bot_recovery
 
       - name: Audit current paper ledger
         run: |
