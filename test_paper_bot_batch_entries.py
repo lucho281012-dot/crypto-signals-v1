@@ -67,5 +67,44 @@ class PaperBotBatchEntryTests(unittest.TestCase):
         self.assertEqual(self.state["last_processed_close"], {})
 
 
+    def test_rejected_entry_batch_does_not_persist_latest_candle_exit(self):
+        import paper_trading
+
+        self.state["cash_usdt"] = 89.99
+        self.state["positions"]["BTC/USDT"] = {
+            "entry_price": 10.0,
+            "stop_price": 9.5,
+            "quantity": 1.0,
+            "entry_fee": 0.01
+        }
+        self.data["BTC/USDT"]["candles_5m"][-2]["low"] = 9.0
+        rejected_request = {
+            "symbol": "ETH/USDT",
+            "entry_price": 0.0,
+            "stop_price": -1.0,
+            "target_price": 2.0
+        }
+
+        with (
+            patch("paper_bot.load_state", return_value=self.state),
+            patch("paper_bot.get_all_market_data", return_value=self.data),
+            patch("paper_bot.get_pending_candles",
+                  side_effect=lambda symbol, last, latest, last_close=None: [latest]),
+            patch("paper_bot.open_signal_position", return_value=rejected_request),
+            patch("paper_bot.open_positions", side_effect=ValueError("batch inválido")),
+            patch("paper_bot.save_state") as save_cursor,
+            patch("paper_trading.save_state") as save_ledger,
+            patch("paper_bot.get_status", return_value={}),
+            patch("builtins.print")
+        ):
+            paper_bot.run_bot()
+
+        self.assertNotIn("BTC/USDT", self.state["positions"])
+        self.assertEqual(len(self.state["history"]), 1)
+        self.assertEqual(self.state["last_processed_candle"], {})
+        save_cursor.assert_not_called()
+        save_ledger.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
