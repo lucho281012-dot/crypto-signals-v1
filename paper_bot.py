@@ -82,9 +82,10 @@ def run_bot():
     state.setdefault("positions", {})
     market_data = get_all_market_data()
     entry_requests = []
+    latest_cursor_updates = []
 
-    # Procesar todas las salidas y reunir todas las nuevas señales del ciclo.
-    # Así la asignación proporcional conoce el conjunto completo de señales simultáneas.
+    # Primero se procesan las salidas y se reúnen todas las nuevas señales.
+    # Ninguna señal consume el presupuesto antes de conocer las demás del ciclo.
     for symbol, data in market_data.items():
         candles = data["candles_5m"]
         if len(candles) < 3:
@@ -106,22 +107,29 @@ def run_bot():
             state["last_processed_candle"][symbol] = str(candle["timestamp"])
             state["last_processed_close"][symbol] = float(candle["close"])
             save_state(state)
-
         had_position = symbol in state["positions"]
         process_position_exit(state, symbol, pending[-1])
         if not had_position and symbol not in state["positions"]:
             request = build_signal_position_request(symbol, data)
             if request:
                 entry_requests.append(request)
-
-        state["last_processed_candle"][symbol] = latest_id
-        state["last_processed_close"][symbol] = float(pending[-1]["close"])
-        save_state(state)
+        # Persistir los cursores más recientes después de validar el lote permite reintentar.
+        latest_cursor_updates.append((symbol, latest_id, float(pending[-1]["close"])))
 
     if entry_requests:
-        results = open_positions(state, entry_requests)
+        try:
+            results = open_positions(state, entry_requests)
+        except (ValueError, KeyError, TypeError, AssertionError) as error:
+            print(f"Lote de entradas rechazado; se reintentará la vela: {error}")
+            return
         for success, message in results:
             print(message)
+
+    for symbol, latest_id, latest_close in latest_cursor_updates:
+        state["last_processed_candle"][symbol] = latest_id
+        state["last_processed_close"][symbol] = latest_close
+    if latest_cursor_updates:
+        save_state(state)
 
     print("Estado del simulador:")
     print(get_status(state))
