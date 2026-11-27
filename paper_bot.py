@@ -1,4 +1,8 @@
-from market_data import (\n    get_all_market_data,\n    get_candles_since,\n    validate_entry_round,\n)
+from market_data import (
+    get_all_market_data,
+    get_candles_since,
+    validate_entry_round,
+)
 from signal_engine import analyze_spot
 from paper_trading import (
     load_state,
@@ -147,7 +151,19 @@ def run_bot():
     state.setdefault("last_processed_close", {})
     state.setdefault("positions", {})
 
-    market_data = get_all_market_data()\n\n    # La gestión de posiciones existentes continúa por símbolo, pero las\n    # nuevas entradas quedan bloqueadas si cualquier mercado falta o no\n    # comparte el mismo instante de evaluación.\n    try:\n        validate_entry_round(market_data)\n        entry_round_valid = True\n    except (TypeError, ValueError) as error:\n        entry_round_valid = False\n        print(f"Nuevas entradas bloqueadas por sincronización: {error}")\n\n    for symbol, data in market_data.items():
+    market_data = get_all_market_data()
+
+    # La gestión de posiciones existentes continúa por símbolo, pero las
+    # nuevas entradas quedan bloqueadas si cualquier mercado falta o no
+    # comparte el mismo instante de evaluación.
+    try:
+        validate_entry_round(market_data)
+        entry_round_valid = True
+    except (TypeError, ValueError) as error:
+        entry_round_valid = False
+        print(f"Nuevas entradas bloqueadas por sincronización: {error}")
+
+    for symbol, data in market_data.items():
         candles = data["candles_5m"]
 
         if len(candles) < 3:
@@ -188,7 +204,8 @@ def run_bot():
 
         # Las nuevas entradas se evalúan solo en la última vela disponible,
         # nunca retrospectivamente durante la recuperación del hueco.
-        if entry_round_valid and not had_position and symbol not in state["positions"]:\n            open_signal_position(state, symbol, data)
+        if entry_round_valid and not had_position and symbol not in state["positions"]:
+            open_signal_position(state, symbol, data)
 
         state["last_processed_candle"][symbol] = latest_id
         state["last_processed_close"][symbol] = float(pending[-1]["close"])
