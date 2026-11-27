@@ -209,9 +209,18 @@ def validate_entry_round(market_data, symbols=None):
             (signal_close_time - 900000) // 900000
         ) * 900000
         latest_closed_15m = int(candles_15m[-2]["timestamp"])
+        expected_open_15m_timestamp = (
+            signal_close_time // 900000
+        ) * 900000
+        latest_open_15m = int(candles_15m[-1]["timestamp"])
         if latest_closed_15m != expected_15m_timestamp:
             raise ValueError(
                 f"{symbol}: la última vela 15m cerrada no corresponde "
+                "al instante de evaluación."
+            )
+        if latest_open_15m != expected_open_15m_timestamp:
+            raise ValueError(
+                f"{symbol}: falta la vela 15m actual correspondiente "
                 "al instante de evaluación."
             )
 
