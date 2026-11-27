@@ -113,6 +113,7 @@ class BatchRiskAllocationTests(unittest.TestCase):
             [signal("BTC/USDT", entry=100.0, stop=99.9)],
         )
         self.assertLessEqual(result["totals"]["exposure"], 95.0 + 1e-9)
+        self.assertAlmostEqual(result["totals"]["exposure"], 95.0, places=7)
         self.assertAlmostEqual(
             result["totals"]["exposure"],
             result["allocations"]["BTC/USDT"]["quantity"] * 100.0,
@@ -152,6 +153,21 @@ class BatchRiskAllocationTests(unittest.TestCase):
             "símbolo duplicado en el lote",
         )
         self.assertEqual(set(result["allocations"]), {"ETH/USDT"})
+
+    def test_rejects_every_occurrence_of_a_duplicated_symbol(self):
+        result = allocate_batch(
+            base_state(),
+            [
+                signal("BTC/USDT", entry=100.0, stop=98.0),
+                signal("BTC/USDT", entry=90.0, stop=89.0),
+            ],
+        )
+
+        self.assertNotIn("BTC/USDT", result["allocations"])
+        self.assertEqual(
+            result["rejected"]["BTC/USDT"],
+            "símbolo duplicado en el lote",
+        )
 
     def test_rejects_invalid_signal_without_mutating_state(self):
         state = base_state()
