@@ -246,6 +246,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             stack.enter_context(
                 patch("paper_bot.get_all_market_data", return_value=self.market_data)
             )
+            stack.enter_context(patch("paper_bot.validate_entry_round", return_value={}))
             save_cursor = stack.enter_context(patch("paper_bot.save_state"))
             save_trade = stack.enter_context(patch("paper_trading.save_state"))
             stack.enter_context(
