@@ -291,6 +291,7 @@ def allocate_batch(
             rejected[f"invalid_signal_{len(rejected) + 1}"] = "símbolo inválido"
             continue
         if symbol in seen:
+            eligible.pop(symbol, None)
             rejected[symbol] = "símbolo duplicado en el lote"
             continue
         seen.add(symbol)
@@ -328,6 +329,15 @@ def allocate_batch(
 
     demand_total = sum(item["requested_risk"] for item in eligible.values())
     if not eligible or demand_total <= 0 or risk_available <= 0 or exposure_available <= 0 or cash <= 0:
+        for symbol in eligible:
+            if risk_available <= 0:
+                rejected[symbol] = "presupuesto agregado de riesgo agotado"
+            elif exposure_available <= 0:
+                rejected[symbol] = "límite agregado de exposición agotado"
+            elif cash <= 0:
+                rejected[symbol] = "efectivo disponible agotado"
+            else:
+                rejected[symbol] = "demanda de riesgo inválida"
         return {
             "allocations": {},
             "rejected": rejected,
