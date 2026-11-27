@@ -56,7 +56,8 @@ class AtomicBatchCommitTests(unittest.TestCase):
             {"BTC/USDT", "ETH/USDT"},
         )
         self.assertLess(original["cash_usdt"], 100.0)
-        self.assertIn("target_price", original["positions"]["BTC/USDT"])
+        self.assertEqual(original["positions"]["BTC/USDT"]["target_price"], 104.0)
+        self.assertEqual(original["positions"]["ETH/USDT"]["target_price"], 52.0)
 
     def test_persistence_failure_leaves_original_state_unchanged(self):
         original = state()
