@@ -102,6 +102,16 @@ class MultiSymbolEntrySynchronizationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "última vela 15m cerrada"):
             validate_entry_round(data)
 
+    def test_rejects_missing_current_15m_candle(self):
+        data = valid_market_data()
+        data[SYMBOLS[0]]["candles_15m"] = [
+            candle(0),
+            candle(1800000),
+        ]
+
+        with self.assertRaisesRegex(ValueError, "falta la vela 15m actual"):
+            validate_entry_round(data)
+
     def test_rejects_15m_candles_out_of_order(self):
         data = valid_market_data()
         data[SYMBOLS[0]]["candles_15m"] = [
