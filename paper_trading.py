@@ -417,6 +417,97 @@ def allocate_batch(
     }
 
 
+
+def commit_batch(state, allocations, persist_fn=None):
+    """Persiste un lote de entradas de forma atómica respecto al state en memoria.
+
+    Se prepara una copia, se guarda una sola vez y sólo después se actualiza
+    el diccionario original. Si el guardado falla, state queda intacto.
+    """
+    import copy
+    import math
+
+    if not isinstance(allocations, dict) or not allocations:
+        return False, "Lote vacío o inválido"
+
+    candidate = copy.deepcopy(state)
+    candidate.setdefault("positions", {})
+    if not isinstance(candidate["positions"], dict):
+        raise ValueError("Estado inválido: positions debe ser un diccionario.")
+
+    cash = _finite_positive(candidate.get("cash_usdt"), "cash_usdt")
+    initial_balance = _finite_positive(
+        candidate.get("initial_balance"), "initial_balance"
+    )
+
+    for symbol in sorted(allocations):
+        item = allocations[symbol]
+        if symbol in candidate["positions"]:
+            return False, f"Ya existe una posición abierta: {symbol}"
+        if not isinstance(item, dict):
+            raise ValueError(f"Asignación inválida para {symbol}.")
+
+        quantity = _finite_positive(item.get("quantity"), "quantity")
+        entry = _finite_positive(item.get("entry_price"), "entry_price")
+        stop = _finite_positive(item.get("stop_price"), "stop_price")
+        if stop >= entry:
+            raise ValueError(f"Stop inválido para {symbol}.")
+
+        notional = quantity * entry
+        entry_fee = notional * FEE_RATE
+        cash_required = notional + entry_fee
+        if cash_required > cash + 1e-9:
+            return False, "El lote excede el efectivo disponible."
+
+        position = {
+            "entry_price": entry,
+            "stop_price": stop,
+            "quantity": quantity,
+            "entry_fee": entry_fee,
+            "risk_budget": _position_stop_risk(
+                {
+                    "entry_price": entry,
+                    "stop_price": stop,
+                    "quantity": quantity,
+                    "entry_fee": entry_fee,
+                },
+                FEE_RATE,
+                SLIPPAGE_BPS,
+            ),
+            "risk_budget_target": float(item.get("requested_risk", 0.0)),
+            "opened_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if "target_price" in item:
+            target = _finite_positive(item["target_price"], "target_price")
+            if target <= entry:
+                raise ValueError(f"Target inválido para {symbol}.")
+            position["target_price"] = target
+
+        candidate["positions"][symbol] = position
+        cash -= cash_required
+
+    candidate["cash_usdt"] = max(0.0, cash)
+
+    open_risk = sum(
+        _position_stop_risk(position, FEE_RATE, SLIPPAGE_BPS)
+        for position in candidate["positions"].values()
+    )
+    open_exposure = sum(
+        float(position["quantity"]) * float(position["entry_price"])
+        for position in candidate["positions"].values()
+    )
+    if open_risk > initial_balance * RISK_PERCENT + 1e-9:
+        return False, "El lote excede el límite agregado de riesgo."
+    if open_exposure > initial_balance * MAX_POSITION_PERCENT + 1e-9:
+        return False, "El lote excede el límite de exposición."
+
+    saver = save_state if persist_fn is None else persist_fn
+    saver(candidate)
+
+    state.clear()
+    state.update(candidate)
+    return True, "Lote simulado guardado correctamente."
+
 def get_status(state):
     invested = sum(
         p["quantity"] * p["entry_price"]
