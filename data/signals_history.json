@@ -6293,10 +6293,31 @@
     "score": 4,
     "rsi": 57.65097902690537,
     "volume_ratio": 2.1814187273352044,
+    "tp1_hit": true,
+    "tp2_hit": false,
+    "status": "ACTIVE",
+    "result": null,
+    "last_checked_ts": 1795766100000
+  },
+  {
+    "id": "SOL-USDT-LONG-1795766100000",
+    "symbol": "SOL/USDT",
+    "side": "LONG",
+    "timeframe": "5m",
+    "signal_candle_ts": 1795766100000,
+    "start_tracking_ts": 1795766400000,
+    "sent_at": "2026-11-27T08:04:23.816150+00:00",
+    "entry": 73.26,
+    "stop": 73.03939651723852,
+    "tp1": 73.4806034827615,
+    "tp2": 73.70120696552299,
+    "score": 5,
+    "rsi": 58.62578739485557,
+    "volume_ratio": 2.200391065991954,
     "tp1_hit": false,
     "tp2_hit": false,
     "status": "ACTIVE",
     "result": null,
-    "last_checked_ts": 1795761300000
+    "last_checked_ts": null
   }
 ]
