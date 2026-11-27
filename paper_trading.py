@@ -435,7 +435,12 @@ def commit_batch(state, allocations, persist_fn=None):
     if not isinstance(candidate["positions"], dict):
         raise ValueError("Estado inválido: positions debe ser un diccionario.")
 
-    cash = _finite_positive(candidate.get("cash_usdt"), "cash_usdt")
+    try:
+        cash = float(candidate.get("cash_usdt"))
+    except (TypeError, ValueError):
+        raise ValueError("Estado inválido: cash_usdt no es numérico.")
+    if not math.isfinite(cash) or cash < 0:
+        raise ValueError("Estado inválido: cash_usdt debe ser finito y no negativo.")
     initial_balance = _finite_positive(
         candidate.get("initial_balance"), "initial_balance"
     )
