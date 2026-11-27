@@ -135,6 +135,103 @@ def get_all_market_data():
     return results
 
 
+def validate_entry_round(market_data, symbols=None):
+    """Valida que una ronda de nuevas entradas use velas cerradas sincronizadas.
+
+    Devuelve metadatos por símbolo. Lanza ValueError ante datos ausentes,
+    desordenados, duplicados, desalineados o con una vela de entrada no
+    inmediatamente posterior a la vela de señal.
+    """
+    symbols = list(SYMBOLS if symbols is None else symbols)
+    if not symbols:
+        raise ValueError("La ronda no contiene símbolos.")
+
+    missing = [symbol for symbol in symbols if symbol not in market_data]
+    if missing:
+        raise ValueError(
+            "Ronda incompleta; faltan símbolos: " + ", ".join(missing)
+        )
+
+    validated = {}
+    signal_timestamps = set()
+
+    for symbol in symbols:
+        data = market_data[symbol]
+        candles_5m = data.get("candles_5m") or []
+        candles_15m = data.get("candles_15m") or []
+
+        if len(candles_5m) < 3:
+            raise ValueError(f"{symbol}: se requieren al menos 3 velas 5m.")
+        if len(candles_15m) < 2:
+            raise ValueError(f"{symbol}: faltan velas 15m.")
+
+        for timeframe, candles, interval in (
+            ("5m", candles_5m, 300000),
+            ("15m", candles_15m, 900000),
+        ):
+            timestamps = []
+            for candle in candles:
+                try:
+                    timestamp = int(candle["timestamp"])
+                except (KeyError, TypeError, ValueError):
+                    raise ValueError(
+                        f"{symbol}: timestamp inválido en {timeframe}."
+                    )
+                if timestamp % interval:
+                    raise ValueError(
+                        f"{symbol}: timestamp desalineado en {timeframe}."
+                    )
+                timestamps.append(timestamp)
+
+            if any(
+                current <= previous
+                for previous, current in zip(timestamps, timestamps[1:])
+            ):
+                raise ValueError(
+                    f"{symbol}: velas {timeframe} desordenadas o duplicadas."
+                )
+
+        signal_candle = candles_5m[-2]
+        entry_candle = candles_5m[-1]
+        signal_timestamp = int(signal_candle["timestamp"])
+        entry_timestamp = int(entry_candle["timestamp"])
+
+        if entry_timestamp != signal_timestamp + 300000:
+            raise ValueError(
+                f"{symbol}: no existe la vela 5m inmediatamente posterior "
+                "a la señal; no se puede simular una entrada segura."
+            )
+
+        # La vela 15m debe haber cerrado antes o exactamente al cierre
+        # de la vela 5m que genera la señal. No aceptamos una tendencia vieja.
+        signal_close_time = signal_timestamp + 300000
+        expected_15m_timestamp = (
+            (signal_close_time - 900000) // 900000
+        ) * 900000
+        latest_closed_15m = int(candles_15m[-2]["timestamp"])
+        if latest_closed_15m != expected_15m_timestamp:
+            raise ValueError(
+                f"{symbol}: la última vela 15m cerrada no corresponde "
+                "al instante de evaluación."
+            )
+
+        signal_timestamps.add(signal_timestamp)
+        validated[symbol] = {
+            "signal_timestamp": signal_timestamp,
+            "entry_timestamp": entry_timestamp,
+            "entry_price": float(entry_candle["open"]),
+            "signal_close": float(signal_candle["close"]),
+        }
+
+    if len(signal_timestamps) != 1:
+        raise ValueError(
+            "Ronda no sincronizada: las últimas velas 5m cerradas "
+            "no comparten el mismo timestamp."
+        )
+
+    return validated
+
+
 if __name__ == "__main__":
     data = get_all_market_data()
     print("Activos recibidos:", list(data.keys()))
