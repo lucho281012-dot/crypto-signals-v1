@@ -110,7 +110,7 @@ class BatchRiskAllocationTests(unittest.TestCase):
     def test_caps_notional_exposure_without_adding_entry_fee_to_exposure(self):
         result = allocate_batch(
             base_state(),
-            [signal("BTC/USDT", entry=100.0, stop=99.0)],
+            [signal("BTC/USDT", entry=100.0, stop=99.9)],
         )
         self.assertLessEqual(result["totals"]["exposure"], 95.0 + 1e-9)
         self.assertAlmostEqual(
