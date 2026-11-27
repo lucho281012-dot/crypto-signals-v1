@@ -311,12 +311,18 @@ def allocate_batch(
             )
             if not math.isfinite(risk_per_unit) or risk_per_unit <= 0:
                 raise ValueError("riesgo por unidad no positivo")
-            eligible[symbol] = {
+            eligible_item = {
                 "entry_price": entry,
                 "stop_price": stop,
                 "requested_risk": demand,
                 "risk_per_unit": risk_per_unit,
             }
+            if "target_price" in signal:
+                target = _finite_positive(signal["target_price"], "target_price")
+                if target <= entry:
+                    raise ValueError("target_price debe ser mayor que entry_price")
+                eligible_item["target_price"] = target
+            eligible[symbol] = eligible_item
         except (ValueError, TypeError) as error:
             rejected[symbol] = str(error)
 
@@ -388,6 +394,8 @@ def allocate_batch(
             "cash_required": notional + entry_fee,
             "requested_risk": item["requested_risk"],
         }
+        if "target_price" in item:
+            allocations[symbol]["target_price"] = item["target_price"]
 
     total_risk = sum(item["risk"] for item in allocations.values())
     total_exposure = sum(item["exposure"] for item in allocations.values())
