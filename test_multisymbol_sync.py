@@ -78,6 +78,20 @@ class MultiSymbolEntrySynchronizationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "inmediatamente posterior"):
             validate_entry_round(data)
 
+    def test_rejects_missing_next_5m_candle_after_no_trade_gap(self):
+        data = valid_market_data()
+        data[SYMBOLS[0]]["candles_5m"][-1] = candle(1200000)
+
+        with self.assertRaisesRegex(ValueError, "inmediatamente posterior"):
+            validate_entry_round(data)
+
+    def test_rejects_unaligned_5m_timestamp(self):
+        data = valid_market_data()
+        data[SYMBOLS[0]]["candles_5m"][1] = candle(610000)
+
+        with self.assertRaisesRegex(ValueError, "desalineado"):
+            validate_entry_round(data)
+
     def test_rejects_stale_or_misaligned_15m_trend_candle(self):
         data = valid_market_data()
         data[SYMBOLS[0]]["candles_15m"] = [
