@@ -35,6 +35,9 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             stack.enter_context(
                 patch("paper_bot.get_all_market_data", return_value=self.market_data)
             )
+            # Estas pruebas cubren recuperación/cierres; la sincronización
+            # multi-símbolo se prueba de forma aislada en test_multisymbol_sync.py.
+            stack.enter_context(patch("paper_bot.validate_entry_round", return_value={}))
             save_state = stack.enter_context(patch("paper_bot.save_state"))
             stack.enter_context(
                 patch("paper_bot.get_status", return_value={"ok": True})
@@ -170,6 +173,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
             stack.enter_context(
                 patch("paper_bot.get_all_market_data", return_value=self.market_data)
             )
+            stack.enter_context(patch("paper_bot.validate_entry_round", return_value={}))
             save_cursor = stack.enter_context(patch("paper_bot.save_state"))
             stack.enter_context(patch("paper_trading.save_state"))
             stack.enter_context(
@@ -337,6 +341,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
 
                 with (
                     patch("paper_bot.get_all_market_data", side_effect=[first_data, second_data, second_data]),
+                    patch("paper_bot.validate_entry_round", return_value={}),
                     patch("paper_bot.get_pending_candles", side_effect=[[first_latest], [second_latest]]) as recover,
                     patch("paper_bot.open_signal_position") as open_signal,
                     patch("builtins.print"),
@@ -437,6 +442,7 @@ class RunBotRecoveryIntegrationTests(unittest.TestCase):
                         ]
                     ) as fetch_recovery,
                     patch("paper_bot.save_state", side_effect=persist_then_interrupt),
+                    patch("paper_bot.validate_entry_round", return_value={}),
                     patch("paper_bot.open_signal_position"),
                     patch("builtins.print"),
                 ):
