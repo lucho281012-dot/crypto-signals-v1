@@ -6736,9 +6736,9 @@
     "volume_ratio": 1.975995508688367,
     "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795865700000
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795867200000
   },
   {
     "id": "ETH-USDT-SHORT-1795863000000",
@@ -6757,9 +6757,9 @@
     "volume_ratio": 1.9322366468171557,
     "tp1_hit": true,
     "tp2_hit": false,
-    "status": "ACTIVE",
-    "result": null,
-    "last_checked_ts": 1795865700000
+    "status": "SL_AFTER_TP1",
+    "result": "SL_AFTER_TP1",
+    "last_checked_ts": 1795866900000
   },
   {
     "id": "SOL-USDT-SHORT-1795863000000",
