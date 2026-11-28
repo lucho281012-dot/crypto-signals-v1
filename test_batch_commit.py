@@ -93,6 +93,47 @@ class AtomicBatchCommitTests(unittest.TestCase):
         self.assertEqual(original, before)
         self.assertEqual(calls, [])
 
+    def test_commit_revalidates_with_same_custom_parameters_as_allocator(self):
+        original = state()
+        custom = {
+            "risk_limit": 0.02,
+            "exposure_limit": 0.80,
+            "fee_rate": 0.002,
+            "slippage_bps": 10.0,
+        }
+        allocations = allocate_batch(
+            original,
+            signals(),
+            **custom,
+        )["allocations"]
+        calls = []
+
+        success, message = commit_batch(
+            original,
+            allocations,
+            persist_fn=lambda candidate: calls.append(copy.deepcopy(candidate)),
+            **custom,
+        )
+
+        self.assertTrue(success, message)
+        self.assertEqual(len(calls), 1)
+        self.assertAlmostEqual(
+            original["positions"]["BTC/USDT"]["entry_fee"],
+            original["positions"]["BTC/USDT"]["quantity"] * 100.0 * 0.002,
+        )
+        self.assertLessEqual(
+            sum(
+                position["quantity"] * (
+                    position["entry_price"]
+                    - position["stop_price"] * (1 - 10.0 / 10000)
+                    + position["entry_price"] * 0.002
+                    + position["stop_price"] * (1 - 10.0 / 10000) * 0.002
+                )
+                for position in original["positions"].values()
+            ),
+            100.0 * 0.02 + 1e-9,
+        )
+
     def test_revalidates_aggregate_limits_before_persisting(self):
         original = state()
         oversized = {
