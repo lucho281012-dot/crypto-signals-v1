@@ -116,6 +116,7 @@ class EntryRoundBarrierIntegrationTests(unittest.TestCase):
 
     def test_multiple_pending_candles_in_one_symbol_block_all_new_entries(self):
         delayed_symbol = SYMBOLS[2]
+        self.state["last_processed_candle"][delayed_symbol] = "0"
         self.pending[delayed_symbol] = [
             candle(300000, 102.0),
             candle(600000, 102.0),
