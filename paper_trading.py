@@ -507,7 +507,7 @@ def commit_batch(
             raise ValueError(f"Stop inválido para {symbol}.")
 
         notional = quantity * entry
-        entry_fee = notional * FEE_RATE
+        entry_fee = notional * fee_rate
         cash_required = notional + entry_fee
         if cash_required > cash + 1e-9:
             return False, "El lote excede el efectivo disponible."
@@ -524,8 +524,8 @@ def commit_batch(
                     "quantity": quantity,
                     "entry_fee": entry_fee,
                 },
-                FEE_RATE,
-                SLIPPAGE_BPS,
+                fee_rate,
+                slippage_bps,
             ),
             "risk_budget_target": float(item.get("requested_risk", 0.0)),
             "opened_at": datetime.now(timezone.utc).isoformat(),
