@@ -436,8 +436,19 @@ def allocate_batch(
 
 
 
-def commit_batch(state, allocations, persist_fn=None):
-    """Persiste un lote de entradas de forma atómica respecto al state en memoria.
+def commit_batch(
+    state,
+    allocations,
+    persist_fn=None,
+    risk_limit=RISK_PERCENT,
+    exposure_limit=MAX_POSITION_PERCENT,
+    fee_rate=FEE_RATE,
+    slippage_bps=SLIPPAGE_BPS,
+):
+    """Persiste un lote usando los mismos parámetros de riesgo que allocate_batch.
+
+    El llamador debe pasar los mismos límites y tasas usados al calcular
+    allocations; por defecto se usan las constantes del simulador.
 
     Se prepara una copia, se guarda una sola vez y sólo después se actualiza
     el diccionario original. Si el guardado falla, state queda intacto.
@@ -462,6 +473,25 @@ def commit_batch(state, allocations, persist_fn=None):
     initial_balance = _finite_positive(
         candidate.get("initial_balance"), "initial_balance"
     )
+
+    for name, value in (
+        ("risk_limit", risk_limit),
+        ("exposure_limit", exposure_limit),
+        ("fee_rate", fee_rate),
+        ("slippage_bps", slippage_bps),
+    ):
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            raise ValueError(f"{name} no es numérico.")
+        if not math.isfinite(number) or number < 0:
+            raise ValueError(f"{name} debe ser finito y no negativo.")
+    risk_limit = float(risk_limit)
+    exposure_limit = float(exposure_limit)
+    fee_rate = float(fee_rate)
+    slippage_bps = float(slippage_bps)
+    if risk_limit > 1 or exposure_limit > 1 or fee_rate >= 1 or slippage_bps >= 10000:
+        raise ValueError("Límite o tasa fuera de rango.")
 
     for symbol in sorted(allocations):
         item = allocations[symbol]
@@ -512,16 +542,16 @@ def commit_batch(state, allocations, persist_fn=None):
     candidate["cash_usdt"] = max(0.0, cash)
 
     open_risk = sum(
-        _position_stop_risk(position, FEE_RATE, SLIPPAGE_BPS)
+        _position_stop_risk(position, fee_rate, slippage_bps)
         for position in candidate["positions"].values()
     )
     open_exposure = sum(
         float(position["quantity"]) * float(position["entry_price"])
         for position in candidate["positions"].values()
     )
-    if open_risk > initial_balance * RISK_PERCENT + 1e-9:
+    if open_risk > initial_balance * risk_limit + 1e-9:
         return False, "El lote excede el límite agregado de riesgo."
-    if open_exposure > initial_balance * MAX_POSITION_PERCENT + 1e-9:
+    if open_exposure > initial_balance * exposure_limit + 1e-9:
         return False, "El lote excede el límite de exposición."
 
     saver = save_state if persist_fn is None else persist_fn
